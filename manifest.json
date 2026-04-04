@@ -5,8 +5,7 @@
   "description": "AI-powered job application filler. Upload your resume once. Land on any job page. Hit apply. Done.",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
@@ -15,8 +14,7 @@
     "https://*.lever.co/*",
     "https://www.linkedin.com/*",
     "https://*.workday.com/*",
-    "https://*.icims.com/*",
-    "https://*/*"
+    "https://*.icims.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -54,8 +52,15 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/*", "data/*"],
-      "matches": ["<all_urls>"]
+      "resources": ["data/field-map.json"],
+      "matches": [
+        "https://*.greenhouse.io/*",
+        "https://*.ashbyhq.com/*",
+        "https://*.lever.co/*",
+        "https://www.linkedin.com/jobs/*",
+        "https://*.workday.com/*",
+        "https://*.icims.com/*"
+      ]
     }
   ]
 }

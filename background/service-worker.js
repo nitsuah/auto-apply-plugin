@@ -3,9 +3,9 @@
  * Handles storage, Gemini API calls, and message routing.
  */
 
-import { callGemini, parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
+import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { addApplication, getApplications } from '../lib/tracker.js';
+import { addApplication } from '../lib/tracker.js';
 
 // ── Message router ────────────────────────────────────────────────────────────
 
@@ -37,15 +37,28 @@ async function handleMessage(msg) {
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
+// Maximum plain-text excerpt length stored alongside the structured resume.
+// Binary uploads (data URLs) are not excerpted to avoid quota issues.
+const MAX_RESUME_EXCERPT_LENGTH = 1000;
+
 async function handleSaveSetup({ resumeRaw, settings }) {
   // Save settings first
   await chrome.storage.local.set({ settings });
 
-  // Parse resume with Gemini
-  const structured = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key);
+  // Parse resume with Gemini, then normalize shape/defaults
+  const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key);
+  const structured = structureResume(parsedResume);
+
+  // Avoid persisting the full raw resume payload — uploaded files may be large
+  // base64-encoded PDFs/DOCXs that can exceed chrome.storage quotas.
+  // Keep only a short plain-text excerpt when the source is not a data URL.
+  const resumeExcerpt =
+    typeof resumeRaw === 'string' && !resumeRaw.startsWith('data:')
+      ? resumeRaw.slice(0, MAX_RESUME_EXCERPT_LENGTH)
+      : null;
 
   await chrome.storage.local.set({
-    resume: { raw: resumeRaw, structured },
+    resume: { structured, excerpt: resumeExcerpt },
   });
 
   return { success: true };
@@ -106,14 +119,7 @@ async function getLastAnswers() {
 }
 
 async function handleLogApplication(app) {
-  const data = await chrome.storage.local.get('applications');
-  const applications = data.applications || [];
-  applications.push({
-    id: crypto.randomUUID(),
-    ...app,
-    date: app.date || new Date().toISOString().slice(0, 10),
-  });
-  await chrome.storage.local.set({ applications });
+  await addApplication(app);
   return { success: true };
 }
 

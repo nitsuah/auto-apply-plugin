@@ -155,18 +155,24 @@ async function handleSaveSetup() {
 }
 
 /**
- * Read a File object as plain text (handles PDF/DOCX by extracting text content).
- * For binary formats we send the raw bytes to the background for Gemini to parse.
+ * Read a File object as plain text or, for binary formats (PDF/DOCX), as a
+ * base64 data URL for Gemini to parse. Legacy .doc files are rejected.
  */
 async function readFileAsText(file) {
   return new Promise((resolve, reject) => {
-    if (file.type === 'application/pdf' || file.name.endsWith('.pdf') ||
-        file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-      // For binary files, encode as base64 and let Gemini handle the rest
+    const isPdf = file.type === 'application/pdf';
+    const lowerName = file.name.toLowerCase();
+    const isDocx = lowerName.endsWith('.docx');
+    const isPdfByExt = !isPdf && lowerName.endsWith('.pdf');
+
+    if (isPdf || isPdfByExt || isDocx) {
+      // For supported binary files, encode as a base64 data URL and let Gemini handle the rest
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result); // ArrayBuffer
+      reader.onload = (e) => resolve(e.target.result); // data URL string
       reader.onerror = reject;
       reader.readAsDataURL(file); // base64 data URL
+    } else if (lowerName.endsWith('.doc')) {
+      reject(new Error('Legacy .doc files are not supported. Please upload a PDF or DOCX file.'));
     } else {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
@@ -202,6 +208,9 @@ async function loadMainScreen() {
   if (currentAts) {
     $('ats-row').style.display = 'flex';
     $('ats-status').textContent = currentAts;
+  } else {
+    $('ats-row').style.display = 'none';
+    $('ats-status').textContent = '';
   }
 
   // Tracker stats
