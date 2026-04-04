@@ -31,7 +31,7 @@ A Chrome extension that:
 1. Clone this repo (or download as ZIP)
 2. Open `chrome://extensions` → enable **Developer mode**
 3. Click **Load unpacked** → select the repo folder
-4. Click the 🤖 icon → paste your [free Gemini API key](https://aistudio.google.com/app/apikey)
+4. Click the 🤖 icon → paste your [free Gemini API key](https://aistudio.google.com/app/apikey) and leave the model on **Auto**
 5. Upload your resume (PDF, DOCX, or paste text)
 6. Navigate to a job page → click the icon → **Fill This Application**
 
@@ -80,7 +80,7 @@ apply-bot/
 ## Tech Stack
 
 - **Chrome MV3** extension
-- **Gemini 2.0 Flash** (free tier) via REST API
+- **Auto-selected Gemini 2.5 models** via REST API (`models.list` + fallback strategy)
 - Data is stored locally in `chrome.storage.local`; external requests only go to the Gemini API using your key.  
 
 - Zero dependencies, zero build step — just load and use

@@ -5,7 +5,7 @@
 
 import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { addApplication } from '../lib/tracker.js';
+import { addApplication, updateApplication, updateApplicationStatus } from '../lib/tracker.js';
 
 // ── Message router ────────────────────────────────────────────────────────────
 
@@ -28,6 +28,10 @@ async function handleMessage(msg) {
       return getLastAnswers();
     case 'LOG_APPLICATION':
       return handleLogApplication(msg.payload);
+    case 'UPDATE_APPLICATION':
+      return handleUpdateApplication(msg.payload);
+    case 'MARK_LAST_SUBMITTED':
+      return handleMarkLastSubmitted();
     case 'ATS_DETECTED':
       return { success: true }; // acknowledged — no action needed
     default:
@@ -41,35 +45,66 @@ async function handleMessage(msg) {
 // Binary uploads (data URLs) are not excerpted to avoid quota issues.
 const MAX_RESUME_EXCERPT_LENGTH = 1000;
 
-async function handleSaveSetup({ resumeRaw, settings }) {
+async function handleSaveSetup({ resumeRaw, settings, profile }) {
+  const data = await chrome.storage.local.get(['resume']);
+  const existingResume = data.resume?.structured || null;
+  const hasNewResume = typeof resumeRaw === 'string' && resumeRaw.trim() !== '';
+
   // Save settings first
   await chrome.storage.local.set({ settings });
 
-  // Parse resume with Gemini, then normalize shape/defaults
-  const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key, settings.gemini_model);
-  const structured = structureResume(parsedResume);
+  let structured = existingResume ? structureResume(existingResume) : null;
+
+  if (hasNewResume) {
+    if (!settings.gemini_api_key) {
+      throw new Error('Add a Gemini API key to parse a new resume upload, or save your core profile without parsing.');
+    }
+    const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key, settings.gemini_model);
+    const parsedStructured = structureResume(parsedResume);
+    structured = structured
+      ? mergeStructuredResume(structured, parsedStructured)
+      : parsedStructured;
+  }
+
+  if (!structured && hasAnyProfileData(profile)) {
+    structured = structureResume({});
+  }
+
+  if (!structured) {
+    throw new Error('Please upload a resume or enter your core profile details first.');
+  }
+
+  structured = applyProfileOverrides(structured, profile, settings);
 
   // Avoid persisting the full raw resume payload — uploaded files may be large
   // base64-encoded PDFs/DOCXs that can exceed chrome.storage quotas.
   // Keep only a short plain-text excerpt when the source is not a data URL.
   const resumeExcerpt =
-    typeof resumeRaw === 'string' && !resumeRaw.startsWith('data:')
+    hasNewResume && typeof resumeRaw === 'string' && !resumeRaw.startsWith('data:')
       ? resumeRaw.slice(0, MAX_RESUME_EXCERPT_LENGTH)
-      : null;
+      : data.resume?.excerpt || null;
 
   await chrome.storage.local.set({
     resume: { structured, excerpt: resumeExcerpt },
   });
 
-  return { success: true };
+  return { success: true, resume: structured };
 }
 
 async function getState() {
-  const data = await chrome.storage.local.get(['resume', 'settings', 'applications', 'lastAnswers']);
+  const data = await chrome.storage.local.get([
+    'resume',
+    'settings',
+    'applications',
+    'lastAnswers',
+    'lastFillReport',
+    'lastTrackedApplicationId',
+  ]);
   const settings = data.settings || {};
   const resume = data.resume || {};
   const applications = data.applications || [];
   const lastAnswers = data.lastAnswers || null;
+  const lastFillReport = data.lastFillReport || null;
 
   // Try to detect ATS from the active tab URL
   let currentAts = null;
@@ -80,14 +115,21 @@ async function getState() {
     // Not a tab context (e.g. options page) — ignore
   }
 
+  const profile = getProfileFromResume(resume.structured, settings);
+
   return {
     hasApiKey: !!settings.gemini_api_key,
     hasResume: !!resume.structured,
     apiKey: settings.gemini_api_key,
     geminiModel: settings.gemini_model || null,
     resumeName: resume.structured?.name || null,
+    settings,
+    profile,
+    profileCompleteness: getProfileCompleteness(profile),
     applications,
     lastAnswers,
+    lastFillReport,
+    lastTrackedApplicationId: data.lastTrackedApplicationId || null,
     currentAts,
   };
 }
@@ -97,31 +139,84 @@ async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
   const settings = data.settings || {};
   const resume = data.resume || {};
 
-  if (!settings.gemini_api_key) throw new Error('Gemini API key not set');
-  if (!resume.structured) throw new Error('Resume not parsed yet');
+  if (!resume.structured) throw new Error('Profile not set up yet');
 
-  const answers = await generateAnswers({
+  const deterministicAnswers = buildDeterministicAnswers({
     resume: resume.structured,
-    jd,
-    customQuestions: customQuestions || [],
     settings,
-    apiKey: settings.gemini_api_key,
-    model: settings.gemini_model,
+    pageUrl,
+    customQuestions: customQuestions || [],
   });
+
+  let answers = { ...deterministicAnswers };
+  let warning = null;
+
+  const shouldUseAi = !!settings.gemini_api_key && (String(jd || '').trim() || (customQuestions || []).length);
+  if (shouldUseAi) {
+    try {
+      const aiAnswers = await generateAnswers({
+        resume: resume.structured,
+        jd,
+        customQuestions: customQuestions || [],
+        settings,
+        apiKey: settings.gemini_api_key,
+        model: settings.gemini_model,
+      });
+      answers = {
+        ...deterministicAnswers,
+        ...aiAnswers,
+      };
+    } catch (err) {
+      warning = `AI fallback unavailable: ${err.message}. Filled the core profile fields only.`;
+      console.warn('[apply-bot] Falling back to deterministic answers only.', err);
+    }
+  }
 
   // Persist last answers for preview
   await chrome.storage.local.set({ lastAnswers: answers });
 
-  return { success: true, answers };
+  return { success: true, answers, warning, usedAi: shouldUseAi && !warning };
 }
 
 async function getLastAnswers() {
-  const data = await chrome.storage.local.get('lastAnswers');
-  return { answers: data.lastAnswers || null };
+  const data = await chrome.storage.local.get(['lastAnswers', 'lastFillReport']);
+  return {
+    answers: data.lastAnswers || null,
+    report: data.lastFillReport || null,
+  };
 }
 
 async function handleLogApplication(app) {
-  await addApplication(app);
+  const entry = await addApplication(app);
+  await chrome.storage.local.set({
+    lastFillReport: app.fill_report || null,
+    lastTrackedApplicationId: entry.id,
+  });
+  return { success: true, entry };
+}
+
+async function handleUpdateApplication({ id, patch }) {
+  if (!id) throw new Error('Application id is required');
+  const entry = await updateApplication(id, patch || {});
+  if (!entry) {
+    throw new Error('Could not find that tracked application.');
+  }
+  return { success: true, entry };
+}
+
+async function handleMarkLastSubmitted() {
+  const data = await chrome.storage.local.get('lastTrackedApplicationId');
+  const id = data.lastTrackedApplicationId;
+
+  if (!id) {
+    throw new Error('No recent autofill session to mark as submitted yet.');
+  }
+
+  const updated = await updateApplicationStatus(id, 'submitted');
+  if (!updated) {
+    throw new Error('Could not find the recent application entry to update.');
+  }
+
   return { success: true };
 }
 
@@ -151,4 +246,232 @@ function detectAtsFromUrl(url) {
     // Invalid URL — ignore
   }
   return null;
+}
+
+function hasAnyProfileData(profile = {}) {
+  return Object.values(profile || {}).some((value) => String(value || '').trim());
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function firstNonEmptyNumber(...values) {
+  for (const value of values) {
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
+  return 0;
+}
+
+function mergeStructuredResume(existingResume, incomingResume) {
+  const existing = structureResume(existingResume || {});
+  const incoming = structureResume(incomingResume || {});
+
+  return {
+    ...existing,
+    ...incoming,
+    name: firstNonEmpty(incoming.name, existing.name),
+    email: firstNonEmpty(incoming.email, existing.email),
+    phone: firstNonEmpty(incoming.phone, existing.phone),
+    location: firstNonEmpty(incoming.location, existing.location),
+    address_line1: firstNonEmpty(incoming.address_line1, existing.address_line1),
+    city: firstNonEmpty(incoming.city, existing.city),
+    state_region: firstNonEmpty(incoming.state_region, existing.state_region),
+    postal_code: firstNonEmpty(incoming.postal_code, existing.postal_code),
+    linkedin: firstNonEmpty(incoming.linkedin, existing.linkedin),
+    github: firstNonEmpty(incoming.github, existing.github),
+    portfolio: firstNonEmpty(incoming.portfolio, existing.portfolio),
+    pronouns: firstNonEmpty(incoming.pronouns, existing.pronouns),
+    current_company: firstNonEmpty(incoming.current_company, existing.current_company),
+    current_title: firstNonEmpty(incoming.current_title, existing.current_title),
+    summary: firstNonEmpty(incoming.summary, existing.summary),
+    years_of_experience: Math.max(Number(existing.years_of_experience) || 0, Number(incoming.years_of_experience) || 0),
+    skills: incoming.skills?.length ? incoming.skills : existing.skills,
+    experience: incoming.experience?.length ? incoming.experience : existing.experience,
+    education: incoming.education?.length ? incoming.education : existing.education,
+    certifications: incoming.certifications?.length ? incoming.certifications : existing.certifications,
+    languages: incoming.languages?.length ? incoming.languages : existing.languages,
+  };
+}
+
+function applyProfileOverrides(resume, profile = {}, settings = {}) {
+  const next = structureResume({ ...(resume || {}) });
+  next.name = firstNonEmpty(profile.full_name, profile.name, next.name);
+  next.email = firstNonEmpty(profile.email, next.email);
+  next.phone = firstNonEmpty(profile.phone, next.phone);
+  next.location = firstNonEmpty(profile.location, next.location);
+  next.address_line1 = firstNonEmpty(profile.address_line1, next.address_line1, next.address);
+  next.city = firstNonEmpty(profile.city, next.city);
+  next.state_region = firstNonEmpty(profile.state_region, profile.state, next.state_region, next.state);
+  next.postal_code = firstNonEmpty(profile.postal_code, profile.zip, next.postal_code, next.zip);
+  next.linkedin = firstNonEmpty(profile.linkedin, next.linkedin);
+  next.github = firstNonEmpty(profile.github, next.github);
+  next.portfolio = firstNonEmpty(profile.portfolio, next.portfolio);
+  next.pronouns = firstNonEmpty(profile.pronouns, next.pronouns);
+  next.current_company = firstNonEmpty(profile.current_company, next.current_company, next.experience?.[0]?.company);
+  next.current_title = firstNonEmpty(profile.current_title, next.current_title, next.experience?.[0]?.title);
+  next.years_of_experience = firstNonEmptyNumber(profile.years_of_experience, next.years_of_experience);
+  next.why_company_default = firstNonEmpty(profile.why_company_default, next.why_company_default);
+  next.why_role_default = firstNonEmpty(profile.why_role_default, next.why_role_default);
+  next.additional_info_default = firstNonEmpty(profile.additional_info_default, next.additional_info_default);
+  next.start_date = firstNonEmpty(profile.start_date, next.start_date);
+  next.requires_sponsorship = firstNonEmpty(profile.requires_sponsorship, next.requires_sponsorship);
+
+  if (!Array.isArray(next.experience)) next.experience = [];
+  if (next.current_company || next.current_title) {
+    if (!next.experience[0]) next.experience[0] = { company: '', title: '', start: '', end: 'Present', description: '' };
+    next.experience[0].company = firstNonEmpty(next.current_company, next.experience[0].company);
+    next.experience[0].title = firstNonEmpty(next.current_title, next.experience[0].title);
+  }
+
+  if (settings.work_authorization && !next.work_authorization) {
+    next.work_authorization = settings.work_authorization;
+  }
+
+  return next;
+}
+
+function getProfileFromResume(resume = {}, settings = {}) {
+  const currentExperience = Array.isArray(resume?.experience) ? resume.experience[0] || {} : {};
+  return {
+    full_name: resume?.name || '',
+    email: resume?.email || '',
+    phone: resume?.phone || '',
+    location: resume?.location || '',
+    address_line1: resume?.address_line1 || '',
+    city: resume?.city || '',
+    state_region: resume?.state_region || '',
+    postal_code: resume?.postal_code || '',
+    linkedin: resume?.linkedin || '',
+    github: resume?.github || '',
+    portfolio: resume?.portfolio || '',
+    current_company: resume?.current_company || currentExperience.company || '',
+    current_title: resume?.current_title || currentExperience.title || '',
+    years_of_experience: resume?.years_of_experience ? String(resume.years_of_experience) : '',
+    pronouns: resume?.pronouns || '',
+    why_company_default: resume?.why_company_default || '',
+    why_role_default: resume?.why_role_default || '',
+    additional_info_default: resume?.additional_info_default || '',
+    start_date: resume?.start_date || '',
+    requires_sponsorship: resume?.requires_sponsorship || '',
+    work_authorization: settings.work_authorization || '',
+  };
+}
+
+function getProfileCompleteness(profile = {}) {
+  const requiredKeys = ['full_name', 'email', 'phone', 'location', 'linkedin', 'current_company', 'current_title', 'work_authorization'];
+  const completed = requiredKeys.filter((key) => String(profile[key] || '').trim()).length;
+  return { completed, total: requiredKeys.length };
+}
+
+function buildDeterministicAnswers({ resume, settings, customQuestions = [] }) {
+  const profile = getProfileFromResume(resume, settings);
+  const fullName = profile.full_name;
+  const salaryMin = settings.preferred_salary_min ? String(settings.preferred_salary_min) : '';
+  const salaryMax = settings.preferred_salary_max ? String(settings.preferred_salary_max) : '';
+
+  const baseAnswers = {
+    first_name: fullName.split(' ')[0] || '',
+    last_name: fullName.split(' ').slice(1).join(' ') || '',
+    full_name: fullName,
+    name: fullName,
+    email: profile.email,
+    phone: profile.phone,
+    location: profile.location,
+    address: profile.address_line1,
+    address_line1: profile.address_line1,
+    city: profile.city,
+    state: profile.state_region,
+    state_region: profile.state_region,
+    zip: profile.postal_code,
+    postal_code: profile.postal_code,
+    linkedin: profile.linkedin,
+    github: profile.github,
+    portfolio: profile.portfolio,
+    current_company: profile.current_company,
+    current_title: profile.current_title,
+    years_of_experience: profile.years_of_experience || '',
+    pronouns: profile.pronouns,
+    work_authorization: settings.work_authorization || '',
+    preferred_location: profile.location,
+    salary_expectation: [salaryMin, salaryMax].filter(Boolean).join(' - '),
+    desired_salary_min: salaryMin,
+    desired_salary_max: salaryMax,
+    remote_preference: settings.preferred_remote ? 'Remote' : '',
+    start_date: profile.start_date || '',
+    availability: profile.start_date || '',
+    why_company: profile.why_company_default || '',
+    why_role: profile.why_role_default || '',
+    additional_information: profile.additional_info_default || '',
+    accommodations: profile.additional_info_default || '',
+    sponsorship: profile.requires_sponsorship || '',
+    requires_sponsorship: profile.requires_sponsorship || '',
+  };
+
+  return {
+    ...baseAnswers,
+    custom_answers: buildDefaultCustomAnswers(customQuestions, baseAnswers),
+  };
+}
+
+function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}) {
+  const customAnswers = {};
+
+  for (const question of customQuestions) {
+    const text = String(question || '').trim();
+    const lower = text.toLowerCase();
+    let answer = '';
+
+    if (/legally authorized|authorized to work|eligible to work|work authorization/.test(lower)) {
+      answer = wantsBinaryAnswer(lower) ? 'Yes' : baseAnswers.work_authorization;
+    } else if (/sponsorship|sponsor|visa transfer|relocation assistance/.test(lower)) {
+      const needsSponsorship = /^yes$/i.test(baseAnswers.requires_sponsorship || '');
+      answer = wantsBinaryAnswer(lower) ? (needsSponsorship ? 'Yes' : 'No') : (baseAnswers.requires_sponsorship || 'No');
+    } else if (/beginning of .*salary|salary range.*beginning|minimum salary/.test(lower)) {
+      answer = baseAnswers.desired_salary_min;
+    } else if (/end of .*salary|salary range.*end|maximum salary/.test(lower)) {
+      answer = baseAnswers.desired_salary_max;
+    } else if (/salary|compensation|annual base/.test(lower)) {
+      answer = baseAnswers.salary_expectation;
+    } else if (/why .*company|what makes you excited|why 1password|why do you want to work/.test(lower)) {
+      answer = baseAnswers.why_company;
+    } else if (/why .*role|good fit|why this role|strong candidate/.test(lower)) {
+      answer = baseAnswers.why_role;
+    } else if (/years? of (professional )?experience|how many years/.test(lower)) {
+      answer = baseAnswers.years_of_experience;
+    } else if (/cybersecurity saas/.test(lower)) {
+      answer = wantsBinaryAnswer(lower) ? 'Yes' : baseAnswers.why_role;
+    } else if (/size of company|most recently worked for/.test(lower)) {
+      answer = '101-999';
+    } else if (/what brought you to this job posting|how did you hear/.test(lower)) {
+      answer = 'Company careers page';
+    } else if (/current job title|job title/.test(lower)) {
+      answer = baseAnswers.current_title;
+    } else if (/current company|current employer|most recently/.test(lower)) {
+      answer = baseAnswers.current_company;
+    } else if (/start date|when can you start|availability|notice period/.test(lower)) {
+      answer = baseAnswers.start_date || baseAnswers.availability;
+    } else if (/pronouns/.test(lower)) {
+      answer = baseAnswers.pronouns;
+    } else if (/additional information|accommodations/.test(lower)) {
+      answer = baseAnswers.additional_information;
+    } else if (/background check|recruiting privacy|i understand|i agree/.test(lower)) {
+      answer = wantsBinaryAnswer(lower) ? 'Yes' : 'I understand';
+    }
+
+    if (answer) {
+      customAnswers[text] = answer;
+    }
+  }
+
+  return customAnswers;
+}
+
+function wantsBinaryAnswer(text) {
+  return /^(do|are|can|will|have|did|would|should|is)\b/.test(String(text || '').trim());
 }

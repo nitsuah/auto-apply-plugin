@@ -26,10 +26,19 @@
   "mobile number": "phone",
   "telephone": "phone",
 
-  "address": "location",
-  "city": "location",
+  "street address": "address_line1",
+  "address line 1": "address_line1",
+  "address": "address_line1",
+  "city": "city",
+  "state": "state_region",
+  "province": "state_region",
+  "region": "state_region",
+  "zip": "postal_code",
+  "zip code": "postal_code",
+  "postal code": "postal_code",
   "location": "location",
   "current location": "location",
+  "pronouns": "pronouns",
 
   "linkedin": "linkedin",
   "linkedin profile": "linkedin",
@@ -51,6 +60,8 @@
   "why are you interested": "why_company",
   "why this company": "why_company",
   "why us": "why_company",
+  "what makes you excited to work": "why_company",
+  "why 1password": "why_company",
 
   "why are you a good fit": "why_role",
   "why should we hire": "why_role",
@@ -67,6 +78,7 @@
 
   "years of experience": "years_of_experience",
   "years experience": "years_of_experience",
+  "professional experience": "years_of_experience",
   "how many years": "years_of_experience",
 
   "work authorization": "work_authorization",
@@ -83,14 +95,38 @@
   "desired salary": "salary_expectation",
   "compensation": "salary_expectation",
   "expected salary": "salary_expectation",
+  "beginning of your desired annual base salary range": "desired_salary_min",
+  "end of your desired annual base salary range": "desired_salary_max",
+  "salary range minimum": "desired_salary_min",
+  "salary range maximum": "desired_salary_max",
+
+  "current company": "current_company",
+  "current employer": "current_company",
+  "current job title": "current_title",
+  "job title": "current_title",
+  "x formerly twitter": "portfolio",
+  "twitter": "portfolio",
+  "other website": "portfolio",
 
   "start date": "start_date",
   "available to start": "start_date",
   "when can you start": "start_date",
   "availability": "start_date",
+  "notice period": "start_date",
+  "additional information": "additional_information",
+  "accommodations": "additional_information",
 
   "remote": "preferred_location",
   "preferred location": "preferred_location",
   "on-site": "preferred_location",
-  "hybrid": "preferred_location"
+  "hybrid": "preferred_location",
+  "notice period": "start_date",
+  "available to start work": "start_date",
+  "relocation": "preferred_location",
+  "willing to relocate": "preferred_location",
+  "what brought you to this job posting": "additional_information",
+  "how did you hear about this job": "additional_information",
+  "source": "additional_information",
+  "cybersecurity saas": "custom_answers",
+  "background check": "custom_answers"
 }

@@ -6,6 +6,11 @@
  * classic scripts and do not support top-level import/export).
  */
 
+const DRAFT_STORAGE_KEY = 'applicationDrafts';
+let draftSaveTimer = null;
+let draftRestoreTimer = null;
+let draftPersistenceStarted = false;
+
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
 /**
@@ -63,6 +68,7 @@ async function handleFillForm() {
   }
 
   const answers = resp.answers;
+  const warning = resp.warning || null;
 
   // 4. Merge custom answers into flat map
   if (answers.custom_answers && typeof answers.custom_answers === 'object') {
@@ -73,7 +79,7 @@ async function handleFillForm() {
 
   // 5. Fill the form
   const fieldMap = await loadFieldMap();
-  const { filled } = fillForm(answers, fieldMap);
+  const report = fillForm(answers, fieldMap);
 
   // 6. Log the application
   await chrome.runtime.sendMessage({
@@ -82,20 +88,21 @@ async function handleFillForm() {
       company,
       title,
       url: location.href,
-      status: 'applied',
+      status: 'filled',
       jd_snippet: jd.slice(0, 300),
       answers_generated: true,
+      fill_report: report,
     },
   });
 
-  return { success: true, filled, company, title };
+  return { success: true, filled: report.filled, company, title, warning, report };
 }
 
 async function handleInjectAnswers(answers) {
   if (!answers) throw new Error('No answers to inject');
   const fieldMap = await loadFieldMap();
-  const { filled } = fillForm(answers, fieldMap);
-  return { success: true, filled };
+  const report = fillForm(answers, fieldMap);
+  return { success: true, filled: report.filled, report };
 }
 
 // ── Load field-map.json ───────────────────────────────────────────────────────
@@ -210,6 +217,7 @@ function collectCustomQuestions() {
     'website', 'resume', 'cv', 'cover letter', 'salary', 'compensation', 'start date',
     'available', 'work authorization', 'visa', 'sponsorship', 'years of experience',
   ];
+  const SENSITIVE = ['gender', 'race', 'ethnic', 'disability', 'veteran', 'military', 'lgbt', 'transgender', 'demographic'];
   const QUESTION_STARTERS = ['why', 'what', 'how', 'describe', 'tell us', 'explain', 'share', 'please provide'];
   const questions = [];
 
@@ -218,6 +226,7 @@ function collectCustomQuestions() {
     if (!text || text.length < 10 || text.length > 500) continue;
     const lower = text.toLowerCase();
     if (STANDARD.some((s) => lower.includes(s))) continue;
+    if (SENSITIVE.some((s) => lower.includes(s))) continue;
     if (text.endsWith('?') || QUESTION_STARTERS.some((s) => lower.startsWith(s))) {
       questions.push(text);
     }
@@ -237,20 +246,44 @@ function fillForm(answers, fieldMap) {
   });
 
   let filled = 0;
-  let skipped = 0;
+  let preserved = 0;
+  const unresolved = [];
 
   for (const input of inputs) {
-    const key = resolveFieldKey(input, fieldMap);
-    if (!key) { skipped++; continue; }
+    const key = resolveFieldKey(input, fieldMap, answers);
+    if (!key) {
+      unresolved.push(describeField(input));
+      continue;
+    }
+
     const value = answers[key];
-    if (value === undefined || value === null || value === '') { skipped++; continue; }
+    if (value === undefined || value === null || value === '') {
+      unresolved.push(describeField(input));
+      continue;
+    }
+
+    if (hasMeaningfulValue(input)) {
+      preserved++;
+      continue;
+    }
+
     const didFill = setFieldValue(input, String(value));
-    if (didFill) { filled++; highlightField(input); } else { skipped++; }
+    if (didFill) {
+      filled++;
+      highlightField(input);
+    } else {
+      unresolved.push(describeField(input));
+    }
   }
-  return { filled, skipped };
+
+  const uniqueUnresolved = [...new Set(unresolved.filter(Boolean))];
+  const skipped = preserved + uniqueUnresolved.length;
+  console.info(`[apply-bot] Filled ${filled} field(s), preserved ${preserved}, unresolved ${uniqueUnresolved.length}.`);
+  queueDraftSave();
+  return { filled, preserved, skipped, unresolved: uniqueUnresolved };
 }
 
-function resolveFieldKey(el, fieldMap) {
+function resolveFieldKey(el, fieldMap, answers = {}) {
   const candidates = [
     el.name,
     el.id,
@@ -258,15 +291,55 @@ function resolveFieldKey(el, fieldMap) {
     el.getAttribute('aria-label'),
     el.getAttribute('data-label'),
     getAssociatedLabelText(el),
-  ].filter(Boolean).map((s) => s.toLowerCase().trim());
+    getFieldContextText(el),
+  ].filter(Boolean);
 
-  for (const candidate of candidates) {
-    for (const [pattern, key] of Object.entries(fieldMap)) {
-      if (pattern.startsWith('//')) continue; // skip comment keys
-      if (candidate.includes(pattern)) return key;
+  return resolveAnswerKeyFromCandidates(candidates, fieldMap, answers);
+}
+
+function resolveAnswerKeyFromCandidates(candidates, fieldMap = {}, answers = {}) {
+  const normalizedCandidates = candidates
+    .map((value) => normalizeLookupText(value))
+    .filter(Boolean);
+
+  for (const candidate of normalizedCandidates) {
+    for (const key of Object.keys(answers || {})) {
+      const normalizedKey = normalizeLookupText(key);
+      if (!normalizedKey || normalizedKey.length < 4) continue;
+      if (candidate === normalizedKey) {
+        return key;
+      }
     }
   }
+
+  const sortedEntries = Object.entries(fieldMap).sort((a, b) => b[0].length - a[0].length);
+
+  for (const candidate of normalizedCandidates) {
+    for (const [pattern, key] of sortedEntries) {
+      if (pattern.startsWith('//')) continue;
+      if (candidate.includes(normalizeLookupText(pattern))) return key;
+    }
+  }
+
+  for (const candidate of normalizedCandidates) {
+    for (const key of Object.keys(answers || {})) {
+      const normalizedKey = normalizeLookupText(key);
+      if (!normalizedKey || normalizedKey.length < 4) continue;
+      if (candidate.includes(normalizedKey) || normalizedKey.includes(candidate)) {
+        return key;
+      }
+    }
+  }
+
   return null;
+}
+
+function normalizeLookupText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function getAssociatedLabelText(el) {
@@ -277,6 +350,23 @@ function getAssociatedLabelText(el) {
   return el.closest('label')?.textContent || null;
 }
 
+function getFieldContextText(el) {
+  const containers = [
+    el.closest('fieldset'),
+    el.closest('[role="radiogroup"]'),
+    el.closest('[role="group"]'),
+    el.closest('section'),
+    el.parentElement,
+  ].filter(Boolean);
+
+  for (const container of containers) {
+    const text = container.innerText?.trim();
+    if (text && text.length <= 300) return text;
+  }
+
+  return null;
+}
+
 function setFieldValue(el, value) {
   const tag = el.tagName.toLowerCase();
   const type = (el.getAttribute('type') || '').toLowerCase();
@@ -284,21 +374,43 @@ function setFieldValue(el, value) {
   if (tag === 'select') return setSelectValue(el, value);
 
   if (type === 'checkbox') {
-    const checked = /true|yes|1/i.test(value);
-    if (el.checked !== checked) { el.checked = checked; fireEvents(el, ['change']); }
+    const checked = /true|yes|1|agree|understand/i.test(value);
+    if (el.checked !== checked) { el.checked = checked; fireEvents(el, ['input', 'change', 'click']); }
     return true;
   }
 
   if (type === 'radio') {
     if (!el.name) return false;
-    const radios = document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`);
+    const radios = Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`));
+    const normalizedValue = normalizeLookupText(value);
+
     for (const radio of radios) {
-      if (radio.value.toLowerCase().includes(value.toLowerCase())) {
+      const radioText = normalizeLookupText(`${radio.value} ${getRadioOptionText(radio)}`);
+      if (radioText === normalizedValue || radioText.includes(normalizedValue) || normalizedValue.includes(radioText)) {
         radio.checked = true;
-        fireEvents(radio, ['change']);
+        fireEvents(radio, ['input', 'change', 'click']);
         return true;
       }
     }
+
+    const wantsYes = /^(true|yes|y|1|agree|i understand)$/i.test(value);
+    const wantsNo = /^(false|no|n|0)$/i.test(value);
+    if (wantsYes || wantsNo) {
+      for (const radio of radios) {
+        const radioText = normalizeLookupText(`${radio.value} ${getRadioOptionText(radio)}`);
+        if (wantsYes && /(yes|true|agree|understand)/.test(radioText)) {
+          radio.checked = true;
+          fireEvents(radio, ['input', 'change', 'click']);
+          return true;
+        }
+        if (wantsNo && /(no|false)/.test(radioText)) {
+          radio.checked = true;
+          fireEvents(radio, ['input', 'change', 'click']);
+          return true;
+        }
+      }
+    }
+
     return false;
   }
 
@@ -308,6 +420,42 @@ function setFieldValue(el, value) {
   if (setter) setter.call(el, value); else el.value = value;
   fireEvents(el, ['input', 'change', 'blur']);
   return true;
+}
+
+function getRadioOptionText(radio) {
+  if (radio.id) {
+    const label = document.querySelector(`label[for="${CSS.escape(radio.id)}"]`);
+    if (label) return label.textContent || '';
+  }
+  return radio.closest('label')?.textContent || radio.parentElement?.textContent || '';
+}
+
+function hasMeaningfulValue(el) {
+  const tag = el.tagName.toLowerCase();
+  const type = (el.getAttribute('type') || '').toLowerCase();
+
+  if (type === 'radio' && el.name) {
+    return Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`))
+      .some((radio) => radio.checked);
+  }
+
+  if (type === 'checkbox') {
+    return getCheckboxGroupMembers(el).some((checkbox) => checkbox.checked);
+  }
+
+  if (tag === 'select') return !!String(el.value || '').trim();
+  return !!String(el.value || '').trim();
+}
+
+function describeField(el) {
+  return (
+    getAssociatedLabelText(el) ||
+    el.getAttribute('aria-label') ||
+    el.getAttribute('placeholder') ||
+    el.name ||
+    el.id ||
+    'unlabeled field'
+  ).trim();
 }
 
 function setSelectValue(el, value) {
@@ -349,9 +497,231 @@ function detectAts() {
   return 'Generic';
 }
 
+// ── Draft caching / restoration ──────────────────────────────────────────────
+
+function initDraftPersistence() {
+  if (draftPersistenceStarted) return;
+  draftPersistenceStarted = true;
+
+  const handleFieldEvent = (event) => {
+    const target = event.target;
+    if (isDraftableField(target)) {
+      queueDraftSave();
+    }
+  };
+
+  document.addEventListener('input', handleFieldEvent, true);
+  document.addEventListener('change', handleFieldEvent, true);
+  document.addEventListener('blur', handleFieldEvent, true);
+  window.addEventListener('beforeunload', saveDraftNow);
+  window.addEventListener('pageshow', scheduleDraftRestore);
+
+  const observer = new MutationObserver((mutations) => {
+    const addedFormFields = mutations.some((mutation) =>
+      Array.from(mutation.addedNodes || []).some((node) =>
+        node.nodeType === Node.ELEMENT_NODE &&
+        (node.matches?.('input, textarea, select') || node.querySelector?.('input, textarea, select'))
+      )
+    );
+
+    if (addedFormFields) {
+      scheduleDraftRestore();
+    }
+  });
+
+  observer.observe(document.documentElement || document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  scheduleDraftRestore();
+}
+
+function isDraftableField(el) {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  const tag = el.tagName?.toLowerCase();
+  if (!['input', 'textarea', 'select'].includes(tag)) return false;
+
+  const type = (el.getAttribute('type') || '').toLowerCase();
+  if (['hidden', 'submit', 'button', 'reset', 'file', 'password'].includes(type)) return false;
+  if (el.disabled) return false;
+  return true;
+}
+
+function getDraftPageKey() {
+  try {
+    const url = new URL(location.href);
+    return `${url.origin}${url.pathname}`.replace(/\/$/, '') || url.origin;
+  } catch {
+    return location.href.split('#')[0].split('?')[0];
+  }
+}
+
+function getDraftFieldKey(el) {
+  const tag = el.tagName.toLowerCase();
+  const type = (el.getAttribute('type') || '').toLowerCase();
+  const base = normalizeLookupText([
+    el.name,
+    el.id,
+    el.getAttribute('placeholder'),
+    el.getAttribute('aria-label'),
+    el.getAttribute('data-label'),
+    getAssociatedLabelText(el),
+    getFieldContextText(el),
+  ].filter(Boolean).join(' | '));
+
+  if (type === 'radio' || type === 'checkbox') {
+    return `${type}:${base || el.name || el.id || 'field'}`;
+  }
+
+  return `${tag}:${type || tag}:${base || el.name || el.id || 'field'}`;
+}
+
+function getChoiceIdentity(el) {
+  return String(getRadioOptionText(el) || el.value || el.id || '').trim();
+}
+
+function getCheckboxGroupMembers(el) {
+  if (!el) return [];
+  const type = (el.getAttribute('type') || '').toLowerCase();
+  if (type !== 'checkbox') return [el];
+
+  if (el.name) {
+    return Array.from(document.querySelectorAll(`input[type="checkbox"][name="${CSS.escape(el.name)}"]`));
+  }
+
+  const groupKey = getDraftFieldKey(el);
+  return collectDraftableFields().filter((field) => getDraftFieldKey(field) === groupKey);
+}
+
+function collectDraftableFields() {
+  return Array.from(document.querySelectorAll('input, textarea, select')).filter(isDraftableField);
+}
+
+function queueDraftSave() {
+  if (draftSaveTimer) clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    saveDraftNow().catch((err) => console.warn('[apply-bot] Failed to save page draft.', err));
+  }, 150);
+}
+
+async function saveDraftNow() {
+  if (!chrome?.storage?.local) return;
+
+  const fields = {};
+  const processedGroups = new Set();
+
+  for (const el of collectDraftableFields()) {
+    const key = getDraftFieldKey(el);
+    if (!key) continue;
+
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    if ((type === 'radio' || type === 'checkbox') && processedGroups.has(key)) continue;
+
+    if (type === 'radio') {
+      processedGroups.add(key);
+      const radios = el.name
+        ? Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`))
+        : [el];
+      const checked = radios.find((radio) => radio.checked);
+      if (checked) fields[key] = getChoiceIdentity(checked);
+      continue;
+    }
+
+    if (type === 'checkbox') {
+      processedGroups.add(key);
+      const members = getCheckboxGroupMembers(el);
+      if (members.length > 1) {
+        const selected = members.filter((member) => member.checked).map(getChoiceIdentity).filter(Boolean);
+        if (selected.length) fields[key] = selected;
+      } else {
+        fields[key] = el.checked;
+      }
+      continue;
+    }
+
+    const value = String(el.value || '');
+    if (value.trim()) {
+      fields[key] = value;
+    }
+  }
+
+  const data = await chrome.storage.local.get(DRAFT_STORAGE_KEY);
+  const drafts = data[DRAFT_STORAGE_KEY] || {};
+  drafts[getDraftPageKey()] = {
+    updatedAt: new Date().toISOString(),
+    fields,
+  };
+
+  const entries = Object.entries(drafts).sort((a, b) =>
+    String(b[1]?.updatedAt || '').localeCompare(String(a[1]?.updatedAt || ''))
+  );
+  const trimmedDrafts = Object.fromEntries(entries.slice(0, 50));
+
+  await chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: trimmedDrafts });
+}
+
+function scheduleDraftRestore() {
+  if (draftRestoreTimer) clearTimeout(draftRestoreTimer);
+  draftRestoreTimer = setTimeout(() => {
+    restoreDraftValues().catch((err) => console.warn('[apply-bot] Failed to restore page draft.', err));
+  }, 120);
+}
+
+async function restoreDraftValues() {
+  if (!chrome?.storage?.local) return;
+
+  const data = await chrome.storage.local.get(DRAFT_STORAGE_KEY);
+  const draft = data[DRAFT_STORAGE_KEY]?.[getDraftPageKey()];
+  if (!draft?.fields) return;
+
+  const processedGroups = new Set();
+
+  for (const el of collectDraftableFields()) {
+    const key = getDraftFieldKey(el);
+    if (!key || processedGroups.has(key) || !(key in draft.fields)) continue;
+    if (hasMeaningfulValue(el)) continue;
+
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    const storedValue = draft.fields[key];
+
+    if (type === 'radio') {
+      processedGroups.add(key);
+      if (storedValue) setFieldValue(el, String(storedValue));
+      continue;
+    }
+
+    if (type === 'checkbox') {
+      processedGroups.add(key);
+      if (Array.isArray(storedValue)) {
+        const selected = storedValue.map((value) => normalizeLookupText(value));
+        for (const member of getCheckboxGroupMembers(el)) {
+          const shouldCheck = selected.includes(normalizeLookupText(getChoiceIdentity(member)));
+          if (member.checked !== shouldCheck) {
+            member.checked = shouldCheck;
+            fireEvents(member, ['input', 'change', 'click']);
+          }
+        }
+      } else if (typeof storedValue === 'boolean') {
+        if (el.checked !== storedValue) {
+          el.checked = storedValue;
+          fireEvents(el, ['input', 'change', 'click']);
+        }
+      }
+      continue;
+    }
+
+    if (storedValue) {
+      setFieldValue(el, String(storedValue));
+    }
+  }
+}
+
 // ── Auto-detect on load ───────────────────────────────────────────────────────
 
 (function init() {
+  initDraftPersistence();
+
   const ats = detectAts();
   if (ats !== 'Generic') {
     chrome.runtime.sendMessage({ type: 'ATS_DETECTED', payload: { ats } }).catch(() => {});

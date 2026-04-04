@@ -37,10 +37,11 @@
       <div class="form-group">
         <label for="gemini-model">Gemini Model</label>
         <select id="gemini-model">
-          <option value="gemini-1.5-flash">gemini-1.5-flash (free: 1,500 req/day)</option>
-          <option value="gemini-2.0-flash" selected>gemini-2.0-flash (free: 20 req/day)</option>
-          <option value="gemini-1.5-pro">gemini-1.5-pro (free: 50 req/day)</option>
-          <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash (free: 20 req/day)</option>
+          <option value="auto" selected>Auto-detect best available (recommended)</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash (best default)</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (fastest / cheapest)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (highest quality)</option>
+          <option value="gemini-flash-latest">gemini-flash-latest (rolling alias)</option>
         </select>
       </div>
 
@@ -67,6 +68,30 @@
         </div>
       </div>
 
+      <div class="form-group">
+        <label>Core profile details</label>
+        <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
+        <div class="profile-grid">
+          <input type="text" id="profile-full-name" placeholder="Full name" />
+          <input type="text" id="profile-email" placeholder="Email" />
+          <input type="text" id="profile-phone" placeholder="Phone" />
+          <input type="text" id="profile-location" placeholder="Current location" />
+          <input type="text" id="profile-address-line1" placeholder="Street address" />
+          <div class="inline-fields compact-fields">
+            <input type="text" id="profile-city" placeholder="City" />
+            <input type="text" id="profile-state-region" placeholder="State" />
+            <input type="text" id="profile-postal-code" placeholder="ZIP" />
+          </div>
+          <input type="text" id="profile-linkedin" placeholder="LinkedIn URL" />
+          <input type="text" id="profile-github" placeholder="GitHub URL" />
+          <input type="text" id="profile-portfolio" placeholder="Portfolio / website" />
+          <input type="text" id="profile-current-company" placeholder="Current company" />
+          <input type="text" id="profile-current-title" placeholder="Current job title" />
+          <input type="number" id="profile-years-of-experience" placeholder="Years of experience" min="0" step="1" />
+          <input type="text" id="profile-pronouns" placeholder="Pronouns (optional)" />
+        </div>
+      </div>
+
       <div class="form-group settings-group">
         <label>Preferences (optional)</label>
         <div class="inline-fields">
@@ -89,8 +114,24 @@
         </label>
       </div>
 
+      <div class="form-group">
+        <label>Saved answer defaults</label>
+        <p class="helper-text">Reusable responses for the common prompts that show up across ATSes.</p>
+        <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
+        <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
+        <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
+        <div class="inline-fields" style="margin-top:8px">
+          <input type="text" id="default-start-date" placeholder="Start date / availability" />
+          <select id="default-sponsorship">
+            <option value="">Sponsorship need…</option>
+            <option value="No">No sponsorship required</option>
+            <option value="Yes">Will require sponsorship</option>
+          </select>
+        </div>
+      </div>
+
       <button id="save-setup-btn" class="btn btn-primary btn-full">
-        Save &amp; Parse Resume ✨
+        Save Profile / Parse Resume ✨
       </button>
       <p id="setup-status" class="status-msg"></p>
     </section>
@@ -106,10 +147,15 @@
           <span class="status-label">API Key</span>
           <span id="api-status" class="badge badge-ok">✅ Connected</span>
         </div>
+        <div class="status-row">
+          <span class="status-label">Core Profile</span>
+          <span id="profile-status" class="badge badge-info">—</span>
+        </div>
         <div class="status-row" id="ats-row" style="display:none">
           <span class="status-label">Detected ATS</span>
           <span id="ats-status" class="badge badge-info">—</span>
         </div>
+        <p id="ats-hint" class="helper-text hidden"></p>
       </div>
 
       <div class="action-btns">
@@ -126,6 +172,15 @@
 
       <p id="fill-status" class="status-msg"></p>
 
+      <div id="fill-report-card" class="report-card hidden">
+        <div class="report-header">
+          <span class="report-title">Last fill review</span>
+          <button id="mark-submitted-btn" class="btn btn-ghost btn-sm">✅ Mark Submitted</button>
+        </div>
+        <p id="fill-report-summary" class="report-summary"></p>
+        <ul id="fill-report-unresolved" class="report-list"></ul>
+      </div>
+
       <!-- Tracker summary -->
       <div class="tracker-summary">
         <div class="tracker-stats">
@@ -135,11 +190,11 @@
           </div>
           <div class="stat">
             <span id="stat-applied" class="stat-num">0</span>
-            <span class="stat-label">Applied</span>
+            <span class="stat-label">Filled</span>
           </div>
           <div class="stat">
             <span id="stat-pending" class="stat-num">0</span>
-            <span class="stat-label">Pending</span>
+            <span class="stat-label">Needs review</span>
           </div>
         </div>
         <button id="view-tracker-btn" class="btn btn-ghost btn-full">
@@ -155,22 +210,10 @@
         <h2 class="section-title">Applications</h2>
         <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
       </div>
-      <div class="table-wrap">
-        <table id="tracker-table">
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="tracker-body">
-            <!-- rows injected by JS -->
-          </tbody>
-        </table>
-        <p id="tracker-empty" class="empty-msg hidden">No applications tracked yet.</p>
+      <div class="tracker-list" id="tracker-body">
+        <!-- cards injected by JS -->
       </div>
+      <p id="tracker-empty" class="empty-msg hidden">No applications tracked yet.</p>
     </section>
 
     <!-- Preview Screen -->
@@ -178,6 +221,13 @@
       <div class="tracker-header">
         <button id="preview-back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">Answer Preview</h2>
+      </div>
+      <div id="preview-report-card" class="report-card hidden" style="margin-bottom:12px">
+        <div class="report-header">
+          <span class="report-title">Review notes</span>
+        </div>
+        <p id="preview-report-summary" class="report-summary"></p>
+        <ul id="preview-report-unresolved" class="report-list"></ul>
       </div>
       <div id="preview-content" class="preview-content">
         <p class="empty-msg">Generate answers first by clicking "Fill This Application".</p>

@@ -120,6 +120,12 @@ textarea {
   resize: vertical;
 }
 
+.helper-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 .hint-link {
   display: inline-block;
   margin-top: 4px;
@@ -197,6 +203,19 @@ textarea {
 
 .inline-fields input {
   flex: 1;
+}
+
+.compact-fields {
+  margin-bottom: 0;
+}
+
+.compact-fields input {
+  min-width: 0;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 8px;
 }
 
 .sep {
@@ -366,6 +385,45 @@ textarea {
   color: var(--accent);
 }
 
+/* ── Fill report ── */
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.report-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-summary {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.report-list {
+  margin-left: 16px;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.report-list li + li {
+  margin-top: 4px;
+}
+
 /* ── Tracker summary ── */
 .tracker-summary {
   border-top: 1px solid var(--border);
@@ -399,7 +457,7 @@ textarea {
   letter-spacing: 0.06em;
 }
 
-/* ── Tracker table ── */
+/* ── Tracker cards ── */
 .tracker-header {
   display: flex;
   align-items: center;
@@ -412,49 +470,59 @@ textarea {
   margin-bottom: 0;
 }
 
-.table-wrap {
-  overflow-x: auto;
+.tracker-list {
+  display: grid;
+  gap: 10px;
   max-height: 340px;
   overflow-y: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+.tracker-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
 }
 
-thead th {
-  background: var(--surface);
-  color: var(--text-muted);
+.tracker-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tracker-card-date {
   font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  color: var(--text-muted);
 }
 
-tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
+.tracker-card-fields {
+  display: grid;
+  gap: 8px;
 }
 
-tbody tr:hover {
-  background: var(--surface);
+.tracker-card-fields input,
+.tracker-card-fields select {
+  width: 100%;
 }
 
-tbody td {
-  padding: 7px 8px;
-  color: var(--text);
-  vertical-align: middle;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.tracker-card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tracker-link {
+  font-size: 11px;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.tracker-link:hover {
+  text-decoration: underline;
 }
 
 /* ── Empty / preview ── */
