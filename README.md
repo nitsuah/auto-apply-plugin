@@ -88,7 +88,8 @@ apply-bot/
 
 - **Chrome MV3** extension
 - **Gemini 2.0 Flash** (free tier) via REST API
-- All data stored locally in `chrome.storage.local` — nothing leaves your browser
+- Data is stored locally in `chrome.storage.local`; external requests only go to the Gemini API using your key.  
+
 - Zero dependencies, zero build step — just load and use
 
 ---
