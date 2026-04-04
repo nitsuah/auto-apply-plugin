@@ -290,6 +290,7 @@ function setFieldValue(el, value) {
   }
 
   if (type === 'radio') {
+    if (!el.name) return false;
     const radios = document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`);
     for (const radio of radios) {
       if (radio.value.toLowerCase().includes(value.toLowerCase())) {

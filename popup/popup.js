@@ -280,7 +280,7 @@ async function renderTracker() {
       <td title="${esc(app.company)}">${esc(app.company || '—')}</td>
       <td title="${esc(app.title)}">${esc(app.title || '—')}</td>
       <td>${statusEmoji}</td>
-      <td>${app.date ? app.date.slice(0, 10) : '—'}</td>
+      <td>${esc(formatDate(app.date))}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -342,4 +342,21 @@ function esc(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Format a date string (ISO or any valid date) for display as YYYY-MM-DD.
+ * Returns '—' if the value is falsy or not a valid date.
+ * @param {string|null|undefined} dateStr
+ * @returns {string}
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr).slice(0, 10) || '—';
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return '—';
+  }
 }
