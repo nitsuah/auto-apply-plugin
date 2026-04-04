@@ -47,14 +47,7 @@ apply-bot/
 │   ├── popup.js
 │   └── popup.css
 ├── content/               # Runs on job pages
-│   ├── content.js         # Form detection + injection
-│   └── ats/               # ATS-specific helpers
-│       ├── greenhouse.js
-│       ├── ashby.js
-│       ├── lever.js
-│       ├── workday.js
-│       ├── icims.js
-│       └── generic.js
+│   └── content.js         # Form detection + injection
 ├── background/
 │   └── service-worker.js  # API calls, storage management
 ├── lib/
@@ -99,8 +92,8 @@ apply-bot/
 ```json
 {
   "resume": {
-    "raw": "...",
-    "structured": { "name": "", "email": "", "skills": [], "experience": [], ... }
+    "structured": { "name": "", "email": "", "skills": [], "experience": [], ... },
+    "excerpt": "plain-text excerpt (≤1000 chars, null for binary uploads)"
   },
   "settings": {
     "gemini_api_key": "...",
