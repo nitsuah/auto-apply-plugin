@@ -28,8 +28,9 @@ export function leverExtraSelectors() {
  * @returns {boolean}
  */
 export function isLeverPage() {
+  const { hostname } = location;
   return (
-    location.hostname.includes('lever.co') ||
+    hostname === 'lever.co' || hostname.endsWith('.lever.co') ||
     !!document.querySelector('.lever-apply-form, [class*="lever"]')
   );
 }

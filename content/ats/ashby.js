@@ -27,9 +27,10 @@ export function ashbyExtraSelectors() {
  * @returns {boolean}
  */
 export function isAshbyPage() {
+  const { hostname } = location;
   return (
-    location.hostname.includes('ashbyhq.com') ||
-    location.hostname.includes('ashby.io') ||
+    hostname === 'ashbyhq.com' || hostname.endsWith('.ashbyhq.com') ||
+    hostname === 'ashby.io' || hostname.endsWith('.ashby.io') ||
     !!document.querySelector('[data-testid="application-form"]')
   );
 }

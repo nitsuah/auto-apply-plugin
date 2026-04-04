@@ -26,8 +26,9 @@ export function workdayExtraSelectors() {
  * @returns {boolean}
  */
 export function isWorkdayPage() {
+  const { hostname } = location;
   return (
-    location.hostname.includes('workday.com') ||
+    hostname === 'workday.com' || hostname.endsWith('.workday.com') ||
     !!document.querySelector('[data-automation-id="wd-ApplicationStep"]')
   );
 }

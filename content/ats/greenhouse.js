@@ -31,8 +31,9 @@ export function greenhouseExtraSelectors() {
  * @returns {boolean}
  */
 export function isGreenhousePage() {
+  const { hostname } = location;
   return (
-    location.hostname.includes('greenhouse.io') ||
+    hostname === 'greenhouse.io' || hostname.endsWith('.greenhouse.io') ||
     !!document.querySelector('meta[content*="greenhouse"]') ||
     !!document.getElementById('application_form')
   );

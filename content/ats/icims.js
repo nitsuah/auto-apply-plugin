@@ -23,8 +23,9 @@ export function icimsExtraSelectors() {
  * @returns {boolean}
  */
 export function isICIMSPage() {
+  const { hostname } = location;
   return (
-    location.hostname.includes('icims.com') ||
+    hostname === 'icims.com' || hostname.endsWith('.icims.com') ||
     !!document.getElementById('iCIMS_MainColumn')
   );
 }

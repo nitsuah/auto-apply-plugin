@@ -119,13 +119,28 @@ async function handleLogApplication(app) {
 
 // ── ATS detection from URL ────────────────────────────────────────────────────
 
+/**
+ * Check if a hostname exactly matches a domain or any of its subdomains.
+ * @param {string} hostname
+ * @param {string} domain
+ * @returns {boolean}
+ */
+function matchesDomain(hostname, domain) {
+  return hostname === domain || hostname.endsWith('.' + domain);
+}
+
 function detectAtsFromUrl(url) {
   if (!url) return null;
-  if (url.includes('greenhouse.io')) return 'Greenhouse';
-  if (url.includes('ashbyhq.com') || url.includes('ashby.io')) return 'Ashby';
-  if (url.includes('lever.co')) return 'Lever';
-  if (url.includes('linkedin.com/jobs')) return 'LinkedIn Easy Apply';
-  if (url.includes('workday.com')) return 'Workday';
-  if (url.includes('icims.com')) return 'iCIMS';
+  try {
+    const { hostname } = new URL(url);
+    if (matchesDomain(hostname, 'greenhouse.io')) return 'Greenhouse';
+    if (matchesDomain(hostname, 'ashbyhq.com') || matchesDomain(hostname, 'ashby.io')) return 'Ashby';
+    if (matchesDomain(hostname, 'lever.co')) return 'Lever';
+    if (matchesDomain(hostname, 'linkedin.com') && url.includes('/jobs')) return 'LinkedIn Easy Apply';
+    if (matchesDomain(hostname, 'workday.com')) return 'Workday';
+    if (matchesDomain(hostname, 'icims.com')) return 'iCIMS';
+  } catch {
+    // Invalid URL — ignore
+  }
   return null;
 }
