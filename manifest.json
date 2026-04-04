@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "apply-bot",
+  "version": "1.0.0",
+  "description": "AI-powered job application filler. Upload your resume once. Land on any job page. Hit apply. Done.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://*.greenhouse.io/*",
+    "https://*.ashbyhq.com/*",
+    "https://*.lever.co/*",
+    "https://www.linkedin.com/*",
+    "https://*.workday.com/*",
+    "https://*.icims.com/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "apply-bot",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.greenhouse.io/*",
+        "https://*.ashbyhq.com/*",
+        "https://*.lever.co/*",
+        "https://www.linkedin.com/jobs/*",
+        "https://*.workday.com/*",
+        "https://*.icims.com/*"
+      ],
+      "js": ["content/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/*", "data/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

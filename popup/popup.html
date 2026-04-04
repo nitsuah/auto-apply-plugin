@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>apply-bot</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <span class="logo">🤖 apply-bot</span>
+    </header>
+
+    <!-- Setup Screen (shown when not configured) -->
+    <section id="setup-screen" class="screen hidden">
+      <h2 class="section-title">Welcome! Let's get you set up.</h2>
+
+      <div class="form-group">
+        <label for="api-key-input">Gemini API Key</label>
+        <input
+          type="password"
+          id="api-key-input"
+          placeholder="Paste your free Gemini API key"
+          autocomplete="off"
+        />
+        <a
+          class="hint-link"
+          href="https://aistudio.google.com/app/apikey"
+          target="_blank"
+          rel="noopener"
+        >Get a free key →</a>
+      </div>
+
+      <div class="form-group">
+        <label>Resume</label>
+        <div class="resume-tabs">
+          <button class="tab-btn active" data-tab="upload">Upload File</button>
+          <button class="tab-btn" data-tab="paste">Paste Text</button>
+        </div>
+
+        <div id="tab-upload" class="tab-content active">
+          <label class="file-drop-zone" id="file-drop-zone">
+            <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
+            <span id="file-drop-label">📄 Drop PDF / DOCX / TXT here or click to browse</span>
+          </label>
+        </div>
+
+        <div id="tab-paste" class="tab-content hidden">
+          <textarea
+            id="resume-text"
+            rows="8"
+            placeholder="Paste your resume text here…"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="form-group settings-group">
+        <label>Preferences (optional)</label>
+        <div class="inline-fields">
+          <input type="number" id="salary-min" placeholder="Min salary" />
+          <span class="sep">–</span>
+          <input type="number" id="salary-max" placeholder="Max salary" />
+        </div>
+        <select id="work-auth">
+          <option value="">Work authorization…</option>
+          <option value="US Citizen">US Citizen</option>
+          <option value="Green Card">Green Card</option>
+          <option value="H-1B">H-1B</option>
+          <option value="OPT">OPT</option>
+          <option value="TN Visa">TN Visa</option>
+          <option value="Other">Other</option>
+        </select>
+        <label class="checkbox-row">
+          <input type="checkbox" id="prefer-remote" checked />
+          Prefer remote roles
+        </label>
+      </div>
+
+      <button id="save-setup-btn" class="btn btn-primary btn-full">
+        Save &amp; Parse Resume ✨
+      </button>
+      <p id="setup-status" class="status-msg"></p>
+    </section>
+
+    <!-- Main Screen (shown when configured) -->
+    <section id="main-screen" class="screen hidden">
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-label">Resume</span>
+          <span id="resume-status" class="badge badge-ok">✅ Not set</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">API Key</span>
+          <span id="api-status" class="badge badge-ok">✅ Connected</span>
+        </div>
+        <div class="status-row" id="ats-row" style="display:none">
+          <span class="status-label">Detected ATS</span>
+          <span id="ats-status" class="badge badge-info">—</span>
+        </div>
+      </div>
+
+      <div class="action-btns">
+        <button id="fill-btn" class="btn btn-primary btn-full">
+          ⚡ Fill This Application
+        </button>
+        <button id="preview-btn" class="btn btn-secondary btn-full">
+          👁 Preview Answers
+        </button>
+        <button id="edit-resume-btn" class="btn btn-ghost btn-full">
+          ✏️ Edit Resume / Settings
+        </button>
+      </div>
+
+      <p id="fill-status" class="status-msg"></p>
+
+      <!-- Tracker summary -->
+      <div class="tracker-summary">
+        <div class="tracker-stats">
+          <div class="stat">
+            <span id="stat-total" class="stat-num">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat">
+            <span id="stat-applied" class="stat-num">0</span>
+            <span class="stat-label">Applied</span>
+          </div>
+          <div class="stat">
+            <span id="stat-pending" class="stat-num">0</span>
+            <span class="stat-label">Pending</span>
+          </div>
+        </div>
+        <button id="view-tracker-btn" class="btn btn-ghost btn-full">
+          📊 View Tracker →
+        </button>
+      </div>
+    </section>
+
+    <!-- Tracker Screen -->
+    <section id="tracker-screen" class="screen hidden">
+      <div class="tracker-header">
+        <button id="back-btn" class="btn-back">← Back</button>
+        <h2 class="section-title">Applications</h2>
+        <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="tracker-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="tracker-body">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+        <p id="tracker-empty" class="empty-msg hidden">No applications tracked yet.</p>
+      </div>
+    </section>
+
+    <!-- Preview Screen -->
+    <section id="preview-screen" class="screen hidden">
+      <div class="tracker-header">
+        <button id="preview-back-btn" class="btn-back">← Back</button>
+        <h2 class="section-title">Answer Preview</h2>
+      </div>
+      <div id="preview-content" class="preview-content">
+        <p class="empty-msg">Generate answers first by clicking "Fill This Application".</p>
+      </div>
+      <button id="inject-from-preview-btn" class="btn btn-primary btn-full" style="margin-top:12px">
+        ⚡ Inject into Form
+      </button>
+    </section>
+
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

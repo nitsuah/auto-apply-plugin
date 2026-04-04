@@ -1,0 +1,96 @@
+{
+  "//": "apply-bot field-map.json — maps common form field identifiers to semantic answer keys",
+
+  "first name": "first_name",
+  "firstname": "first_name",
+  "fname": "first_name",
+  "given name": "first_name",
+
+  "last name": "last_name",
+  "lastname": "last_name",
+  "lname": "last_name",
+  "family name": "last_name",
+  "surname": "last_name",
+
+  "full name": "full_name",
+  "fullname": "full_name",
+  "your name": "full_name",
+
+  "email": "email",
+  "e-mail": "email",
+  "email address": "email",
+
+  "phone": "phone",
+  "phone number": "phone",
+  "mobile": "phone",
+  "mobile number": "phone",
+  "telephone": "phone",
+
+  "address": "location",
+  "city": "location",
+  "location": "location",
+  "current location": "location",
+
+  "linkedin": "linkedin",
+  "linkedin profile": "linkedin",
+  "linkedin url": "linkedin",
+  "linkedin.com": "linkedin",
+
+  "github": "github",
+  "github profile": "github",
+  "github url": "github",
+  "github.com": "github",
+
+  "portfolio": "portfolio",
+  "portfolio url": "portfolio",
+  "website": "portfolio",
+  "personal website": "portfolio",
+
+  "why do you want to work": "why_company",
+  "why do you want to join": "why_company",
+  "why are you interested": "why_company",
+  "why this company": "why_company",
+  "why us": "why_company",
+
+  "why are you a good fit": "why_role",
+  "why should we hire": "why_role",
+  "what makes you a strong candidate": "why_role",
+  "how do you fit": "why_role",
+
+  "describe a relevant": "relevant_accomplishment",
+  "relevant accomplishment": "relevant_accomplishment",
+  "notable achievement": "relevant_accomplishment",
+  "achievement": "relevant_accomplishment",
+
+  "cover letter": "cover_letter",
+  "coverletter": "cover_letter",
+
+  "years of experience": "years_of_experience",
+  "years experience": "years_of_experience",
+  "how many years": "years_of_experience",
+
+  "work authorization": "work_authorization",
+  "authorized to work": "work_authorization",
+  "visa status": "work_authorization",
+  "visa sponsorship": "work_authorization",
+  "sponsorship": "work_authorization",
+  "work permit": "work_authorization",
+  "eligible to work": "work_authorization",
+
+  "salary": "salary_expectation",
+  "salary expectation": "salary_expectation",
+  "salary requirement": "salary_expectation",
+  "desired salary": "salary_expectation",
+  "compensation": "salary_expectation",
+  "expected salary": "salary_expectation",
+
+  "start date": "start_date",
+  "available to start": "start_date",
+  "when can you start": "start_date",
+  "availability": "start_date",
+
+  "remote": "preferred_location",
+  "preferred location": "preferred_location",
+  "on-site": "preferred_location",
+  "hybrid": "preferred_location"
+}
