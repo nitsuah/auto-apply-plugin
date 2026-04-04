@@ -46,7 +46,7 @@ async function handleSaveSetup({ resumeRaw, settings }) {
   await chrome.storage.local.set({ settings });
 
   // Parse resume with Gemini, then normalize shape/defaults
-  const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key);
+  const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key, settings.gemini_model);
   const structured = structureResume(parsedResume);
 
   // Avoid persisting the full raw resume payload — uploaded files may be large
@@ -84,6 +84,7 @@ async function getState() {
     hasApiKey: !!settings.gemini_api_key,
     hasResume: !!resume.structured,
     apiKey: settings.gemini_api_key,
+    geminiModel: settings.gemini_model || null,
     resumeName: resume.structured?.name || null,
     applications,
     lastAnswers,
@@ -105,6 +106,7 @@ async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
     customQuestions: customQuestions || [],
     settings,
     apiKey: settings.gemini_api_key,
+    model: settings.gemini_model,
   });
 
   // Persist last answers for preview

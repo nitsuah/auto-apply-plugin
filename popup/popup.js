@@ -130,6 +130,7 @@ async function handleSaveSetup() {
 
   const settings = {
     gemini_api_key: apiKey,
+    gemini_model: $('gemini-model').value || 'gemini-2.0-flash',
     preferred_salary_min: Number($('salary-min').value) || null,
     preferred_salary_max: Number($('salary-max').value) || null,
     work_authorization: $('work-auth').value || null,
@@ -250,6 +251,7 @@ async function initMainHandlers() {
     // Pre-fill existing key
     sendMessage({ type: 'GET_STATE' }).then((s) => {
       if (s?.apiKey) $('api-key-input').value = s.apiKey;
+      if (s?.geminiModel) $('gemini-model').value = s.geminiModel;
     });
   });
 }
