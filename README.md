@@ -80,6 +80,8 @@ apply-bot/
 
 ## Screenshots
 
+> Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
+
 ### Main dashboard
 
 ![apply-bot main dashboard](screenshots/main-dashboard.png)

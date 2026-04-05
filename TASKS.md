@@ -6,6 +6,8 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ## In Progress
 
+- [ ] Process note: after any significant popup / tracker / profile UI update, refresh the README gallery images in `screenshots/` before wrapping the stopping point.
+
 - [/] Polish the popup into a true job-workspace view.
   - Priority: P1
   - Context: the tracker is now useful, but the remaining work is mostly fit-and-finish: wider workspace sizing, tighter review loops, and lower-scroll editing.
