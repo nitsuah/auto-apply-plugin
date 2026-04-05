@@ -6,51 +6,36 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ## In Progress
 
-- [/] Expand the tracker into a true job-workspace view.
+- [/] Polish the popup into a true job-workspace view.
   - Priority: P1
-  - Context: the tracker already stores company/title/status and the `Open job` link, but it still hides too much context and takes too much scrolling to reach.
-  - Acceptance Criteria: tracker actions move toward the top chrome, cards support status-oriented organization, edits save inline without kicking the user back to the main panel, and the tracker becomes the "downtime" workspace between applications.
+  - Context: the tracker is now useful, but the remaining work is mostly fit-and-finish: wider workspace sizing, tighter review loops, and lower-scroll editing.
+  - Acceptance Criteria: tracker/profile views feel roomy, the user can manage job context without fighting the popup, and the workspace stays aligned with the local-first/review-first product promise.
 
 - [/] Keep local-first autofill and privacy controls trustworthy.
   - Priority: P1
-  - Context: privacy consent and sensitive-field opt-in now exist, but the legal/help surface, scoped memory controls, and clear/reset flows are still missing.
-  - Acceptance Criteria: a `?` help entry links to EULA/terms/privacy/GDPR, only relevant memory settings are exposed nearby, and both cache-clear and full reset flows are implemented safely.
+  - Context: privacy consent, help/reset flows, and profile-adjacent Memory now exist; the next work is tightening clarity and keeping the controls easy to trust.
+  - Acceptance Criteria: the privacy story remains explicit, Memory stays easy to review/correct, and reset/delete flows remain one click away.
 
 ## Todo
 
 ### P1 - High
 
-- [ ] Store richer job details per application.
-  - Priority: P1
-  - Context: job records should capture the JD, location, remote flag, employment type (default `Full-time`), salary range, scorecard, verdict, and submitted date so the tracker becomes useful even when the user is not actively filling a page.
-  - Acceptance Criteria: scrape from the current page first, fall back to pasted text/manual entry when needed, and keep the raw JD/details local to the extension.
-
-- [ ] Make self-heal memory reviewable and editable.
-  - Priority: P1
-  - Context: a bad prefill or capture can create a bad remembered value if the user cannot inspect and correct it.
-  - Acceptance Criteria: the preview/review UI shows remembered values, lets the user edit/delete them, and keeps those controls adjacent to the relevant privacy/settings surface.
-
-- [ ] Add compact header actions for tracker and help.
-  - Priority: P1
-  - Context: the main popup currently requires too much scrolling to reach tracker controls.
-  - Acceptance Criteria: condensed tracker counts plus a `?` help button live near the top-right header and stay visible from the main screen.
-
-- [ ] Improve tracker editing flow and layout.
-  - Priority: P1
-  - Context: the current save button works, but the behavior is still clunky for quick review sessions.
-  - Acceptance Criteria: tracker cards grow into a larger grid/swimlane-by-status view, inline edits save on blur with a clear success indicator, and the user remains on the tracker screen after edits.
-
-### P2 - Medium
-
 - [ ] Add picker-style job detail import from the current page or pasted JD.
-  - Priority: P2
+  - Priority: P1
   - Context: most job metadata should be scraped from the page, headings, and reference text before the user has to type anything.
   - Acceptance Criteria: the user can review parsed job details from the current page or pasted JD text before saving them to the tracker.
 
 - [ ] Add manual and CSV import for prior applications.
-  - Priority: P2
-  - Context: importing historical applications is useful, but CSV handling can get bloated if it lands too early.
+  - Priority: P1
+  - Context: historical applications and off-browser submissions still need a clean way into the workspace.
   - Acceptance Criteria: manual add works first, and CSV import uses a simple documented schema for bulk history import.
+
+### P2 - Medium
+
+- [ ] Start a practical `apply-bot` rebrand pass.
+  - Priority: P2
+  - Context: the product needs a clearer visual and messaging system, but it should stay grounded in the current MVP goals: local-first autofill, review-first trust, and a real job-workspace feel.
+  - Acceptance Criteria: define an achievable naming/branding checklist for popup copy, icons, and docs without derailing the core application workflow.
 
 ### P3 - Exploratory
 
@@ -65,7 +50,9 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 - [x] Add Gemini model discovery/fallback and deterministic answer generation.
 - [x] Keep Docker-only validation green for popup, service worker, and core logic tests.
 - [x] Add privacy consent gating and opt-in handling for sensitive demographic fields.
-- [x] Add self-healing memory for safe non-sensitive answers plus draft persistence across form rerenders.
+- [x] Add safe Memory for non-sensitive answers plus draft persistence across form rerenders.
+- [x] Move Memory controls into `Profile`, add header shortcuts, and make tracker edits/card expansion feel like a real workspace.
+- [x] Widen the popup workspace and reduce scroll pressure across tracker, preview, and profile views.
 
 <!--
 AGENT INSTRUCTIONS:

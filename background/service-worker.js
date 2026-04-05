@@ -40,6 +40,12 @@ async function handleMessage(msg) {
       return handleMarkLastSubmitted();
     case 'SAVE_LEARNED_DEFAULTS':
       return handleSaveLearnedDefaults(msg.payload);
+    case 'GET_LEARNED_DEFAULTS':
+      return handleGetLearnedDefaults();
+    case 'UPDATE_LEARNED_DEFAULT':
+      return handleUpdateLearnedDefault(msg.payload);
+    case 'DELETE_LEARNED_DEFAULT':
+      return handleDeleteLearnedDefault(msg.payload);
     case 'CLEAR_TEMP_DATA':
       return handleClearTempData();
     case 'RESET_ALL_DATA':
@@ -298,6 +304,37 @@ async function handleSaveLearnedDefaults({ entries } = {}) {
   const trimmedLearnedDefaults = Object.fromEntries(Object.entries(learnedDefaults).slice(-75));
   await chrome.storage.local.set({ learnedDefaults: trimmedLearnedDefaults });
   return { success: true, saved };
+}
+
+async function handleGetLearnedDefaults() {
+  const data = await chrome.storage.local.get('learnedDefaults');
+  return {
+    success: true,
+    items: Object.entries(data.learnedDefaults || {}).map(([question, answer]) => ({ question, answer })),
+  };
+}
+
+async function handleUpdateLearnedDefault({ question, answer } = {}) {
+  const key = String(question || '').trim();
+  const value = String(answer || '').trim();
+  if (!shouldPersistLearnedValue(key, value)) {
+    throw new Error('That remembered answer is not eligible to be stored.');
+  }
+
+  const data = await chrome.storage.local.get('learnedDefaults');
+  const learnedDefaults = { ...(data.learnedDefaults || {}) };
+  learnedDefaults[key] = value;
+  await chrome.storage.local.set({ learnedDefaults });
+  return { success: true };
+}
+
+async function handleDeleteLearnedDefault({ question } = {}) {
+  const key = String(question || '').trim();
+  const data = await chrome.storage.local.get('learnedDefaults');
+  const learnedDefaults = { ...(data.learnedDefaults || {}) };
+  delete learnedDefaults[key];
+  await chrome.storage.local.set({ learnedDefaults });
+  return { success: true };
 }
 
 async function handleClearTempData() {

@@ -11,16 +11,16 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 ## 2026 Q2 (In Progress)
 
-- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, salary range, verdict, and scorecard fields.
-- [ ] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
-- [ ] Make learned memory editable from the preview/review flow so users can correct bad captures quickly.
-- [ ] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.
+- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, salary range, verdict, scorecard fields, and a wider lower-scroll popup layout.
+- [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
+- [x] Make Memory editable from Profile so users can correct bad captures quickly.
+- [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.
 
 ## 2026 Q3 (Planned)
 
 - [ ] Add picker-style job detail capture from the current page or pasted JD text.
 - [ ] Add manual plus CSV import for previously submitted applications.
-- [ ] Expand tracker presentation into grid/swimlane organization by status for better between-application management.
+- [ ] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
 
 ## 2026 Q4 (Exploratory)
 

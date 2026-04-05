@@ -28,7 +28,8 @@
 
     <!-- Setup Screen (shown when not configured) -->
     <section id="setup-screen" class="screen hidden">
-      <h2 class="section-title">Welcome! Let's get you set up.</h2>
+      <h2 class="section-title">Profile</h2>
+      <p class="helper-text">Your resume, settings, and memory all live here.</p>
 
       <div class="form-group">
         <label for="api-key-input">Gemini API Key</label>
@@ -128,7 +129,7 @@
 
       <div class="form-group">
         <label>Saved answer defaults</label>
-        <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms to self-heal similar prompts later.</p>
+        <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
         <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
         <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
         <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
@@ -139,6 +140,17 @@
             <option value="No">No sponsorship required</option>
             <option value="Yes">Will require sponsorship</option>
           </select>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="report-header">
+          <span class="report-title">Memory</span>
+          <span id="memory-count-badge" class="badge badge-info">0 saved</span>
+        </div>
+        <p class="helper-text">Review or delete remembered answers here if a captured response looks wrong.</p>
+        <div id="learned-defaults-list" class="memory-list">
+          <p class="empty-msg">No memory saved yet.</p>
         </div>
       </div>
 
@@ -221,7 +233,7 @@
           <span id="privacy-status-badge" class="badge badge-ok">🔒 Local-first</span>
         </div>
         <div class="status-row">
-          <span class="status-label">Self-heal memory</span>
+          <span class="status-label">Memory</span>
           <span id="learned-status" class="badge badge-info">0 saved</span>
         </div>
         <div class="status-row" id="ats-row" style="display:none">
@@ -239,7 +251,7 @@
           👁 Preview Answers
         </button>
         <button id="edit-resume-btn" class="btn btn-ghost btn-full">
-          ✏️ Edit Resume / Settings
+          ✏️ Edit Profile
         </button>
       </div>
 
@@ -305,7 +317,7 @@
         </div>
         <div class="help-section">
           <h3>Privacy</h3>
-          <p>Your profile, tracker, and remembered answers stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
+          <p>Your profile, tracker, and memory stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
         </div>
         <div class="help-section">
           <h3>GDPR / data control</h3>

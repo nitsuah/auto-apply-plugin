@@ -73,6 +73,7 @@ function showScreen(name) {
     el.classList.add('hidden');
   }
   $(name + '-screen').classList.remove('hidden');
+  document.body.dataset.screen = name;
 }
 
 function setStatus(elId, msg, type = '') {
@@ -270,6 +271,7 @@ async function loadMainScreen(options = {}) {
   } = resp || {};
 
   applyStateToSetupForm(resp || {});
+  await renderLearnedDefaults();
 
   if (!privacyConsent || (!hasApiKey && !hasResume)) {
     showScreen('setup');
@@ -295,8 +297,9 @@ async function loadMainScreen(options = {}) {
   $('privacy-status-badge').textContent = privacyConsent ? '🔒 Local-first' : '⚠️ Review setup';
   $('privacy-status-badge').className = 'badge ' + (privacyConsent ? 'badge-ok' : 'badge-warn');
 
-  $('learned-status').textContent = learnedDefaultsCount ? `${learnedDefaultsCount} saved` : 'Learning…';
-  $('learned-status').className = 'badge ' + (learnedDefaultsCount ? 'badge-ok' : 'badge-info');
+  const memoryCount = Number(learnedDefaultsCount || 0);
+  $('learned-status').textContent = `${memoryCount} saved`;
+  $('learned-status').className = 'badge ' + (memoryCount ? 'badge-ok' : 'badge-info');
 
   const completeness = profileCompleteness || { completed: 0, total: 8 };
   $('profile-status').textContent = `${completeness.completed}/${completeness.total} complete`;
@@ -340,9 +343,6 @@ async function initMainHandlers() {
     showScreen('tracker');
   });
 
-  $('header-help-btn')?.addEventListener('click', () => {
-    showScreen('help');
-  });
 
   $('fill-btn').addEventListener('click', async () => {
     $('fill-btn').disabled = true;
@@ -399,9 +399,11 @@ async function initMainHandlers() {
     showScreen('preview');
   });
 
-  $('edit-resume-btn').addEventListener('click', () => {
+  $('edit-resume-btn').addEventListener('click', async () => {
     showScreen('setup');
-    sendMessage({ type: 'GET_STATE' }).then((s) => applyStateToSetupForm(s || {}));
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    await renderLearnedDefaults();
   });
 }
 
@@ -666,12 +668,85 @@ function exportCsv(applications) {
   URL.revokeObjectURL(url);
 }
 
+async function renderLearnedDefaults() {
+  const container = $('learned-defaults-list');
+  const badge = $('memory-count-badge');
+  if (!container) return;
+
+  try {
+    const resp = await sendMessage({ type: 'GET_LEARNED_DEFAULTS' });
+    const items = Array.isArray(resp?.items) ? resp.items : [];
+
+    if (badge) {
+      badge.textContent = `${items.length} saved`;
+    }
+
+    if (!items.length) {
+      container.innerHTML = '<p class="empty-msg">No memory saved yet.</p>';
+      return;
+    }
+
+    container.innerHTML = items.map((item) => `
+      <div class="memory-item" data-question="${escAttr(item.question)}">
+        <div class="memory-item-label">Prompt</div>
+        <div class="memory-item-question">${esc(item.question)}</div>
+        <textarea data-field="answer" rows="3">${esc(item.answer || '')}</textarea>
+        <div class="memory-item-actions">
+          <button class="btn btn-secondary btn-sm memory-save-btn">Save</button>
+          <button class="btn btn-ghost btn-sm memory-delete-btn">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<p class="empty-msg">Could not load memory. ${esc(err.message)}</p>`;
+  }
+}
+
 async function initHelpHandlers() {
   $('help-back-btn')?.addEventListener('click', () => loadMainScreen());
 
-  $('open-privacy-setup-btn')?.addEventListener('click', () => {
+  $('header-help-btn')?.addEventListener('click', async () => {
+    showScreen('help');
+  });
+
+  $('learned-defaults-list')?.addEventListener('click', async (event) => {
+    const saveBtn = event.target.closest('.memory-save-btn');
+    const deleteBtn = event.target.closest('.memory-delete-btn');
+    const item = event.target.closest('.memory-item');
+    if (!item) return;
+
+    const question = item.dataset.question || '';
+    const answer = item.querySelector('[data-field="answer"]')?.value || '';
+
+    try {
+      if (saveBtn) {
+        const resp = await sendMessage({
+          type: 'UPDATE_LEARNED_DEFAULT',
+          payload: { question, answer },
+        });
+        if (!resp?.success) throw new Error(resp?.error || 'Could not update memory entry.');
+        setStatus('setup-status', '✅ Memory entry updated.', 'success');
+        await renderLearnedDefaults();
+      }
+
+      if (deleteBtn) {
+        const resp = await sendMessage({
+          type: 'DELETE_LEARNED_DEFAULT',
+          payload: { question },
+        });
+        if (!resp?.success) throw new Error(resp?.error || 'Could not delete memory entry.');
+        setStatus('setup-status', '✅ Memory entry deleted.', 'success');
+        await renderLearnedDefaults();
+      }
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + err.message, 'error');
+    }
+  });
+
+  $('open-privacy-setup-btn')?.addEventListener('click', async () => {
     showScreen('setup');
-    setStatus('setup-status', 'Review or update your privacy and local-data settings below.');
+    await renderLearnedDefaults();
+    setStatus('setup-status', 'Review or update your profile, privacy, and memory settings below.');
   });
 
   $('clear-cache-btn')?.addEventListener('click', async () => {
