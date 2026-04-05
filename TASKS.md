@@ -20,9 +20,9 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ### P1 - High
 
-- [ ] Finish CSV import for prior applications.
+- [x] Finish CSV import for prior applications.
   - Priority: P1
-  - Context: manual quick-add is now in place, but bulk history import still needs a simple path into the workspace.
+  - Context: manual quick-add is now in place, and bulk history import now supports a documented CSV schema directly from the tracker header.
   - Acceptance Criteria: CSV import uses a documented schema, validates cleanly, and avoids cluttering the core tracker flow.
 
 ### P2 - Medium

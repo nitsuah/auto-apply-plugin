@@ -77,6 +77,32 @@ apply-bot/
 
 ---
 
+## CSV Import for Tracker History
+
+Use **Tracker → Import CSV** to bring in past applications from another sheet or export.
+Accepted headers are case-insensitive and can include:
+
+- `Company`
+- `Role Title` / `Title`
+- `Status`
+- `Date`
+- `Employment Type`
+- `Remote`
+- `Location`
+- `Salary Range`
+- `Scorecard`
+- `Verdict`
+- `URL`
+- `Notes`
+
+Example header row:
+
+```csv
+Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL,Notes
+```
+
+---
+
 ## Tech Stack
 
 - **Chrome MV3** extension

@@ -15,6 +15,7 @@ import {
   isTerminalApplicationStatus,
   normalizeApplicationStatus,
   normalizeEmploymentType,
+  parseApplicationsCsv,
 } from '../lib/tracker.js';
 
 const fieldMap = JSON.parse(
@@ -183,4 +184,19 @@ test('deriveTrackerDetailsFromText extracts location, salary, remote flag, and e
   assert.equal(details.salary_range, '$180,000 - $220,000');
   assert.equal(details.employment_type, 'Full-time');
   assert.equal(details.remote, true);
+});
+
+test('parseApplicationsCsv maps common import columns and skips blank rows', () => {
+  const parsed = parseApplicationsCsv(`Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL,Notes
+Acme,Senior Engineer,Applied,2026-04-03,Full time,Yes,Remote,"$180,000 - $220,000",Strong fit,Top choice,https://example.com/jobs/1,"Great backend match"
+,,,,,,,,,,,
+Beta,Platform Analyst,Interview,04/01/2026,Contract,No,Austin,,$$,,https://example.com/jobs/2,"Take-home complete"`);
+
+  assert.equal(parsed.items.length, 2);
+  assert.equal(parsed.skipped, 1);
+  assert.equal(parsed.items[0].status, 'submitted');
+  assert.equal(parsed.items[0].remote, true);
+  assert.equal(parsed.items[0].date, '2026-04-03');
+  assert.equal(parsed.items[1].employment_type, 'Contract');
+  assert.equal(parsed.items[1].date, '2026-04-01');
 });

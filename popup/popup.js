@@ -435,10 +435,13 @@ async function initTrackerHandlers() {
   $('cancel-add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm(false));
   $('import-current-job-btn')?.addEventListener('click', importCurrentPageIntoTrackerForm);
   $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
+  $('import-csv-btn')?.addEventListener('click', () => $('import-csv-input')?.click());
+  $('import-csv-input')?.addEventListener('change', importTrackerCsvFile);
 
   $('export-csv-btn').addEventListener('click', async () => {
     const resp = await sendMessage({ type: 'GET_STATE' });
     exportCsv(resp?.applications || []);
+    setTrackerScreenStatus('✅ Exported the current tracker as CSV.', 'success');
   });
 
   $('tracker-body').addEventListener('click', async (event) => {
@@ -681,6 +684,13 @@ function setTrackerAddStatus(msg, type = '') {
   el.className = 'status-msg' + (type ? ' ' + type : '');
 }
 
+function setTrackerScreenStatus(msg, type = '') {
+  const el = $('tracker-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
 function fillTrackerDraftForm(draft = {}) {
   $('new-application-company').value = draft.company || '';
   $('new-application-title').value = draft.title || '';
@@ -836,9 +846,22 @@ function renderTrackerCard(app) {
 }
 
 function exportCsv(applications) {
-  const header = 'Company,Role,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL';
+  const header = 'Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL,Notes';
   const rows = applications.map((a) =>
-    [a.company, a.title, a.status, a.date, a.employment_type, a.remote ? 'Yes' : 'No', a.location, a.salary_range, a.scorecard, a.verdict, a.url]
+    [
+      a.company,
+      a.title,
+      a.status,
+      a.date,
+      a.employment_type,
+      a.remote ? 'Yes' : 'No',
+      a.location,
+      a.salary_range,
+      a.scorecard,
+      a.verdict,
+      a.url,
+      a.description || a.jd_snippet || '',
+    ]
       .map((v) => '"' + String(v || '').replace(/"/g, '""') + '"')
       .join(',')
   );
@@ -850,6 +873,42 @@ function exportCsv(applications) {
   a.download = 'apply-bot-tracker.csv';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function importTrackerCsvFile(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+
+  setTrackerScreenStatus('⏳ Importing applications from CSV…');
+
+  try {
+    const text = await file.text();
+    const resp = await sendMessage({
+      type: 'IMPORT_APPLICATIONS_CSV',
+      payload: { text },
+    });
+
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Could not import the tracker CSV.');
+    }
+
+    await renderTracker();
+    await loadMainScreen({ showMain: false });
+    showScreen('tracker');
+
+    const imported = Number(resp.imported || 0);
+    const skipped = Number(resp.skipped || 0);
+    const suffix = skipped ? ` (${skipped} skipped)` : '';
+    setTrackerScreenStatus(
+      `✅ Imported ${imported} application${imported === 1 ? '' : 's'} from CSV${suffix}.`,
+      'success'
+    );
+  } catch (err) {
+    setTrackerScreenStatus('❌ ' + err.message, 'error');
+  } finally {
+    if (input) input.value = '';
+  }
 }
 
 async function renderLearnedDefaults() {

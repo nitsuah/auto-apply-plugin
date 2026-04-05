@@ -297,9 +297,12 @@
         <h2 class="section-title">Applications</h2>
         <div class="tracker-actions">
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
+          <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
           <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+          <input id="import-csv-input" type="file" accept=".csv,text/csv" class="hidden" />
         </div>
       </div>
+      <p id="tracker-status" class="status-msg"></p>
 
       <div id="tracker-add-card" class="help-card hidden">
         <div class="report-header">

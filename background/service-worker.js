@@ -14,6 +14,7 @@ import { structureResume } from '../lib/resume-parser.js';
 import {
   addApplication,
   deriveTrackerDetailsFromText,
+  importApplicationsFromCsv,
   isTerminalApplicationStatus,
   updateApplication,
   updateApplicationStatus,
@@ -42,6 +43,8 @@ async function handleMessage(msg) {
       return handleLogApplication(msg.payload);
     case 'PARSE_APPLICATION_DRAFT':
       return handleParseApplicationDraft(msg.payload);
+    case 'IMPORT_APPLICATIONS_CSV':
+      return handleImportApplicationsCsv(msg.payload);
     case 'UPDATE_APPLICATION':
       return handleUpdateApplication(msg.payload);
     case 'MARK_LAST_SUBMITTED':
@@ -272,6 +275,25 @@ async function handleParseApplicationDraft({ text, draft } = {}) {
   return {
     success: true,
     details: deriveTrackerDetailsFromText(text, draft || {}),
+  };
+}
+
+async function handleImportApplicationsCsv({ text } = {}) {
+  const csvText = String(text || '');
+  if (!csvText.trim()) {
+    throw new Error('Choose a CSV file to import first.');
+  }
+
+  const result = await importApplicationsFromCsv(csvText);
+  if (!result.imported) {
+    throw new Error(result.warnings?.[0] || 'No valid application rows were found in that CSV.');
+  }
+
+  return {
+    success: true,
+    imported: result.imported,
+    skipped: result.skipped,
+    warnings: result.warnings || [],
   };
 }
 
