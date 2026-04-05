@@ -14,16 +14,12 @@
       <div class="header-top">
         <span class="logo">🤖 apply-bot</span>
         <div class="header-actions">
-          <button id="header-tracker-btn" class="icon-btn" title="Open tracker">
-            📊 <span id="header-tracker-count" class="count-pill">0</span>
+          <button id="header-tracker-btn" class="icon-btn" title="Open tracker workspace">
+            📊 <span class="tracker-btn-label">Tracker</span>
+            <span id="header-tracker-count" class="count-pill">0 / 0 active</span>
           </button>
           <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options">?</button>
         </div>
-      </div>
-      <div class="header-meta">
-        <span class="mini-stat" title="Active applications / total tracked">
-          <strong id="header-stat-pending">0</strong> / <strong id="header-stat-total">0</strong> active
-        </span>
       </div>
     </header>
 
@@ -377,6 +373,10 @@
         <div class="help-section" id="help-privacy-section">
           <h3>Privacy</h3>
           <p>Your profile, tracker, and memory stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
+        </div>
+        <div class="help-section" id="help-ats-section">
+          <h3>What is an ATS?</h3>
+          <p>An applicant tracking system is the hiring software behind many job forms. `apply-bot` uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
         </div>
         <div class="help-section">
           <h3>GDPR / data control</h3>

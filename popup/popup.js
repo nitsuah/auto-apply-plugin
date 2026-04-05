@@ -342,9 +342,12 @@ function applyTrackerSummary(apps = []) {
   if ($('stat-total')) $('stat-total').textContent = total;
   if ($('stat-applied')) $('stat-applied').textContent = filled;
   if ($('stat-pending')) $('stat-pending').textContent = pending;
-  if ($('header-stat-total')) $('header-stat-total').textContent = total;
-  if ($('header-stat-pending')) $('header-stat-pending').textContent = pending;
-  if ($('header-tracker-count')) $('header-tracker-count').textContent = String(total);
+  if ($('header-tracker-count')) {
+    $('header-tracker-count').textContent = `${pending} / ${total} active`;
+  }
+  if ($('header-tracker-btn')) {
+    $('header-tracker-btn').title = `${pending} of ${total} tracked applications still active. Open tracker workspace.`;
+  }
 }
 
 async function initMainHandlers() {
@@ -537,7 +540,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
 
     card.classList.add('saved-flash');
     if (saveState) {
-      saveState.textContent = '✓ Saved';
+      saveState.textContent = showMessage ? '✓ Saved' : '✓ Auto-saved';
       saveState.classList.add('ok');
     }
     if (showMessage) {
@@ -546,6 +549,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
 
     const nextStatus = normalizeTrackingStatus(patch.status);
     card.dataset.status = nextStatus;
+    syncTrackerCardSummary(card, patch);
     await loadMainScreen({ showMain: false });
 
     if (nextStatus !== normalizeTrackingStatus(previousStatus)) {
@@ -571,6 +575,30 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
       saveBtn.textContent = 'Save';
     }
   }
+}
+
+function syncTrackerCardSummary(card, patch = {}) {
+  if (!card) return;
+
+  const company = patch.company || 'Unknown company';
+  const title = patch.title || 'Untitled role';
+  const summaryMeta = [
+    patch.location || 'Unknown',
+    patch.employment_type || 'Full-time',
+    patch.remote ? 'Remote' : 'On-site',
+  ].filter(Boolean).join(' • ');
+  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
+
+  const badge = card.querySelector('.tracker-card-header .badge');
+  if (badge) badge.textContent = formatTrackingStatus(patch.status);
+  const titleEl = card.querySelector('.tracker-summary-title');
+  if (titleEl) titleEl.textContent = company;
+  const roleEl = card.querySelector('.tracker-summary-role');
+  if (roleEl) roleEl.textContent = title;
+  const metaEl = card.querySelector('.tracker-summary-meta');
+  if (metaEl) metaEl.textContent = summaryMeta;
+  const noteEl = card.querySelector('.tracker-summary-note');
+  if (noteEl) noteEl.textContent = summaryNote;
 }
 
 async function renderTracker() {
@@ -1180,12 +1208,20 @@ function isStandaloneView() {
 
 async function openExpandedWorkspace(screen) {
   try {
+    const currentWindow = await chrome.windows.getLastFocused();
+    const width = screen === 'tracker' ? 1280 : 980;
+    const height = Math.max(760, Math.min((currentWindow?.height || 960) - 80, 920));
+    const left = Math.max(0, (currentWindow?.left || 0) + Math.max(0, (currentWindow?.width || width) - width - 24));
+    const top = Math.max(0, (currentWindow?.top || 0) + 48);
     const url = chrome.runtime.getURL(`popup/popup.html?screen=${encodeURIComponent(screen)}&standalone=1`);
     await chrome.windows.create({
       url,
       type: 'popup',
-      width: screen === 'tracker' ? 1440 : 1260,
-      height: 920,
+      width,
+      height,
+      left,
+      top,
+      focused: true,
     });
     window.close();
     return true;
@@ -1220,18 +1256,9 @@ async function applyInitialRequestedScreen() {
 async function openStatusTarget(target) {
   if (!target) return;
 
-  if (target === 'ats') {
-    await chrome.tabs.create({ url: 'https://en.wikipedia.org/wiki/Applicant_tracking_system' });
-    return;
-  }
-
-  if (target === 'privacy') {
+  if (target === 'privacy' || target === 'ats') {
     showScreen('help');
-    scrollToSection('help-privacy-section');
-    return;
-  }
-
-  if (!isStandaloneView() && await openExpandedWorkspace('setup')) {
+    scrollToSection(target === 'ats' ? 'help-ats-section' : 'help-privacy-section');
     return;
   }
 
@@ -1357,14 +1384,14 @@ function getAtsMeta(ats) {
       return {
         label: ats,
         tone: 'ok',
-        tip: `${ats} is supported for profile-first autofill. Click to learn what an ATS is.`,
+        tip: `${ats} is supported for profile-first autofill. Click for the in-app ATS explainer.`,
         hint: '',
       };
     case 'LinkedIn Easy Apply':
       return {
         label: ats,
         tone: 'warn',
-        tip: `${ats} works, but every step should still be reviewed carefully. Click to learn what an ATS is.`,
+        tip: `${ats} works, but every step should still be reviewed carefully. Click for the in-app ATS explainer.`,
         hint: '',
       };
     case 'Workday':
@@ -1372,21 +1399,21 @@ function getAtsMeta(ats) {
       return {
         label: ats,
         tone: 'warn',
-        tip: `${ats} is partially supported. Expect some manual review. Click to learn what an ATS is.`,
+        tip: `${ats} is partially supported. Expect some manual review. Click for the in-app ATS explainer.`,
         hint: 'Partial support — keep review on.',
       };
     case 'Generic':
       return {
         label: 'Generic',
         tone: 'bad',
-        tip: 'This page does not look like a strongly supported ATS yet. Click to learn what an ATS is.',
+        tip: 'This page does not look like a strongly supported ATS yet. Click for the in-app ATS explainer.',
         hint: 'Limited support on this page.',
       };
     default:
       return {
         label: 'No job page',
         tone: 'info',
-        tip: 'Open a job application page to detect its ATS. Click to learn what an ATS is.',
+        tip: 'Open a job application page to detect its ATS. Click for the in-app ATS explainer.',
         hint: '',
       };
   }

@@ -50,21 +50,23 @@ body[data-screen="preview"] {
   min-height: 680px;
 }
 
+body[data-standalone="true"] {
+  width: auto;
+  min-height: calc(100vh - 16px);
+}
+
 body[data-standalone="true"][data-screen="setup"] {
-  width: 1220px;
   min-height: 860px;
 }
 
 body[data-standalone="true"][data-screen="main"],
 body[data-standalone="true"][data-screen="help"] {
-  width: 980px;
   min-height: 760px;
 }
 
 body[data-standalone="true"][data-screen="tracker"],
 body[data-standalone="true"][data-screen="preview"] {
-  width: 1420px;
-  min-height: 920px;
+  min-height: 860px;
 }
 
 #app {
@@ -149,8 +151,9 @@ body[data-standalone="true"][data-screen="preview"] {
 /* ── Screens ── */
 .screen {
   padding: 16px;
-  max-height: 900px;
+  max-height: calc(100vh - 72px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .hidden {
@@ -674,14 +677,17 @@ textarea {
 
 .tracker-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: 10px;
-  max-height: 780px;
+  max-height: calc(100vh - 150px);
   overflow-y: auto;
+  overflow-x: hidden;
   align-items: start;
 }
 
 .tracker-lane {
+  min-width: 0;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -710,9 +716,12 @@ textarea {
 .tracker-lane-cards {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .tracker-card {
+  min-width: 0;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1031,5 +1040,11 @@ textarea {
 @media (max-width: 720px) {
   .main-top-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1100px) {
+  .tracker-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
