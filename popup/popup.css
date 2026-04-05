@@ -34,6 +34,8 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
+  width: 440px;
+  min-width: 440px;
   min-height: 520px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -44,11 +46,14 @@ body {
 body[data-screen="setup"],
 body[data-screen="tracker"],
 body[data-screen="preview"] {
+  width: 980px;
+  min-width: 980px;
   min-height: 680px;
 }
 
 body[data-standalone="true"] {
   width: min(980px, calc(100vw - 24px));
+  min-width: 0;
   min-height: calc(100vh - 16px);
 }
 
@@ -70,7 +75,7 @@ body[data-standalone="true"][data-screen="preview"] {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  width: 760px;
+  width: 100%;
 }
 
 body[data-standalone="true"] #app {
