@@ -145,9 +145,20 @@
           <span class="report-title memory-title">Memory</span>
           <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
         </div>
-        <p class="helper-text">Only non-sensitive reusable answers live here. Click a card to expand and edit it.</p>
+        <p class="helper-text">Only non-sensitive reusable answers live here. Click a card to expand and edit it, or ignore outliers so they stop autofilling.</p>
         <div id="learned-defaults-list" class="memory-list">
           <p class="empty-msg">No memory saved yet.</p>
+        </div>
+
+        <div class="ignored-memory-block">
+          <div class="report-header">
+            <span class="report-title memory-title">Ignore list</span>
+            <span id="ignored-memory-count" class="badge badge-memory">0 ignored</span>
+          </div>
+          <p class="helper-text">Ignored answers are archived here and will not autofill again until you delete them from this list.</p>
+          <div id="ignored-memory-list" class="memory-list compact-memory-list">
+            <p class="empty-msg">No ignored memory right now.</p>
+          </div>
         </div>
       </div>
 

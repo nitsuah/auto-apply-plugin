@@ -855,13 +855,16 @@ function exportCsv(applications) {
 async function renderLearnedDefaults() {
   const regularContainer = $('learned-defaults-list');
   const sensitiveContainer = $('sensitive-memory-list');
+  const ignoredContainer = $('ignored-memory-list');
   const badge = $('memory-count-badge');
   const sensitiveBadge = $('sensitive-memory-count');
+  const ignoredBadge = $('ignored-memory-count');
   if (!regularContainer) return;
 
   try {
     const resp = await sendMessage({ type: 'GET_LEARNED_DEFAULTS' });
     const items = Array.isArray(resp?.items) ? resp.items : [];
+    const ignoredItems = Array.isArray(resp?.ignoredItems) ? resp.ignoredItems : [];
     const regularItems = items.filter((item) => !isSensitiveMemoryQuestion(item.question));
     const sensitiveItems = items.filter((item) => isSensitiveMemoryQuestion(item.question));
 
@@ -873,15 +876,25 @@ async function renderLearnedDefaults() {
       sensitiveBadge.textContent = `${sensitiveItems.length} guarded`;
       sensitiveBadge.className = 'badge badge-memory';
     }
+    if (ignoredBadge) {
+      ignoredBadge.textContent = `${ignoredItems.length} ignored`;
+      ignoredBadge.className = 'badge badge-memory';
+    }
 
     renderMemoryGroup(regularContainer, regularItems, 'No memory saved yet.');
     if (sensitiveContainer) {
       renderMemoryGroup(sensitiveContainer, sensitiveItems, 'No sensitive memory saved.');
     }
+    if (ignoredContainer) {
+      renderIgnoredMemoryGroup(ignoredContainer, ignoredItems, 'No ignored memory right now.');
+    }
   } catch (err) {
     regularContainer.innerHTML = `<p class="empty-msg">Could not load memory. ${esc(err.message)}</p>`;
     if (sensitiveContainer) {
       sensitiveContainer.innerHTML = '<p class="empty-msg">No sensitive memory saved.</p>';
+    }
+    if (ignoredContainer) {
+      ignoredContainer.innerHTML = '<p class="empty-msg">No ignored memory right now.</p>';
     }
   }
 }
@@ -911,7 +924,40 @@ function renderMemoryGroup(container, items, emptyMessage) {
           <textarea data-field="answer" rows="3">${esc(item.answer || '')}</textarea>
           <div class="memory-item-actions">
             <button class="btn btn-secondary btn-sm memory-save-btn">Save</button>
+            <button class="btn btn-ghost btn-sm memory-ignore-btn">Ignore</button>
             <button class="btn btn-ghost btn-sm memory-delete-btn">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderIgnoredMemoryGroup(container, items, emptyMessage) {
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = `<p class="empty-msg">${esc(emptyMessage)}</p>`;
+    return;
+  }
+
+  container.innerHTML = items.map((item) => {
+    const expanded = expandedMemoryQuestions.has(item.question);
+    const answerPreview = truncateText(item.answer || 'Stored answer archived here.', 92);
+    return `
+      <div class="memory-item ignored-memory-item${expanded ? ' expanded' : ''}" data-question="${escAttr(item.question)}">
+        <button type="button" class="memory-card-summary memory-toggle-btn" aria-expanded="${expanded ? 'true' : 'false'}" title="${escAttr(item.question)}">
+          <div class="memory-card-copy">
+            <div class="memory-item-label">Ignored</div>
+            <div class="memory-item-question">${esc(truncateText(item.question, 78))}</div>
+            <div class="memory-item-preview">${esc(answerPreview)}</div>
+          </div>
+          <span class="memory-expand-indicator">▾</span>
+        </button>
+        <div class="memory-card-details">
+          <div class="memory-archived-answer">${esc(item.answer || 'No archived answer available.')}</div>
+          <div class="memory-item-actions">
+            <button class="btn btn-secondary btn-sm memory-unignore-btn">Delete ignore</button>
           </div>
         </div>
       </div>
@@ -929,6 +975,8 @@ async function initHelpHandlers() {
   $('setup-screen')?.addEventListener('click', async (event) => {
     const toggleBtn = event.target.closest('.memory-toggle-btn');
     const saveBtn = event.target.closest('.memory-save-btn');
+    const ignoreBtn = event.target.closest('.memory-ignore-btn');
+    const unignoreBtn = event.target.closest('.memory-unignore-btn');
     const deleteBtn = event.target.closest('.memory-delete-btn');
     const item = event.target.closest('.memory-item');
     if (!item) return;
@@ -953,6 +1001,28 @@ async function initHelpHandlers() {
         });
         if (!resp?.success) throw new Error(resp?.error || 'Could not update memory entry.');
         setStatus('setup-status', '✅ Memory entry updated.', 'success');
+        await renderLearnedDefaults();
+      }
+
+      if (ignoreBtn) {
+        expandedMemoryQuestions.delete(question);
+        const resp = await sendMessage({
+          type: 'IGNORE_LEARNED_DEFAULT',
+          payload: { question },
+        });
+        if (!resp?.success) throw new Error(resp?.error || 'Could not ignore that memory entry.');
+        setStatus('setup-status', '✅ Memory entry moved to the ignore list.', 'success');
+        await renderLearnedDefaults();
+      }
+
+      if (unignoreBtn) {
+        expandedMemoryQuestions.delete(question);
+        const resp = await sendMessage({
+          type: 'DELETE_IGNORED_LEARNED_DEFAULT',
+          payload: { question },
+        });
+        if (!resp?.success) throw new Error(resp?.error || 'Could not remove that ignored memory entry.');
+        setStatus('setup-status', '✅ Memory entry removed from the ignore list and re-enabled.', 'success');
         await renderLearnedDefaults();
       }
 

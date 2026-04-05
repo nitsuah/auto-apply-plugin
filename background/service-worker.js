@@ -4,7 +4,12 @@
  */
 
 import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
-import { findLearnedAnswer, shouldPersistLearnedValue } from '../lib/form-filler.js';
+import {
+  findLearnedAnswer,
+  getLearnedMemoryKey,
+  isIgnoredLearnedPrompt,
+  shouldPersistLearnedValue,
+} from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
 import {
   addApplication,
@@ -47,8 +52,12 @@ async function handleMessage(msg) {
       return handleGetLearnedDefaults();
     case 'UPDATE_LEARNED_DEFAULT':
       return handleUpdateLearnedDefault(msg.payload);
+    case 'IGNORE_LEARNED_DEFAULT':
+      return handleIgnoreLearnedDefault(msg.payload);
     case 'DELETE_LEARNED_DEFAULT':
       return handleDeleteLearnedDefault(msg.payload);
+    case 'DELETE_IGNORED_LEARNED_DEFAULT':
+      return handleDeleteIgnoredLearnedDefault(msg.payload);
     case 'CLEAR_TEMP_DATA':
       return handleClearTempData();
     case 'RESET_ALL_DATA':
@@ -141,14 +150,22 @@ async function getState() {
     'lastFillReport',
     'lastTrackedApplicationId',
     'learnedDefaults',
+    'ignoredLearnedDefaults',
   ]);
   const settings = data.settings || {};
   const resume = data.resume || {};
   const applications = data.applications || [];
   const lastAnswers = data.lastAnswers || null;
-  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {});
-  if (Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length) {
-    await chrome.storage.local.set({ learnedDefaults });
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
+  if (
+    Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length ||
+    Object.keys(ignoredLearnedDefaults).length !== Object.keys(data.ignoredLearnedDefaults || {}).length
+  ) {
+    await chrome.storage.local.set({
+      learnedDefaults: trimLearnedDefaultsMap(learnedDefaults),
+      ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+    });
   }
 
   const lastTrackedApplicationId = data.lastTrackedApplicationId || null;
@@ -188,10 +205,11 @@ async function getState() {
 }
 
 async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
-  const data = await chrome.storage.local.get(['resume', 'settings', 'learnedDefaults']);
+  const data = await chrome.storage.local.get(['resume', 'settings', 'learnedDefaults', 'ignoredLearnedDefaults']);
   const settings = data.settings || {};
   const resume = data.resume || {};
-  const learnedDefaults = data.learnedDefaults || {};
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
 
   if (!resume.structured) throw new Error('Profile not set up yet');
 
@@ -298,36 +316,46 @@ async function handleMarkLastSubmitted() {
 
 async function handleSaveLearnedDefaults({ entries } = {}) {
   const incomingEntries = entries && typeof entries === 'object' ? entries : {};
-  const data = await chrome.storage.local.get('learnedDefaults');
+  const data = await chrome.storage.local.get(['learnedDefaults', 'ignoredLearnedDefaults']);
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
   const learnedDefaults = sanitizeLearnedDefaultsMap({
     ...(data.learnedDefaults || {}),
-  });
+  }, ignoredLearnedDefaults);
 
   let saved = 0;
   for (const [label, value] of Object.entries(incomingEntries)) {
     const question = String(label || '').trim();
     const answer = String(value || '').trim();
     if (!shouldPersistLearnedValue(question, answer)) continue;
+    if (isIgnoredLearnedPrompt(question, ignoredLearnedDefaults)) continue;
 
     delete learnedDefaults[question];
     learnedDefaults[question] = answer;
     saved++;
   }
 
-  const trimmedLearnedDefaults = Object.fromEntries(Object.entries(sanitizeLearnedDefaultsMap(learnedDefaults)).slice(-75));
-  await chrome.storage.local.set({ learnedDefaults: trimmedLearnedDefaults });
+  const trimmedLearnedDefaults = trimLearnedDefaultsMap(sanitizeLearnedDefaultsMap(learnedDefaults, ignoredLearnedDefaults));
+  await chrome.storage.local.set({
+    learnedDefaults: trimmedLearnedDefaults,
+    ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+  });
   return { success: true, saved };
 }
 
 async function handleGetLearnedDefaults() {
-  const data = await chrome.storage.local.get('learnedDefaults');
-  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {});
-  if (Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length) {
-    await chrome.storage.local.set({ learnedDefaults });
-  }
+  const data = await chrome.storage.local.get(['learnedDefaults', 'ignoredLearnedDefaults']);
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
+
+  await chrome.storage.local.set({
+    learnedDefaults,
+    ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+  });
+
   return {
     success: true,
     items: Object.entries(learnedDefaults).map(([question, answer]) => ({ question, answer })),
+    ignoredItems: Object.values(trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults)),
   };
 }
 
@@ -338,10 +366,41 @@ async function handleUpdateLearnedDefault({ question, answer } = {}) {
     throw new Error('That remembered answer is not eligible to be stored.');
   }
 
-  const data = await chrome.storage.local.get('learnedDefaults');
-  const learnedDefaults = { ...(data.learnedDefaults || {}) };
+  const data = await chrome.storage.local.get(['learnedDefaults', 'ignoredLearnedDefaults']);
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  if (isIgnoredLearnedPrompt(key, ignoredLearnedDefaults)) {
+    throw new Error('That memory entry is currently ignored. Delete it from the ignore list to re-enable it.');
+  }
+
+  const learnedDefaults = sanitizeLearnedDefaultsMap({ ...(data.learnedDefaults || {}) }, ignoredLearnedDefaults);
   learnedDefaults[key] = value;
-  await chrome.storage.local.set({ learnedDefaults });
+  await chrome.storage.local.set({ learnedDefaults: trimLearnedDefaultsMap(learnedDefaults) });
+  return { success: true };
+}
+
+async function handleIgnoreLearnedDefault({ question } = {}) {
+  const key = String(question || '').trim();
+  if (!key) throw new Error('Memory question is required.');
+
+  const data = await chrome.storage.local.get(['learnedDefaults', 'ignoredLearnedDefaults']);
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
+  const entry = findStoredLearnedEntry(learnedDefaults, key);
+  if (!entry) {
+    throw new Error('Could not find that memory entry to ignore.');
+  }
+
+  delete learnedDefaults[entry.question];
+  ignoredLearnedDefaults[getLearnedMemoryKey(entry.question)] = {
+    question: entry.question,
+    answer: entry.answer,
+    ignored_at: new Date().toISOString(),
+  };
+
+  await chrome.storage.local.set({
+    learnedDefaults: trimLearnedDefaultsMap(learnedDefaults),
+    ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+  });
   return { success: true };
 }
 
@@ -350,7 +409,29 @@ async function handleDeleteLearnedDefault({ question } = {}) {
   const data = await chrome.storage.local.get('learnedDefaults');
   const learnedDefaults = { ...(data.learnedDefaults || {}) };
   delete learnedDefaults[key];
-  await chrome.storage.local.set({ learnedDefaults });
+  await chrome.storage.local.set({ learnedDefaults: trimLearnedDefaultsMap(learnedDefaults) });
+  return { success: true };
+}
+
+async function handleDeleteIgnoredLearnedDefault({ question } = {}) {
+  const key = getLearnedMemoryKey(question);
+  if (!key) return { success: true };
+
+  const data = await chrome.storage.local.get(['learnedDefaults', 'ignoredLearnedDefaults']);
+  const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
+  const archivedEntry = ignoredLearnedDefaults[key] || null;
+
+  delete ignoredLearnedDefaults[key];
+
+  if (archivedEntry?.question && shouldPersistLearnedValue(archivedEntry.question, archivedEntry.answer || '')) {
+    learnedDefaults[archivedEntry.question] = String(archivedEntry.answer || '').trim();
+  }
+
+  await chrome.storage.local.set({
+    learnedDefaults: trimLearnedDefaultsMap(sanitizeLearnedDefaultsMap(learnedDefaults, ignoredLearnedDefaults)),
+    ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+  });
   return { success: true };
 }
 
@@ -405,10 +486,46 @@ function hasAnyProfileData(profile = {}) {
   );
 }
 
-function sanitizeLearnedDefaultsMap(map = {}) {
+function sanitizeLearnedDefaultsMap(map = {}, ignoredMap = {}) {
   return Object.fromEntries(
-    Object.entries(map || {}).filter(([label, value]) => shouldPersistLearnedValue(label, value))
+    Object.entries(map || {}).filter(([label, value]) => {
+      return shouldPersistLearnedValue(label, value) && !isIgnoredLearnedPrompt(label, ignoredMap);
+    })
   );
+}
+
+function sanitizeIgnoredLearnedDefaultsMap(map = {}) {
+  return Object.fromEntries(
+    Object.entries(map || {}).map(([key, value]) => {
+      const question = String(value?.question || key || '').trim();
+      const answer = String(value?.answer || value || '').trim();
+      const normalizedKey = getLearnedMemoryKey(question);
+      return [normalizedKey, {
+        question,
+        answer,
+        ignored_at: value?.ignored_at || null,
+      }];
+    }).filter(([key, value]) => key && value.question)
+  );
+}
+
+function trimLearnedDefaultsMap(map = {}) {
+  return Object.fromEntries(Object.entries(map || {}).slice(-75));
+}
+
+function trimIgnoredLearnedDefaultsMap(map = {}) {
+  return Object.fromEntries(
+    Object.entries(map || {})
+      .sort((a, b) => String(b[1]?.ignored_at || '').localeCompare(String(a[1]?.ignored_at || '')))
+      .slice(0, 100)
+  );
+}
+
+function findStoredLearnedEntry(map = {}, question = '') {
+  const normalizedKey = getLearnedMemoryKey(question);
+  const exact = Object.entries(map || {}).find(([label]) => getLearnedMemoryKey(label) === normalizedKey);
+  if (!exact) return null;
+  return { question: exact[0], answer: String(exact[1] || '').trim() };
 }
 
 function firstNonEmpty(...values) {

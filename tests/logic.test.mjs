@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { extractJsonCandidate, parseJsonResponse } from '../lib/gemini.js';
-import { findLearnedAnswer, resolveAnswerKeyFromCandidates, shouldPersistLearnedValue } from '../lib/form-filler.js';
+import {
+  findLearnedAnswer,
+  isIgnoredLearnedPrompt,
+  resolveAnswerKeyFromCandidates,
+  shouldPersistLearnedValue,
+} from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
 import {
   deriveTrackerDetailsFromText,
@@ -108,6 +113,21 @@ test('shouldPersistLearnedValue ignores legal acknowledgements and arbitration c
     ),
     false
   );
+});
+
+test('isIgnoredLearnedPrompt blocks ignored outlier prompts until the ignore is removed', () => {
+  const ignored = {
+    'work authorization countries listed in the job posting': {
+      question: 'Are you legally authorized to work in the countries listed in the job posting?',
+      answer: 'Yes',
+    },
+  };
+
+  assert.equal(
+    isIgnoredLearnedPrompt('Are you legally authorized to work in the countries listed in the job posting?', ignored),
+    true
+  );
+  assert.equal(isIgnoredLearnedPrompt('What timezone are you in?', ignored), false);
 });
 
 test('structureResume preserves explicit demographic opt-in fields', () => {
