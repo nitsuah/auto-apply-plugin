@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { extractJsonCandidate, parseJsonResponse } from '../lib/gemini.js';
 import { findLearnedAnswer, resolveAnswerKeyFromCandidates, shouldPersistLearnedValue } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { normalizeApplicationStatus } from '../lib/tracker.js';
+import { isTerminalApplicationStatus, normalizeApplicationStatus, normalizeEmploymentType } from '../lib/tracker.js';
 
 const fieldMap = JSON.parse(
   await readFile(new URL('../data/field-map.json', import.meta.url), 'utf8')
@@ -120,4 +120,18 @@ test('resolveAnswerKeyFromCandidates maps common demographic prompts when opted 
 
   assert.equal(genderKey, 'gender');
   assert.equal(veteranKey, 'veteran');
+});
+
+test('normalizeEmploymentType applies sensible tracker defaults', () => {
+  assert.equal(normalizeEmploymentType(''), 'Full-time');
+  assert.equal(normalizeEmploymentType('part time'), 'Part-time');
+  assert.equal(normalizeEmploymentType('contract'), 'Contract');
+});
+
+test('isTerminalApplicationStatus hides fill review after submission-style states', () => {
+  assert.equal(isTerminalApplicationStatus('filled'), false);
+  assert.equal(isTerminalApplicationStatus('drafted'), false);
+  assert.equal(isTerminalApplicationStatus('submitted'), true);
+  assert.equal(isTerminalApplicationStatus('interview'), true);
+  assert.equal(isTerminalApplicationStatus('offer'), true);
 });

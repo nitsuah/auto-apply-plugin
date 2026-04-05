@@ -65,6 +65,8 @@ async function ensureContentScriptReady(tabId) {
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
 const $ = (id) => document.getElementById(id);
+const trackerSaveTimers = new Map();
+const expandedTrackerIds = new Set();
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -88,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initMainHandlers();
   await initTrackerHandlers();
   await initPreviewHandlers();
+  await initHelpHandlers();
 });
 
 // ── Tab switching (upload vs paste) ──────────────────────────────────────────
@@ -252,7 +255,8 @@ async function readFileAsText(file) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-async function loadMainScreen() {
+async function loadMainScreen(options = {}) {
+  const { showMain = true } = options;
   const resp = await sendMessage({ type: 'GET_STATE' });
   const {
     hasResume,
@@ -275,7 +279,9 @@ async function loadMainScreen() {
     return;
   }
 
-  showScreen('main');
+  if (showMain) {
+    showScreen('main');
+  }
 
   // Status badges
   $('resume-status').textContent = hasResume
@@ -309,16 +315,35 @@ async function loadMainScreen() {
     $('ats-hint').textContent = 'Open a supported job application form to use profile-first autofill.';
   }
 
-  // Tracker stats
   const apps = applications || [];
-  $('stat-total').textContent = apps.length;
-  $('stat-applied').textContent = apps.filter((a) => normalizeTrackingStatus(a.status) === 'filled').length;
-  $('stat-pending').textContent = apps.filter((a) => ['drafted', 'filled'].includes(normalizeTrackingStatus(a.status))).length;
+  applyTrackerSummary(apps);
 
   renderFillReport(resp?.lastFillReport);
 }
 
+function applyTrackerSummary(apps = []) {
+  const total = apps.length;
+  const filled = apps.filter((a) => normalizeTrackingStatus(a.status) === 'filled').length;
+  const pending = apps.filter((a) => ['drafted', 'filled'].includes(normalizeTrackingStatus(a.status))).length;
+
+  if ($('stat-total')) $('stat-total').textContent = total;
+  if ($('stat-applied')) $('stat-applied').textContent = filled;
+  if ($('stat-pending')) $('stat-pending').textContent = pending;
+  if ($('header-stat-total')) $('header-stat-total').textContent = total;
+  if ($('header-stat-pending')) $('header-stat-pending').textContent = pending;
+  if ($('header-tracker-count')) $('header-tracker-count').textContent = String(total);
+}
+
 async function initMainHandlers() {
+  $('header-tracker-btn')?.addEventListener('click', async () => {
+    await renderTracker();
+    showScreen('tracker');
+  });
+
+  $('header-help-btn')?.addEventListener('click', () => {
+    showScreen('help');
+  });
+
   $('fill-btn').addEventListener('click', async () => {
     $('fill-btn').disabled = true;
     setStatus('fill-status', '⏳ Analyzing page & generating answers…');
@@ -355,6 +380,7 @@ async function initMainHandlers() {
     try {
       const resp = await sendMessage({ type: 'MARK_LAST_SUBMITTED' });
       if (resp?.success) {
+        renderFillReport(null);
         setStatus('fill-status', '✅ Marked the latest tracked application as submitted.', 'success');
         await loadMainScreen();
       } else {
@@ -382,7 +408,7 @@ async function initMainHandlers() {
 // ── Tracker screen ────────────────────────────────────────────────────────────
 
 async function initTrackerHandlers() {
-  $('view-tracker-btn').addEventListener('click', async () => {
+  $('view-tracker-btn')?.addEventListener('click', async () => {
     await renderTracker();
     showScreen('tracker');
   });
@@ -395,39 +421,132 @@ async function initTrackerHandlers() {
   });
 
   $('tracker-body').addEventListener('click', async (event) => {
+    const toggleBtn = event.target.closest('.tracker-card-toggle');
+    if (toggleBtn) {
+      const card = toggleBtn.closest('.tracker-card');
+      if (card) {
+        const expanded = card.classList.toggle('expanded');
+        toggleBtn.setAttribute('aria-expanded', String(expanded));
+        const id = card.dataset.id;
+        if (expanded) expandedTrackerIds.add(id);
+        else expandedTrackerIds.delete(id);
+      }
+      return;
+    }
+
     const saveBtn = event.target.closest('.tracker-save-btn');
     if (!saveBtn) return;
 
     const card = saveBtn.closest('.tracker-card');
-    const id = saveBtn.dataset.id;
-    if (!card || !id) return;
-
-    saveBtn.disabled = true;
-    try {
-      const patch = {
-        company: card.querySelector('[data-field="company"]')?.value || '',
-        title: card.querySelector('[data-field="title"]')?.value || '',
-        status: card.querySelector('[data-field="status"]')?.value || 'drafted',
-      };
-
-      const resp = await sendMessage({
-        type: 'UPDATE_APPLICATION',
-        payload: { id, patch },
-      });
-
-      if (resp?.success) {
-        setStatus('fill-status', '✅ Tracker entry updated.', 'success');
-        await renderTracker();
-        await loadMainScreen();
-      } else {
-        setStatus('fill-status', '❌ ' + (resp?.error || 'Could not update tracker entry.'), 'error');
-      }
-    } catch (err) {
-      setStatus('fill-status', '❌ ' + err.message, 'error');
-    } finally {
-      saveBtn.disabled = false;
-    }
+    if (!card) return;
+    await saveTrackerCard(card, { showMessage: true });
   });
+
+  const autoSave = (event) => {
+    const field = event.target.closest?.('[data-field]');
+    if (!field) return;
+    const card = field.closest('.tracker-card');
+    if (!card) return;
+    scheduleTrackerSave(card);
+  };
+
+  $('tracker-body').addEventListener('change', autoSave, true);
+  $('tracker-body').addEventListener('focusout', autoSave, true);
+}
+
+function scheduleTrackerSave(card) {
+  const id = card?.dataset?.id;
+  if (!id) return;
+
+  if (trackerSaveTimers.has(id)) {
+    clearTimeout(trackerSaveTimers.get(id));
+  }
+
+  const timer = setTimeout(() => {
+    saveTrackerCard(card, { showMessage: false }).catch((err) => {
+      setStatus('fill-status', '❌ ' + err.message, 'error');
+    });
+    trackerSaveTimers.delete(id);
+  }, 250);
+
+  trackerSaveTimers.set(id, timer);
+}
+
+async function saveTrackerCard(card, { showMessage = false } = {}) {
+  const id = card?.dataset?.id;
+  if (!id) return;
+
+  const previousStatus = card.dataset.status || 'drafted';
+  const saveBtn = card.querySelector('.tracker-save-btn');
+  const saveState = card.querySelector('.tracker-save-state');
+  const patch = {
+    company: card.querySelector('[data-field="company"]')?.value || '',
+    title: card.querySelector('[data-field="title"]')?.value || '',
+    status: card.querySelector('[data-field="status"]')?.value || 'drafted',
+    location: card.querySelector('[data-field="location"]')?.value || 'Unknown',
+    employment_type: card.querySelector('[data-field="employment_type"]')?.value || 'Full-time',
+    remote: !!card.querySelector('[data-field="remote"]')?.checked,
+    salary_range: card.querySelector('[data-field="salary_range"]')?.value || '',
+    scorecard: card.querySelector('[data-field="scorecard"]')?.value || '',
+    verdict: card.querySelector('[data-field="verdict"]')?.value || '',
+    description: card.querySelector('[data-field="description"]')?.value || '',
+  };
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+  }
+  if (saveState) {
+    saveState.textContent = 'Saving…';
+    saveState.classList.remove('ok');
+  }
+
+  try {
+    const resp = await sendMessage({
+      type: 'UPDATE_APPLICATION',
+      payload: { id, patch },
+    });
+
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Could not update tracker entry.');
+    }
+
+    card.classList.add('saved-flash');
+    if (saveState) {
+      saveState.textContent = '✓ Saved';
+      saveState.classList.add('ok');
+    }
+    if (showMessage) {
+      setStatus('fill-status', '✅ Tracker entry updated.', 'success');
+    }
+
+    const nextStatus = normalizeTrackingStatus(patch.status);
+    card.dataset.status = nextStatus;
+    await loadMainScreen({ showMain: false });
+
+    if (nextStatus !== normalizeTrackingStatus(previousStatus)) {
+      await renderTracker();
+      showScreen('tracker');
+    }
+
+    setTimeout(() => {
+      card.classList.remove('saved-flash');
+    }, 1200);
+  } catch (err) {
+    if (saveState) {
+      saveState.textContent = 'Save failed';
+      saveState.classList.remove('ok');
+    }
+    if (showMessage) {
+      setStatus('fill-status', '❌ ' + err.message, 'error');
+    }
+    throw err;
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+  }
 }
 
 async function renderTracker() {
@@ -435,6 +554,7 @@ async function renderTracker() {
   const apps = resp?.applications || [];
   const tbody = $('tracker-body');
   tbody.innerHTML = '';
+  applyTrackerSummary(apps);
 
   if (apps.length === 0) {
     $('tracker-empty').classList.remove('hidden');
@@ -442,34 +562,97 @@ async function renderTracker() {
   }
   $('tracker-empty').classList.add('hidden');
 
-  for (const app of apps.slice().reverse()) {
-    const card = document.createElement('div');
-    card.className = 'tracker-card';
-    card.innerHTML = `
+  const lanes = [
+    ['drafted', '🟡 Drafted'],
+    ['filled', '📝 Filled'],
+    ['submitted', '✅ Submitted'],
+    ['interview', '📅 Interview'],
+    ['offer', '🎉 Offer'],
+    ['rejected', '❌ Rejected'],
+  ];
+
+  tbody.innerHTML = lanes.map(([status, label]) => {
+    const laneApps = apps
+      .filter((app) => normalizeTrackingStatus(app.status) === status)
+      .slice()
+      .reverse();
+
+    const cards = laneApps.length
+      ? laneApps.map(renderTrackerCard).join('')
+      : '<p class="empty-msg" style="padding:8px 0">Nothing here yet.</p>';
+
+    return `
+      <section class="tracker-lane">
+        <div class="tracker-lane-header">
+          <span class="tracker-lane-title">${label}</span>
+          <span class="tracker-lane-count">${laneApps.length}</span>
+        </div>
+        <div class="tracker-lane-cards">${cards}</div>
+      </section>
+    `;
+  }).join('');
+}
+
+function renderTrackerCard(app) {
+  const expanded = expandedTrackerIds.has(app.id);
+  const summaryMeta = [
+    app.location || 'Unknown',
+    app.employment_type || 'Full-time',
+    app.remote ? 'Remote' : 'On-site',
+  ].filter(Boolean).join(' • ');
+  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
+
+  return `
+    <div class="tracker-card${expanded ? ' expanded' : ''}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizeTrackingStatus(app.status))}">
       <div class="tracker-card-header">
         <span class="badge badge-info">${esc(formatTrackingStatus(app.status))}</span>
         <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
       </div>
-      <div class="tracker-card-fields">
-        <input data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
-        <input data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
-        <select data-field="status">
-          ${renderStatusOptions(app.status)}
-        </select>
+      <button type="button" class="tracker-card-summary tracker-card-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
+        <div class="tracker-summary-copy">
+          <div class="tracker-summary-title">${esc(app.company || 'Unknown company')}</div>
+          <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
+          <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
+          <div class="tracker-summary-note">${esc(summaryNote)}</div>
+        </div>
+        <span class="tracker-expand-indicator">▾</span>
+      </button>
+      <div class="tracker-card-details">
+        <div class="tracker-card-fields">
+          <input data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
+          <input data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
+          <input data-field="location" type="text" value="${escAttr(app.location || 'Unknown')}" placeholder="Location" />
+          <div class="inline-fields compact-fields">
+            <select data-field="employment_type">
+              ${renderEmploymentTypeOptions(app.employment_type)}
+            </select>
+            <label class="checkbox-row" style="margin-top:0">
+              <input data-field="remote" type="checkbox" ${app.remote ? 'checked' : ''} />
+              Remote
+            </label>
+          </div>
+          <input data-field="salary_range" type="text" value="${escAttr(app.salary_range || '')}" placeholder="Salary range" />
+          <input data-field="scorecard" type="text" value="${escAttr(app.scorecard || '')}" placeholder="Scorecard" />
+          <input data-field="verdict" type="text" value="${escAttr(app.verdict || '')}" placeholder="Verdict / notes" />
+          <select data-field="status">
+            ${renderStatusOptions(app.status)}
+          </select>
+          <textarea data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
+        </div>
+        <div class="tracker-card-actions">
+          <a class="tracker-link" href="${escAttr(app.url || '#')}" target="_blank" rel="noopener">Open job ↗</a>
+          <span class="tracker-save-state">Auto-save on blur</span>
+          <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
+        </div>
       </div>
-      <div class="tracker-card-actions">
-        <a class="tracker-link" href="${escAttr(app.url || '#')}" target="_blank" rel="noopener">Open job ↗</a>
-        <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
-      </div>
-    `;
-    tbody.appendChild(card);
-  }
+    </div>
+  `;
 }
 
 function exportCsv(applications) {
-  const header = 'Company,Role,Status,Date,URL';
+  const header = 'Company,Role,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL';
   const rows = applications.map((a) =>
-    [a.company, a.title, a.status, a.date, a.url]
+    [a.company, a.title, a.status, a.date, a.employment_type, a.remote ? 'Yes' : 'No', a.location, a.salary_range, a.scorecard, a.verdict, a.url]
       .map((v) => '"' + String(v || '').replace(/"/g, '""') + '"')
       .join(',')
   );
@@ -481,6 +664,41 @@ function exportCsv(applications) {
   a.download = 'apply-bot-tracker.csv';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function initHelpHandlers() {
+  $('help-back-btn')?.addEventListener('click', () => loadMainScreen());
+
+  $('open-privacy-setup-btn')?.addEventListener('click', () => {
+    showScreen('setup');
+    setStatus('setup-status', 'Review or update your privacy and local-data settings below.');
+  });
+
+  $('clear-cache-btn')?.addEventListener('click', async () => {
+    try {
+      const resp = await sendMessage({ type: 'CLEAR_TEMP_DATA' });
+      if (!resp?.success) throw new Error(resp?.error || 'Could not clear temporary cache.');
+      setStatus('help-status', '✅ Temporary cache cleared. Profile and tracker data were kept.', 'success');
+      await loadMainScreen({ showMain: false });
+      showScreen('help');
+    } catch (err) {
+      setStatus('help-status', '❌ ' + err.message, 'error');
+    }
+  });
+
+  $('reset-data-btn')?.addEventListener('click', async () => {
+    const confirmed = confirm('Delete all local apply-bot data on this browser? This clears your profile, tracker, drafts, and saved defaults.');
+    if (!confirmed) return;
+
+    try {
+      const resp = await sendMessage({ type: 'RESET_ALL_DATA' });
+      if (!resp?.success) throw new Error(resp?.error || 'Could not reset local data.');
+      setStatus('help-status', '✅ All local data removed from this browser.', 'success');
+      await loadMainScreen();
+    } catch (err) {
+      setStatus('help-status', '❌ ' + err.message, 'error');
+    }
+  });
 }
 
 // ── Preview screen ────────────────────────────────────────────────────────────
@@ -682,6 +900,14 @@ function renderStatusOptions(selectedStatus) {
 
   return options.map(([value, label]) => (
     `<option value="${value}"${current === value ? ' selected' : ''}>${label}</option>`
+  )).join('');
+}
+
+function renderEmploymentTypeOptions(selectedType) {
+  const current = String(selectedType || 'Full-time');
+  const options = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary'];
+  return options.map((label) => (
+    `<option value="${label}"${current === label ? ' selected' : ''}>${label}</option>`
   )).join('');
 }
 

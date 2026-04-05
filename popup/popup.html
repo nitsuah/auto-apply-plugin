@@ -11,7 +11,19 @@
 
     <!-- Header -->
     <header class="header">
-      <span class="logo">🤖 apply-bot</span>
+      <div class="header-top">
+        <span class="logo">🤖 apply-bot</span>
+        <div class="header-actions">
+          <button id="header-tracker-btn" class="icon-btn" title="Open tracker">
+            📊 <span id="header-tracker-count" class="count-pill">0</span>
+          </button>
+          <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options">?</button>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="mini-stat"><strong id="header-stat-total">0</strong> tracked</span>
+        <span class="mini-stat"><strong id="header-stat-pending">0</strong> review</span>
+      </div>
     </header>
 
     <!-- Setup Screen (shown when not configured) -->
@@ -130,8 +142,6 @@
         </div>
       </div>
 
-      <div class="form-group privacy-group">
-
       <div class="form-group sensitive-group">
         <label>Sensitive / Demographic (optional)</label>
         <label class="checkbox-row sensitive-check">
@@ -244,26 +254,7 @@
         <ul id="fill-report-unresolved" class="report-list"></ul>
       </div>
 
-      <!-- Tracker summary -->
-      <div class="tracker-summary">
-        <div class="tracker-stats">
-          <div class="stat">
-            <span id="stat-total" class="stat-num">0</span>
-            <span class="stat-label">Total</span>
-          </div>
-          <div class="stat">
-            <span id="stat-applied" class="stat-num">0</span>
-            <span class="stat-label">Filled</span>
-          </div>
-          <div class="stat">
-            <span id="stat-pending" class="stat-num">0</span>
-            <span class="stat-label">Needs review</span>
-          </div>
-        </div>
-        <button id="view-tracker-btn" class="btn btn-ghost btn-full">
-          📊 View Tracker →
-        </button>
-      </div>
+
     </section>
 
     <!-- Tracker Screen -->
@@ -298,6 +289,36 @@
       <button id="inject-from-preview-btn" class="btn btn-primary btn-full" style="margin-top:12px">
         ⚡ Inject into Form
       </button>
+    </section>
+
+    <!-- Help Screen -->
+    <section id="help-screen" class="screen hidden">
+      <div class="tracker-header">
+        <button id="help-back-btn" class="btn-back">← Back</button>
+        <h2 class="section-title">Help & privacy</h2>
+      </div>
+
+      <div class="help-card">
+        <div class="help-section">
+          <h3>EULA / Terms</h3>
+          <p>`apply-bot` is a review-first helper. You control what gets filled and whether anything is submitted.</p>
+        </div>
+        <div class="help-section">
+          <h3>Privacy</h3>
+          <p>Your profile, tracker, and remembered answers stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
+        </div>
+        <div class="help-section">
+          <h3>GDPR / data control</h3>
+          <p>Use the actions below to clear temporary cache or fully delete your local extension data.</p>
+        </div>
+      </div>
+
+      <div class="action-btns">
+        <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
+        <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
+        <button id="reset-data-btn" class="btn btn-ghost btn-full">🗑 Delete all local data</button>
+      </div>
+      <p id="help-status" class="status-msg"></p>
     </section>
 
   </div>

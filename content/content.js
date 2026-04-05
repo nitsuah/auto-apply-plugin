@@ -52,7 +52,7 @@ async function handleMessage(msg) {
 
 async function handleFillForm() {
   // 1. Extract JD + job meta
-  const { jd, company, title } = extractJobInfo();
+  const { jd, company, title, location: jobLocation, employment_type, remote, salary_range } = extractJobInfo();
 
   // 2. Collect any custom open-ended questions
   const customQuestions = collectCustomQuestions();
@@ -90,6 +90,11 @@ async function handleFillForm() {
       url: location.href,
       status: 'filled',
       jd_snippet: jd.slice(0, 300),
+      description: jd.slice(0, 6000),
+      location: jobLocation,
+      employment_type,
+      remote,
+      salary_range,
       answers_generated: true,
       fill_report: report,
     },
@@ -121,13 +126,16 @@ async function loadFieldMap() {
 
 function extractJobInfo() {
   const hostname = location.hostname;
-  if (matchesDomain(hostname, 'greenhouse.io')) return extractGreenhouse();
-  if (matchesDomain(hostname, 'ashbyhq.com') || matchesDomain(hostname, 'ashby.io')) return extractAshby();
-  if (matchesDomain(hostname, 'lever.co')) return extractLever();
-  if (matchesDomain(hostname, 'linkedin.com')) return extractLinkedIn();
-  if (matchesDomain(hostname, 'workday.com')) return extractWorkday();
-  if (matchesDomain(hostname, 'icims.com')) return extractICIMS();
-  return extractGenericJobInfo();
+  let info;
+  if (matchesDomain(hostname, 'greenhouse.io')) info = extractGreenhouse();
+  else if (matchesDomain(hostname, 'ashbyhq.com') || matchesDomain(hostname, 'ashby.io')) info = extractAshby();
+  else if (matchesDomain(hostname, 'lever.co')) info = extractLever();
+  else if (matchesDomain(hostname, 'linkedin.com')) info = extractLinkedIn();
+  else if (matchesDomain(hostname, 'workday.com')) info = extractWorkday();
+  else if (matchesDomain(hostname, 'icims.com')) info = extractICIMS();
+  else info = extractGenericJobInfo();
+
+  return enrichJobInfo(info);
 }
 
 function extractGreenhouse() {
@@ -184,6 +192,78 @@ function extractGenericJobInfo() {
     company: '',
     jd: extractGenericText(),
   };
+}
+
+function enrichJobInfo(info = {}) {
+  const jd = String(info.jd || extractGenericText() || '');
+  const locationText = firstNonEmptyText(
+    info.location,
+    extractLocationFromPage(),
+    extractLocationFromText(jd),
+    'Unknown'
+  );
+
+  return {
+    ...info,
+    jd,
+    location: locationText || 'Unknown',
+    employment_type: detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
+    remote: detectRemoteFromText(`${locationText}\n${jd}`),
+    salary_range: extractSalaryRangeFromText(jd),
+  };
+}
+
+function extractLocationFromPage() {
+  const selectors = [
+    '[data-automation-id="locations"]',
+    '[data-testid*="location"]',
+    '.posting-categories .sort-by-location',
+    '.job-details-jobs-unified-top-card__tertiary-description',
+    '.topcard__flavor--bullet',
+    '.job-location',
+    '[itemprop="jobLocation"]',
+    '[class*="location"]',
+  ];
+
+  for (const selector of selectors) {
+    const text = qs(selector)?.textContent?.trim();
+    if (text && text.length <= 120) return text;
+  }
+
+  return '';
+}
+
+function extractLocationFromText(text = '') {
+  const normalized = String(text || '');
+  const match = normalized.match(/(?:location|based in|work location)\s*:?\s*([^\n|]+)/i);
+  if (match?.[1]) return match[1].trim();
+  return /\bremote\b/i.test(normalized) ? 'Remote' : '';
+}
+
+function detectEmploymentTypeFromText(text = '') {
+  const normalized = String(text || '').toLowerCase();
+  if (/part[ -]?time/.test(normalized)) return 'Part-time';
+  if (/contract|contractor/.test(normalized)) return 'Contract';
+  if (/intern(ship)?/.test(normalized)) return 'Internship';
+  if (/temporary|temp\b/.test(normalized)) return 'Temporary';
+  return 'Full-time';
+}
+
+function detectRemoteFromText(text = '') {
+  return /\bremote\b|hybrid|work from home|wfh/i.test(String(text || ''));
+}
+
+function extractSalaryRangeFromText(text = '') {
+  const match = String(text || '').match(/\$\s?\d[\d,]*(?:\.\d+)?\s*(?:k|K|\/hr|\/year)?\s*(?:-|–|to)\s*\$?\s?\d[\d,]*(?:\.\d+)?\s*(?:k|K|\/hr|\/year)?/);
+  return match ? match[0].replace(/\s+/g, ' ').trim() : '';
+}
+
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
 }
 
 function extractGenericText() {

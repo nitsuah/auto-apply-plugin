@@ -6,7 +6,12 @@
 import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
 import { findLearnedAnswer, shouldPersistLearnedValue } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { addApplication, updateApplication, updateApplicationStatus } from '../lib/tracker.js';
+import {
+  addApplication,
+  isTerminalApplicationStatus,
+  updateApplication,
+  updateApplicationStatus,
+} from '../lib/tracker.js';
 
 // ── Message router ────────────────────────────────────────────────────────────
 
@@ -35,6 +40,10 @@ async function handleMessage(msg) {
       return handleMarkLastSubmitted();
     case 'SAVE_LEARNED_DEFAULTS':
       return handleSaveLearnedDefaults(msg.payload);
+    case 'CLEAR_TEMP_DATA':
+      return handleClearTempData();
+    case 'RESET_ALL_DATA':
+      return handleResetAllData();
     case 'ATS_DETECTED':
       return { success: true }; // acknowledged — no action needed
     default:
@@ -128,8 +137,13 @@ async function getState() {
   const resume = data.resume || {};
   const applications = data.applications || [];
   const lastAnswers = data.lastAnswers || null;
-  const lastFillReport = data.lastFillReport || null;
   const learnedDefaults = data.learnedDefaults || {};
+
+  const lastTrackedApplicationId = data.lastTrackedApplicationId || null;
+  const lastTrackedApplication = applications.find((app) => app.id === lastTrackedApplicationId) || null;
+  const lastFillReport = lastTrackedApplication && !isTerminalApplicationStatus(lastTrackedApplication.status)
+    ? (data.lastFillReport || null)
+    : null;
 
   // Try to detect ATS from the active tab URL
   let currentAts = null;
@@ -156,7 +170,7 @@ async function getState() {
     applications,
     lastAnswers,
     lastFillReport,
-    lastTrackedApplicationId: data.lastTrackedApplicationId || null,
+    lastTrackedApplicationId,
     currentAts,
   };
 }
@@ -230,6 +244,15 @@ async function handleUpdateApplication({ id, patch }) {
   if (!entry) {
     throw new Error('Could not find that tracked application.');
   }
+
+  const data = await chrome.storage.local.get('lastTrackedApplicationId');
+  if (data.lastTrackedApplicationId === id && isTerminalApplicationStatus(entry.status)) {
+    await chrome.storage.local.set({
+      lastFillReport: null,
+      lastTrackedApplicationId: null,
+    });
+  }
+
   return { success: true, entry };
 }
 
@@ -245,6 +268,11 @@ async function handleMarkLastSubmitted() {
   if (!updated) {
     throw new Error('Could not find the recent application entry to update.');
   }
+
+  await chrome.storage.local.set({
+    lastFillReport: null,
+    lastTrackedApplicationId: null,
+  });
 
   return { success: true };
 }
@@ -270,6 +298,21 @@ async function handleSaveLearnedDefaults({ entries } = {}) {
   const trimmedLearnedDefaults = Object.fromEntries(Object.entries(learnedDefaults).slice(-75));
   await chrome.storage.local.set({ learnedDefaults: trimmedLearnedDefaults });
   return { success: true, saved };
+}
+
+async function handleClearTempData() {
+  await chrome.storage.local.remove([
+    'applicationDrafts',
+    'lastAnswers',
+    'lastFillReport',
+    'lastTrackedApplicationId',
+  ]);
+  return { success: true };
+}
+
+async function handleResetAllData() {
+  await chrome.storage.local.clear();
+  return { success: true };
 }
 
 // ── ATS detection from URL ────────────────────────────────────────────────────
