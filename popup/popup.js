@@ -352,9 +352,6 @@ function applyTrackerSummary(apps = []) {
 
 async function initMainHandlers() {
   $('header-tracker-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView() && await openExpandedWorkspace('tracker')) {
-      return;
-    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -417,9 +414,6 @@ async function initMainHandlers() {
   });
 
   $('edit-resume-btn').addEventListener('click', async () => {
-    if (!isStandaloneView() && await openExpandedWorkspace('setup')) {
-      return;
-    }
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });
     applyStateToSetupForm(state || {});
