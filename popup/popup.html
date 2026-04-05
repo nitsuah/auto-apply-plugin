@@ -12,7 +12,9 @@
     <!-- Header -->
     <header class="header">
       <div class="header-top">
-        <span class="logo">🤖 apply-bot</span>
+        <button id="header-home-btn" class="logo-btn" type="button" title="Return to Apply">
+          <span class="logo">🤖 apply-bot</span>
+        </button>
         <div class="header-actions">
           <button id="header-tracker-btn" class="icon-btn" title="Open tracker workspace">
             📊 <span class="tracker-btn-label">Tracker</span>
@@ -293,8 +295,10 @@
     <!-- Tracker Screen -->
     <section id="tracker-screen" class="screen hidden">
       <div class="tracker-header">
-        <button id="back-btn" class="btn-back">← Back</button>
-        <h2 class="section-title">Applications</h2>
+        <div class="tracker-title-group">
+          <h2 class="section-title">Applications</h2>
+          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to the apply view">⚡ Apply</button>
+        </div>
         <div class="tracker-actions">
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
           <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>

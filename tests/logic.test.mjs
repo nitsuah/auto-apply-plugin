@@ -102,8 +102,9 @@ test('findLearnedAnswer reuses prior answers for similar prompts', () => {
   assert.equal(answer, 'No');
 });
 
-test('shouldPersistLearnedValue avoids sensitive demographic prompts', () => {
-  assert.equal(shouldPersistLearnedValue('Gender identity', 'Prefer not to say'), false);
+test('shouldPersistLearnedValue avoids highly sensitive PII prompts', () => {
+  assert.equal(shouldPersistLearnedValue('Social Security Number', '123-45-6789'), false);
+  assert.equal(shouldPersistLearnedValue('Date of birth', '1993-01-02'), false);
   assert.equal(shouldPersistLearnedValue('Do you require security clearance?', 'No'), true);
 });
 
@@ -115,6 +116,16 @@ test('shouldPersistLearnedValue ignores legal acknowledgements and arbitration c
     ),
     false
   );
+});
+
+test('shouldPersistLearnedValue rejects generic placeholders and malformed freeform captures', () => {
+  assert.equal(shouldPersistLearnedValue('Start typing...', 'Company careers page'), false);
+  assert.equal(shouldPersistLearnedValue('Not listed', 'No'), false);
+  assert.equal(
+    shouldPersistLearnedValue('Please briefly outline any experience you have deploying systems at scale.', '2406721206'),
+    false
+  );
+  assert.equal(shouldPersistLearnedValue('X (formerly Twitter) URL', 'https://x.com/example'), false);
 });
 
 test('isIgnoredLearnedPrompt blocks ignored outlier prompts until the ignore is removed', () => {

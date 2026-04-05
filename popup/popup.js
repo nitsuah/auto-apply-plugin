@@ -355,6 +355,10 @@ function applyTrackerSummary(apps = []) {
 }
 
 async function initMainHandlers() {
+  $('header-home-btn')?.addEventListener('click', async () => {
+    await loadMainScreen();
+  });
+
   $('header-tracker-btn')?.addEventListener('click', async () => {
     await renderTracker();
     showScreen('tracker');
@@ -433,7 +437,9 @@ async function initTrackerHandlers() {
     showScreen('tracker');
   });
 
-  $('back-btn').addEventListener('click', () => showScreen('main'));
+  $('tracker-home-btn')?.addEventListener('click', async () => {
+    await loadMainScreen();
+  });
 
   $('add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm());
   $('cancel-add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm(false));
@@ -1572,7 +1578,7 @@ function normalizeLookupText(value) {
 
 function isSensitiveMemoryQuestion(question = '') {
   const text = normalizeLookupText(question);
-  return /country|citizenship|work authorization|sponsorship|current company|current employer|employer|current title|job title|salary|compensation|deadline|timeline|availability|notice|relocate|clearance|location/.test(text);
+  return /gender|pronoun|sex|sexual orientation|orientation|race|ethnic|ethnicity|hispanic|latino|asian|white|black|african american|native american|pacific islander|non binary|nonbinary|trans|veteran|military|active duty|reserve force|disability|disabled|religion|faith|marital|spouse/.test(text);
 }
 
 function truncateText(text, maxLength = 96) {
