@@ -20,15 +20,10 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ### P1 - High
 
-- [ ] Add picker-style job detail import from the current page or pasted JD.
+- [ ] Finish CSV import for prior applications.
   - Priority: P1
-  - Context: most job metadata should be scraped from the page, headings, and reference text before the user has to type anything.
-  - Acceptance Criteria: the user can review parsed job details from the current page or pasted JD text before saving them to the tracker.
-
-- [ ] Add manual and CSV import for prior applications.
-  - Priority: P1
-  - Context: historical applications and off-browser submissions still need a clean way into the workspace.
-  - Acceptance Criteria: manual add works first, and CSV import uses a simple documented schema for bulk history import.
+  - Context: manual quick-add is now in place, but bulk history import still needs a simple path into the workspace.
+  - Acceptance Criteria: CSV import uses a documented schema, validates cleanly, and avoids cluttering the core tracker flow.
 
 ### P2 - Medium
 
@@ -60,6 +55,7 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 - [x] Add safe Memory for non-sensitive answers plus draft persistence across form rerenders.
 - [x] Move Memory controls into `Profile`, add header shortcuts, and make tracker edits/card expansion feel like a real workspace.
 - [x] Widen the popup workspace and reduce scroll pressure across tracker, preview, and profile views.
+- [x] Add quick manual tracker entry plus current-page / pasted-JD import for job details.
 
 <!--
 AGENT INSTRUCTIONS:

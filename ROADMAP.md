@@ -18,8 +18,8 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 ## 2026 Q3 (Planned)
 
-- [ ] Add picker-style job detail capture from the current page or pasted JD text.
-- [ ] Add manual plus CSV import for previously submitted applications.
+- [/] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
+- [ ] Finish CSV import for previously submitted applications.
 - [ ] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
 
 ## 2026 Q4 (Exploratory)

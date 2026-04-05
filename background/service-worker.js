@@ -8,6 +8,7 @@ import { findLearnedAnswer, shouldPersistLearnedValue } from '../lib/form-filler
 import { structureResume } from '../lib/resume-parser.js';
 import {
   addApplication,
+  deriveTrackerDetailsFromText,
   isTerminalApplicationStatus,
   updateApplication,
   updateApplicationStatus,
@@ -34,6 +35,8 @@ async function handleMessage(msg) {
       return getLastAnswers();
     case 'LOG_APPLICATION':
       return handleLogApplication(msg.payload);
+    case 'PARSE_APPLICATION_DRAFT':
+      return handleParseApplicationDraft(msg.payload);
     case 'UPDATE_APPLICATION':
       return handleUpdateApplication(msg.payload);
     case 'MARK_LAST_SUBMITTED':
@@ -242,6 +245,13 @@ async function handleLogApplication(app) {
     lastTrackedApplicationId: entry.id,
   });
   return { success: true, entry };
+}
+
+async function handleParseApplicationDraft({ text, draft } = {}) {
+  return {
+    success: true,
+    details: deriveTrackerDetailsFromText(text, draft || {}),
+  };
 }
 
 async function handleUpdateApplication({ id, patch }) {

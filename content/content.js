@@ -55,6 +55,8 @@ async function handleMessage(msg) {
       return handleFillForm();
     case 'INJECT_ANSWERS':
       return handleInjectAnswers(msg.payload);
+    case 'GET_JOB_INFO':
+      return handleGetJobInfo();
     case 'DETECT_ATS':
       return { ats: detectAts() };
     case 'FOCUS_FIELD':
@@ -124,6 +126,17 @@ async function handleInjectAnswers(answers) {
   const fieldMap = await loadFieldMap();
   const report = fillForm(answers, fieldMap);
   return { success: true, filled: report.filled, report };
+}
+
+async function handleGetJobInfo() {
+  const info = extractJobInfo();
+  return {
+    success: true,
+    job: {
+      ...info,
+      url: location.href,
+    },
+  };
 }
 
 async function handleFocusField(target = {}) {

@@ -634,6 +634,24 @@ textarea {
   margin-bottom: 0;
 }
 
+.tracker-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tracker-add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#tracker-add-card textarea {
+  width: 100%;
+}
+
 .tracker-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));

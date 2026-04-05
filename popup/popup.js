@@ -424,6 +424,11 @@ async function initTrackerHandlers() {
 
   $('back-btn').addEventListener('click', () => showScreen('main'));
 
+  $('add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm());
+  $('cancel-add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm(false));
+  $('import-current-job-btn')?.addEventListener('click', importCurrentPageIntoTrackerForm);
+  $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
+
   $('export-csv-btn').addEventListener('click', async () => {
     const resp = await sendMessage({ type: 'GET_STATE' });
     exportCsv(resp?.applications || []);
@@ -600,6 +605,146 @@ async function renderTracker() {
       </section>
     `;
   }).join('');
+}
+
+function toggleTrackerAddForm(forceOpen) {
+  const card = $('tracker-add-card');
+  if (!card) return;
+
+  const shouldOpen = typeof forceOpen === 'boolean'
+    ? forceOpen
+    : card.classList.contains('hidden');
+
+  card.classList.toggle('hidden', !shouldOpen);
+  const addBtn = $('add-application-btn');
+  if (addBtn) {
+    addBtn.textContent = shouldOpen ? 'Close add form' : '＋ Add manually';
+  }
+
+  if (!shouldOpen) {
+    resetTrackerDraftForm();
+    return;
+  }
+
+  $('new-application-company')?.focus();
+}
+
+function resetTrackerDraftForm() {
+  $('new-application-company').value = '';
+  $('new-application-title').value = '';
+  $('new-application-url').value = '';
+  $('new-application-status').value = 'drafted';
+  $('new-application-location').value = '';
+  $('new-application-employment-type').value = 'Full-time';
+  $('new-application-remote').checked = false;
+  $('new-application-salary-range').value = '';
+  $('new-application-description').value = '';
+  setTrackerAddStatus('Paste a JD or import the current page, then save.');
+}
+
+function setTrackerAddStatus(msg, type = '') {
+  const el = $('tracker-add-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+function fillTrackerDraftForm(draft = {}) {
+  $('new-application-company').value = draft.company || '';
+  $('new-application-title').value = draft.title || '';
+  $('new-application-url').value = draft.url || '';
+  $('new-application-status').value = draft.status || 'drafted';
+  $('new-application-location').value = draft.location || '';
+  $('new-application-employment-type').value = draft.employment_type || 'Full-time';
+  $('new-application-remote').checked = !!draft.remote;
+  $('new-application-salary-range').value = draft.salary_range || '';
+  $('new-application-description').value = draft.description || draft.jd || '';
+}
+
+function readTrackerDraftForm() {
+  return {
+    company: $('new-application-company').value.trim(),
+    title: $('new-application-title').value.trim(),
+    url: $('new-application-url').value.trim(),
+    status: $('new-application-status').value || 'drafted',
+    location: $('new-application-location').value.trim(),
+    employment_type: $('new-application-employment-type').value || 'Full-time',
+    remote: $('new-application-remote').checked,
+    salary_range: $('new-application-salary-range').value.trim(),
+    description: $('new-application-description').value.trim(),
+  };
+}
+
+async function importCurrentPageIntoTrackerForm() {
+  toggleTrackerAddForm(true);
+  setTrackerAddStatus('⏳ Importing the current page…');
+
+  try {
+    const resp = await sendToActiveTab({ type: 'GET_JOB_INFO' });
+    if (!resp?.success || !resp.job) {
+      throw new Error(resp?.error || 'Could not read job details from the current page.');
+    }
+
+    fillTrackerDraftForm({
+      ...resp.job,
+      description: resp.job.jd || '',
+    });
+    setTrackerAddStatus('✅ Current page details imported.', 'success');
+  } catch (err) {
+    setTrackerAddStatus('❌ ' + err.message, 'error');
+  }
+}
+
+async function saveNewApplicationFromForm() {
+  const saveBtn = $('save-new-application-btn');
+  const draft = readTrackerDraftForm();
+
+  if (!draft.company && !draft.title) {
+    setTrackerAddStatus('⚠️ Add at least a company or role title first.', 'error');
+    return;
+  }
+
+  if (saveBtn) saveBtn.disabled = true;
+  setTrackerAddStatus('⏳ Saving to tracker…');
+
+  try {
+    let derived = {};
+    if (draft.description) {
+      const resp = await sendMessage({
+        type: 'PARSE_APPLICATION_DRAFT',
+        payload: { text: draft.description, draft },
+      });
+      derived = resp?.details || {};
+    }
+
+    const payload = {
+      ...derived,
+      ...draft,
+      location: draft.location || derived.location || 'Unknown',
+      employment_type: draft.employment_type || derived.employment_type || 'Full-time',
+      remote: draft.remote || derived.remote || false,
+      salary_range: draft.salary_range || derived.salary_range || '',
+      jd_snippet: draft.description.slice(0, 300),
+      answers_generated: false,
+      fill_report: null,
+    };
+
+    const resp = await sendMessage({ type: 'LOG_APPLICATION', payload });
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Could not add that tracker entry.');
+    }
+
+    resetTrackerDraftForm();
+    toggleTrackerAddForm(false);
+    await renderTracker();
+    await loadMainScreen({ showMain: false });
+    showScreen('tracker');
+    setStatus('fill-status', '✅ Application added to the tracker.', 'success');
+  } catch (err) {
+    setTrackerAddStatus('❌ ' + err.message, 'error');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 function renderTrackerCard(app) {

@@ -279,8 +279,53 @@
       <div class="tracker-header">
         <button id="back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">Applications</h2>
-        <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+        <div class="tracker-actions">
+          <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
+          <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+        </div>
       </div>
+
+      <div id="tracker-add-card" class="help-card hidden">
+        <div class="report-header">
+          <span class="report-title">Quick add</span>
+          <div class="tracker-actions">
+            <button id="import-current-job-btn" class="btn btn-ghost btn-sm">Import current page</button>
+            <button id="cancel-add-application-btn" class="btn btn-ghost btn-sm">Close</button>
+          </div>
+        </div>
+        <div class="tracker-add-grid">
+          <input id="new-application-company" type="text" placeholder="Company" />
+          <input id="new-application-title" type="text" placeholder="Role title" />
+          <input id="new-application-url" type="text" placeholder="Job URL (optional)" />
+          <select id="new-application-status">
+            <option value="drafted">Drafted</option>
+            <option value="filled">Filled</option>
+            <option value="submitted">Submitted</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <input id="new-application-location" type="text" placeholder="Location" />
+          <select id="new-application-employment-type">
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Contract">Contract</option>
+            <option value="Internship">Internship</option>
+            <option value="Temporary">Temporary</option>
+          </select>
+          <label class="checkbox-row" style="margin-top:0">
+            <input id="new-application-remote" type="checkbox" />
+            Remote / hybrid
+          </label>
+          <input id="new-application-salary-range" type="text" placeholder="Salary range" />
+        </div>
+        <textarea id="new-application-description" rows="5" placeholder="Paste the JD or quick notes (optional)"></textarea>
+        <div class="tracker-card-actions" style="margin-top:10px">
+          <span id="tracker-add-status" class="status-msg">Paste a JD or import the current page, then save.</span>
+          <button id="save-new-application-btn" class="btn btn-primary btn-sm">Save to tracker</button>
+        </div>
+      </div>
+
       <div class="tracker-list" id="tracker-body">
         <!-- cards injected by JS -->
       </div>

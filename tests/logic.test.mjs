@@ -5,7 +5,12 @@ import { readFile } from 'node:fs/promises';
 import { extractJsonCandidate, parseJsonResponse } from '../lib/gemini.js';
 import { findLearnedAnswer, resolveAnswerKeyFromCandidates, shouldPersistLearnedValue } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { isTerminalApplicationStatus, normalizeApplicationStatus, normalizeEmploymentType } from '../lib/tracker.js';
+import {
+  deriveTrackerDetailsFromText,
+  isTerminalApplicationStatus,
+  normalizeApplicationStatus,
+  normalizeEmploymentType,
+} from '../lib/tracker.js';
 
 const fieldMap = JSON.parse(
   await readFile(new URL('../data/field-map.json', import.meta.url), 'utf8')
@@ -134,4 +139,18 @@ test('isTerminalApplicationStatus hides fill review after submission-style state
   assert.equal(isTerminalApplicationStatus('submitted'), true);
   assert.equal(isTerminalApplicationStatus('interview'), true);
   assert.equal(isTerminalApplicationStatus('offer'), true);
+});
+
+test('deriveTrackerDetailsFromText extracts location, salary, remote flag, and employment type from pasted JD text', () => {
+  const details = deriveTrackerDetailsFromText(`
+    Senior Platform Engineer
+    Location: San Francisco, CA
+    Compensation: $180,000 - $220,000
+    This is a full time hybrid role with occasional work from home flexibility.
+  `);
+
+  assert.equal(details.location, 'San Francisco, CA');
+  assert.equal(details.salary_range, '$180,000 - $220,000');
+  assert.equal(details.employment_type, 'Full-time');
+  assert.equal(details.remote, true);
 });
