@@ -67,6 +67,8 @@ async function ensureContentScriptReady(tabId) {
 const $ = (id) => document.getElementById(id);
 const trackerSaveTimers = new Map();
 const expandedTrackerIds = new Set();
+const expandedMemoryQuestions = new Set();
+const popupQuery = new URLSearchParams(window.location.search);
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -85,6 +87,7 @@ function setStatus(elId, msg, type = '') {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.body.dataset.standalone = isStandaloneView() ? 'true' : 'false';
   await initTabs();
   await initSetupHandlers();
   await loadMainScreen();
@@ -93,6 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initPreviewHandlers();
   await initHelpHandlers();
   initStatusNavHandlers();
+  await applyInitialRequestedScreen();
 });
 
 // ── Tab switching (upload vs paste) ──────────────────────────────────────────
@@ -314,7 +318,7 @@ async function loadMainScreen(options = {}) {
   const memoryTooltip = memoryCount
     ? `${memoryCount} remembered answers are saved. Click to review Memory in Profile.`
     : 'No remembered answers yet. Click to open Memory in Profile.';
-  setBadgeState('learned-status', memoryCount ? `${memoryCount} saved` : 'Empty', memoryCount ? 'ok' : 'info', memoryTooltip);
+  setBadgeState('learned-status', memoryCount ? `${memoryCount} saved` : 'Empty', 'memory', memoryTooltip);
   setStatusRowMeta('learned-row', memoryTooltip);
 
   const atsMeta = getAtsMeta(currentAts);
@@ -345,6 +349,9 @@ function applyTrackerSummary(apps = []) {
 
 async function initMainHandlers() {
   $('header-tracker-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView() && await openExpandedWorkspace('tracker')) {
+      return;
+    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -407,6 +414,9 @@ async function initMainHandlers() {
   });
 
   $('edit-resume-btn').addEventListener('click', async () => {
+    if (!isStandaloneView() && await openExpandedWorkspace('setup')) {
+      return;
+    }
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });
     applyStateToSetupForm(state || {});
@@ -821,37 +831,70 @@ function exportCsv(applications) {
 }
 
 async function renderLearnedDefaults() {
-  const container = $('learned-defaults-list');
+  const regularContainer = $('learned-defaults-list');
+  const sensitiveContainer = $('sensitive-memory-list');
   const badge = $('memory-count-badge');
-  if (!container) return;
+  const sensitiveBadge = $('sensitive-memory-count');
+  if (!regularContainer) return;
 
   try {
     const resp = await sendMessage({ type: 'GET_LEARNED_DEFAULTS' });
     const items = Array.isArray(resp?.items) ? resp.items : [];
+    const regularItems = items.filter((item) => !isSensitiveMemoryQuestion(item.question));
+    const sensitiveItems = items.filter((item) => isSensitiveMemoryQuestion(item.question));
 
     if (badge) {
-      badge.textContent = `${items.length} saved`;
+      badge.textContent = `${regularItems.length} saved`;
+      badge.className = 'badge badge-memory';
+    }
+    if (sensitiveBadge) {
+      sensitiveBadge.textContent = `${sensitiveItems.length} guarded`;
+      sensitiveBadge.className = 'badge badge-memory';
     }
 
-    if (!items.length) {
-      container.innerHTML = '<p class="empty-msg">No memory saved yet.</p>';
-      return;
+    renderMemoryGroup(regularContainer, regularItems, 'No memory saved yet.');
+    if (sensitiveContainer) {
+      renderMemoryGroup(sensitiveContainer, sensitiveItems, 'No sensitive memory saved.');
     }
+  } catch (err) {
+    regularContainer.innerHTML = `<p class="empty-msg">Could not load memory. ${esc(err.message)}</p>`;
+    if (sensitiveContainer) {
+      sensitiveContainer.innerHTML = '<p class="empty-msg">No sensitive memory saved.</p>';
+    }
+  }
+}
 
-    container.innerHTML = items.map((item) => `
-      <div class="memory-item" data-question="${escAttr(item.question)}">
-        <div class="memory-item-label">Prompt</div>
-        <div class="memory-item-question">${esc(item.question)}</div>
-        <textarea data-field="answer" rows="3">${esc(item.answer || '')}</textarea>
-        <div class="memory-item-actions">
-          <button class="btn btn-secondary btn-sm memory-save-btn">Save</button>
-          <button class="btn btn-ghost btn-sm memory-delete-btn">Delete</button>
+function renderMemoryGroup(container, items, emptyMessage) {
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = `<p class="empty-msg">${esc(emptyMessage)}</p>`;
+    return;
+  }
+
+  container.innerHTML = items.map((item) => {
+    const expanded = expandedMemoryQuestions.has(item.question);
+    const answerPreview = truncateText(item.answer || 'No saved answer yet.', 92);
+    return `
+      <div class="memory-item${expanded ? ' expanded' : ''}" data-question="${escAttr(item.question)}">
+        <button type="button" class="memory-card-summary memory-toggle-btn" aria-expanded="${expanded ? 'true' : 'false'}" title="${escAttr(item.question)}">
+          <div class="memory-card-copy">
+            <div class="memory-item-label">Prompt</div>
+            <div class="memory-item-question">${esc(truncateText(item.question, 78))}</div>
+            <div class="memory-item-preview">${esc(answerPreview)}</div>
+          </div>
+          <span class="memory-expand-indicator">▾</span>
+        </button>
+        <div class="memory-card-details">
+          <textarea data-field="answer" rows="3">${esc(item.answer || '')}</textarea>
+          <div class="memory-item-actions">
+            <button class="btn btn-secondary btn-sm memory-save-btn">Save</button>
+            <button class="btn btn-ghost btn-sm memory-delete-btn">Delete</button>
+          </div>
         </div>
       </div>
-    `).join('');
-  } catch (err) {
-    container.innerHTML = `<p class="empty-msg">Could not load memory. ${esc(err.message)}</p>`;
-  }
+    `;
+  }).join('');
 }
 
 async function initHelpHandlers() {
@@ -861,13 +904,23 @@ async function initHelpHandlers() {
     showScreen('help');
   });
 
-  $('learned-defaults-list')?.addEventListener('click', async (event) => {
+  $('setup-screen')?.addEventListener('click', async (event) => {
+    const toggleBtn = event.target.closest('.memory-toggle-btn');
     const saveBtn = event.target.closest('.memory-save-btn');
     const deleteBtn = event.target.closest('.memory-delete-btn');
     const item = event.target.closest('.memory-item');
     if (!item) return;
 
     const question = item.dataset.question || '';
+
+    if (toggleBtn) {
+      const expanded = item.classList.toggle('expanded');
+      toggleBtn.setAttribute('aria-expanded', String(expanded));
+      if (expanded) expandedMemoryQuestions.add(question);
+      else expandedMemoryQuestions.delete(question);
+      return;
+    }
+
     const answer = item.querySelector('[data-field="answer"]')?.value || '';
 
     try {
@@ -882,6 +935,7 @@ async function initHelpHandlers() {
       }
 
       if (deleteBtn) {
+        expandedMemoryQuestions.delete(question);
         const resp = await sendMessage({
           type: 'DELETE_LEARNED_DEFAULT',
           payload: { question },
@@ -1014,10 +1068,12 @@ function renderFillReport(report, opts = {}) {
 
   listEl.innerHTML = unresolved.slice(0, 8).map((item) => {
     const payload = encodeURIComponent(JSON.stringify(typeof item === 'string' ? { label: item } : item));
+    const fullLabel = getReviewItemLabel(item);
+    const shortLabel = truncateText(fullLabel, 96);
     return `
       <li>
-        <button type="button" class="review-jump-btn" data-payload="${escAttr(payload)}" title="Jump to this field on the page">
-          ${esc(getReviewItemLabel(item))}
+        <button type="button" class="review-jump-btn" data-payload="${escAttr(payload)}" title="${escAttr(fullLabel)}">
+          ${esc(shortLabel)}
         </button>
       </li>
     `;
@@ -1118,6 +1174,49 @@ function initStatusNavHandlers() {
   });
 }
 
+function isStandaloneView() {
+  return popupQuery.get('standalone') === '1';
+}
+
+async function openExpandedWorkspace(screen) {
+  try {
+    const url = chrome.runtime.getURL(`popup/popup.html?screen=${encodeURIComponent(screen)}&standalone=1`);
+    await chrome.windows.create({
+      url,
+      type: 'popup',
+      width: screen === 'tracker' ? 1440 : 1260,
+      height: 920,
+    });
+    window.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function applyInitialRequestedScreen() {
+  const screen = popupQuery.get('screen');
+  if (!screen) return;
+
+  if (screen === 'tracker') {
+    await renderTracker();
+    showScreen('tracker');
+    return;
+  }
+
+  if (screen === 'setup') {
+    showScreen('setup');
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    await renderLearnedDefaults();
+    return;
+  }
+
+  if (screen === 'help') {
+    showScreen('help');
+  }
+}
+
 async function openStatusTarget(target) {
   if (!target) return;
 
@@ -1129,6 +1228,10 @@ async function openStatusTarget(target) {
   if (target === 'privacy') {
     showScreen('help');
     scrollToSection('help-privacy-section');
+    return;
+  }
+
+  if (!isStandaloneView() && await openExpandedWorkspace('setup')) {
     return;
   }
 
@@ -1217,6 +1320,7 @@ function badgeToneClass(tone) {
     case 'ok': return 'badge-ok';
     case 'warn': return 'badge-warn';
     case 'bad': return 'badge-bad';
+    case 'memory': return 'badge-memory';
     default: return 'badge-info';
   }
 }
@@ -1224,6 +1328,25 @@ function badgeToneClass(tone) {
 function getReviewItemLabel(item) {
   if (typeof item === 'string') return item;
   return item?.label || item?.question || item?.field || 'Field to review';
+}
+
+function normalizeLookupText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isSensitiveMemoryQuestion(question = '') {
+  const text = normalizeLookupText(question);
+  return /country|citizenship|work authorization|sponsorship|current company|current employer|employer|current title|job title|salary|compensation|deadline|timeline|availability|notice|relocate|clearance|location/.test(text);
+}
+
+function truncateText(text, maxLength = 96) {
+  const value = String(text || '').trim();
+  if (value.length <= maxLength) return value;
+  return value.slice(0, Math.max(0, maxLength - 1)).trimEnd() + '…';
 }
 
 function getAtsMeta(ats) {

@@ -652,12 +652,14 @@ function highlightField(el) {
 
 function detectAts() {
   const host = location.hostname;
-  if (matchesDomain(host, 'greenhouse.io')) return 'Greenhouse';
-  if (matchesDomain(host, 'ashbyhq.com') || matchesDomain(host, 'ashby.io')) return 'Ashby';
-  if (matchesDomain(host, 'lever.co')) return 'Lever';
-  if (matchesDomain(host, 'linkedin.com')) return 'LinkedIn Easy Apply';
-  if (matchesDomain(host, 'workday.com')) return 'Workday';
-  if (matchesDomain(host, 'icims.com')) return 'iCIMS';
+  const path = `${location.pathname} ${location.search}`.toLowerCase();
+
+  if (matchesDomain(host, 'greenhouse.io') && (/\/jobs\/|job_app|application/.test(path) || qs('#application_form, #content'))) return 'Greenhouse';
+  if ((matchesDomain(host, 'ashbyhq.com') || matchesDomain(host, 'ashby.io')) && (/\/application|\/jobs\/|\/job\//.test(path) || qs('.ashby-job-posting-description, form'))) return 'Ashby';
+  if (matchesDomain(host, 'lever.co') && (/\/postings\/|\/jobs\/|\/apply/.test(path) || qs('.posting-apply, .application-form'))) return 'Lever';
+  if (matchesDomain(host, 'linkedin.com') && /\/jobs\/view\//.test(path)) return 'LinkedIn Easy Apply';
+  if (matchesDomain(host, 'workday.com') && (/\/job\/|requisition|\/apply/.test(path) || qs('[data-automation-id="jobPostingHeader"]'))) return 'Workday';
+  if (matchesDomain(host, 'icims.com') && (/\/jobs\/|\/job\//.test(path) || qs('#iCIMS_JobContent'))) return 'iCIMS';
   return 'Generic';
 }
 

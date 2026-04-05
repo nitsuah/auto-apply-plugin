@@ -144,12 +144,12 @@
         </div>
       </div>
 
-      <div class="help-card" id="profile-memory-section">
+      <div class="help-card memory-card-shell" id="profile-memory-section">
         <div class="report-header">
-          <span class="report-title">Memory</span>
-          <span id="memory-count-badge" class="badge badge-info">0 saved</span>
+          <span class="report-title memory-title">Memory</span>
+          <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
         </div>
-        <p class="helper-text">Review or delete remembered answers here if a captured response looks wrong.</p>
+        <p class="helper-text">Only non-sensitive reusable answers live here. Click a card to expand and edit it.</p>
         <div id="learned-defaults-list" class="memory-list">
           <p class="empty-msg">No memory saved yet.</p>
         </div>
@@ -196,6 +196,16 @@
           </select>
           <input type="text" id="profile-pronouns-sensitive" placeholder="Pronouns (optional)" />
         </div>
+        <div class="sensitive-memory-block">
+          <div class="report-header">
+            <span class="report-title memory-title">Sensitive memory</span>
+            <span id="sensitive-memory-count" class="badge badge-memory">0 guarded</span>
+          </div>
+          <p class="helper-text">Higher-sensitivity remembers stay grouped here for review. Legal acknowledgements are ignored by default.</p>
+          <div id="sensitive-memory-list" class="memory-list compact-memory-list">
+            <p class="empty-msg">No sensitive memory saved.</p>
+          </div>
+        </div>
         <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
       </div>
 
@@ -216,7 +226,7 @@
 
     <!-- Main Screen (shown when configured) -->
     <section id="main-screen" class="screen hidden">
-      <div class="main-dashboard">
+      <div class="main-top-grid">
         <div class="main-actions-panel">
           <div class="action-btns">
             <button id="fill-btn" class="btn btn-primary btn-full">
@@ -229,17 +239,7 @@
               ✏️ Edit Profile
             </button>
           </div>
-
           <p id="fill-status" class="status-msg"></p>
-
-          <div id="fill-report-card" class="report-card hidden">
-            <div class="report-header">
-              <span class="report-title">Last fill review</span>
-              <button id="mark-submitted-btn" class="btn btn-ghost btn-sm">✅ Mark Submitted</button>
-            </div>
-            <p id="fill-report-summary" class="report-summary"></p>
-            <ul id="fill-report-unresolved" class="report-list"></ul>
-          </div>
         </div>
 
         <div class="main-status-panel">
@@ -271,6 +271,15 @@
             <p id="ats-hint" class="helper-text hidden"></p>
           </div>
         </div>
+      </div>
+
+      <div id="fill-report-card" class="report-card hidden">
+        <div class="report-header">
+          <span class="report-title">Last fill review</span>
+          <button id="mark-submitted-btn" class="btn btn-ghost btn-sm">✅ Mark Submitted</button>
+        </div>
+        <p id="fill-report-summary" class="report-summary"></p>
+        <ul id="fill-report-unresolved" class="report-list"></ul>
       </div>
     </section>
 

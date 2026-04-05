@@ -18,6 +18,7 @@
   --blue: #60a5fa;
   --yellow: #fbbf24;
   --red: #f87171;
+  --purple: #c084fc;
   --text: #e2e8f0;
   --text-muted: #8892a4;
   --radius: 8px;
@@ -27,34 +28,43 @@
 
 html,
 body {
-  min-width: 720px;
+  min-width: 0;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  width: 720px;
-  min-height: 360px;
+  width: 760px;
+  min-height: 520px;
+  max-width: 100%;
+  overflow-x: hidden;
   font-size: 13px;
   line-height: 1.5;
   transition: width 0.16s ease, min-height 0.16s ease;
 }
 
-body[data-screen="setup"] {
-  width: 1480px;
-  min-height: 900px;
-}
-
-body[data-screen="main"],
-body[data-screen="help"] {
-  width: 1100px;
-  min-height: 780px;
-}
-
+body[data-screen="setup"],
 body[data-screen="tracker"],
 body[data-screen="preview"] {
-  width: 1860px;
-  min-height: 980px;
+  width: 820px;
+  min-height: 680px;
+}
+
+body[data-standalone="true"][data-screen="setup"] {
+  width: 1220px;
+  min-height: 860px;
+}
+
+body[data-standalone="true"][data-screen="main"],
+body[data-standalone="true"][data-screen="help"] {
+  width: 980px;
+  min-height: 760px;
+}
+
+body[data-standalone="true"][data-screen="tracker"],
+body[data-standalone="true"][data-screen="preview"] {
+  width: 1420px;
+  min-height: 920px;
 }
 
 #app {
@@ -443,11 +453,12 @@ textarea {
 }
 
 /* ── Status card ── */
-.main-dashboard {
+.main-top-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 0.95fr) minmax(340px, 0.9fr);
+  grid-template-columns: minmax(260px, 0.95fr) minmax(260px, 0.9fr);
   gap: 14px;
   align-items: start;
+  margin-bottom: 12px;
 }
 
 .main-actions-panel,
@@ -520,6 +531,11 @@ textarea {
   color: var(--red);
 }
 
+.badge-memory {
+  background: rgba(192, 132, 252, 0.16);
+  color: var(--purple);
+}
+
 /* ── Action buttons ── */
 .action-btns {
   display: flex;
@@ -582,6 +598,10 @@ textarea {
 
 .report-list li + li {
   margin-top: 4px;
+}
+
+.report-list li {
+  max-width: 100%;
 }
 
 /* ── Tracker summary ── */
@@ -884,16 +904,47 @@ textarea {
   color: var(--text-muted);
 }
 
+.memory-card-shell {
+  border-color: rgba(192, 132, 252, 0.35);
+}
+
+.memory-title {
+  color: var(--purple);
+}
+
 .memory-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 8px;
 }
 
+.compact-memory-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .memory-item {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(192, 132, 252, 0.28);
   border-radius: var(--radius-sm);
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(192, 132, 252, 0.05);
+  overflow: hidden;
+}
+
+.memory-card-summary {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-card-copy {
+  min-width: 0;
 }
 
 .memory-item-label {
@@ -901,14 +952,44 @@ textarea {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--purple);
   margin-bottom: 4px;
 }
 
 .memory-item-question {
   font-size: 11px;
   color: var(--text);
-  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-item-preview {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-expand-indicator {
+  font-size: 14px;
+  color: var(--purple);
+  transition: transform 0.15s ease;
+}
+
+.memory-card-details {
+  display: none;
+  padding: 0 10px 10px;
+}
+
+.memory-item.expanded .memory-card-details {
+  display: block;
+}
+
+.memory-item.expanded .memory-expand-indicator {
+  transform: rotate(180deg);
 }
 
 .memory-item-actions {
@@ -918,10 +999,18 @@ textarea {
 }
 
 .memory-item textarea {
-  min-height: 70px;
+  min-height: 76px;
+}
+
+.sensitive-memory-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(192, 132, 252, 0.2);
 }
 
 .review-jump-btn {
+  display: inline-block;
+  max-width: min(100%, 560px);
   background: none;
   border: none;
   padding: 0;
@@ -929,14 +1018,18 @@ textarea {
   cursor: pointer;
   font: inherit;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
 }
 
 .review-jump-btn:hover {
   text-decoration: underline;
 }
 
-@media (max-width: 980px) {
-  .main-dashboard {
+@media (max-width: 720px) {
+  .main-top-grid {
     grid-template-columns: 1fr;
   }
 }

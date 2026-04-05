@@ -100,6 +100,16 @@ test('shouldPersistLearnedValue avoids sensitive demographic prompts', () => {
   assert.equal(shouldPersistLearnedValue('Do you require security clearance?', 'No'), true);
 });
 
+test('shouldPersistLearnedValue ignores legal acknowledgements and arbitration confirmations', () => {
+  assert.equal(
+    shouldPersistLearnedValue(
+      'I acknowledge that I have opened, read, and understood the Arbitration Agreement.',
+      'I confirm I have read the above.'
+    ),
+    false
+  );
+});
+
 test('structureResume preserves explicit demographic opt-in fields', () => {
   const resume = structureResume({
     name: 'Example User',

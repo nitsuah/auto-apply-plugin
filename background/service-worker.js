@@ -146,7 +146,10 @@ async function getState() {
   const resume = data.resume || {};
   const applications = data.applications || [];
   const lastAnswers = data.lastAnswers || null;
-  const learnedDefaults = data.learnedDefaults || {};
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {});
+  if (Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length) {
+    await chrome.storage.local.set({ learnedDefaults });
+  }
 
   const lastTrackedApplicationId = data.lastTrackedApplicationId || null;
   const lastTrackedApplication = applications.find((app) => app.id === lastTrackedApplicationId) || null;
@@ -296,9 +299,9 @@ async function handleMarkLastSubmitted() {
 async function handleSaveLearnedDefaults({ entries } = {}) {
   const incomingEntries = entries && typeof entries === 'object' ? entries : {};
   const data = await chrome.storage.local.get('learnedDefaults');
-  const learnedDefaults = {
+  const learnedDefaults = sanitizeLearnedDefaultsMap({
     ...(data.learnedDefaults || {}),
-  };
+  });
 
   let saved = 0;
   for (const [label, value] of Object.entries(incomingEntries)) {
@@ -311,16 +314,20 @@ async function handleSaveLearnedDefaults({ entries } = {}) {
     saved++;
   }
 
-  const trimmedLearnedDefaults = Object.fromEntries(Object.entries(learnedDefaults).slice(-75));
+  const trimmedLearnedDefaults = Object.fromEntries(Object.entries(sanitizeLearnedDefaultsMap(learnedDefaults)).slice(-75));
   await chrome.storage.local.set({ learnedDefaults: trimmedLearnedDefaults });
   return { success: true, saved };
 }
 
 async function handleGetLearnedDefaults() {
   const data = await chrome.storage.local.get('learnedDefaults');
+  const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {});
+  if (Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length) {
+    await chrome.storage.local.set({ learnedDefaults });
+  }
   return {
     success: true,
-    items: Object.entries(data.learnedDefaults || {}).map(([question, answer]) => ({ question, answer })),
+    items: Object.entries(learnedDefaults).map(([question, answer]) => ({ question, answer })),
   };
 }
 
@@ -377,13 +384,15 @@ function matchesDomain(hostname, domain) {
 function detectAtsFromUrl(url) {
   if (!url) return null;
   try {
-    const { hostname } = new URL(url);
-    if (matchesDomain(hostname, 'greenhouse.io')) return 'Greenhouse';
-    if (matchesDomain(hostname, 'ashbyhq.com') || matchesDomain(hostname, 'ashby.io')) return 'Ashby';
-    if (matchesDomain(hostname, 'lever.co')) return 'Lever';
-    if (matchesDomain(hostname, 'linkedin.com') && url.includes('/jobs')) return 'LinkedIn Easy Apply';
-    if (matchesDomain(hostname, 'workday.com')) return 'Workday';
-    if (matchesDomain(hostname, 'icims.com')) return 'iCIMS';
+    const { hostname, pathname, search } = new URL(url);
+    const path = `${pathname} ${search}`.toLowerCase();
+
+    if (matchesDomain(hostname, 'greenhouse.io') && /\/jobs\/|job_app|application/.test(path)) return 'Greenhouse';
+    if ((matchesDomain(hostname, 'ashbyhq.com') || matchesDomain(hostname, 'ashby.io')) && /\/application|\/jobs\/|\/job\//.test(path)) return 'Ashby';
+    if (matchesDomain(hostname, 'lever.co') && /\/postings\/|\/jobs\/|\/apply/.test(path)) return 'Lever';
+    if (matchesDomain(hostname, 'linkedin.com') && /\/jobs\/view\//.test(path)) return 'LinkedIn Easy Apply';
+    if (matchesDomain(hostname, 'workday.com') && /\/job\/|requisition|\/apply/.test(path)) return 'Workday';
+    if (matchesDomain(hostname, 'icims.com') && /\/jobs\/|\/job\//.test(path)) return 'iCIMS';
   } catch {
     // Invalid URL — ignore
   }
@@ -393,6 +402,12 @@ function detectAtsFromUrl(url) {
 function hasAnyProfileData(profile = {}) {
   return Object.entries(profile || {}).some(
     ([key, value]) => key !== 'sensitive_optin' && String(value || '').trim()
+  );
+}
+
+function sanitizeLearnedDefaultsMap(map = {}) {
+  return Object.fromEntries(
+    Object.entries(map || {}).filter(([label, value]) => shouldPersistLearnedValue(label, value))
   );
 }
 
