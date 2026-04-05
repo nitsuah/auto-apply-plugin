@@ -184,7 +184,7 @@ async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
   if (shouldUseAi) {
     try {
       const aiAnswers = await generateAnswers({
-        resume: resume.structured,
+        resume: sanitizeResumeForAi(resume.structured),
         jd,
         customQuestions: customQuestions || [],
         settings,
@@ -301,7 +301,9 @@ function detectAtsFromUrl(url) {
 }
 
 function hasAnyProfileData(profile = {}) {
-  return Object.values(profile || {}).some((value) => String(value || '').trim());
+  return Object.entries(profile || {}).some(
+    ([key, value]) => key !== 'sensitive_optin' && String(value || '').trim()
+  );
 }
 
 function firstNonEmpty(...values) {
@@ -364,7 +366,13 @@ function applyProfileOverrides(resume, profile = {}, settings = {}) {
   next.linkedin = firstNonEmpty(profile.linkedin, next.linkedin);
   next.github = firstNonEmpty(profile.github, next.github);
   next.portfolio = firstNonEmpty(profile.portfolio, next.portfolio);
-  next.pronouns = firstNonEmpty(profile.pronouns, next.pronouns);
+  next.pronouns = firstNonEmpty(profile.pronouns, profile.pronouns_sensitive, next.pronouns);
+  next.sensitive_optin = profile.sensitive_optin === true;
+  next.gender = next.sensitive_optin ? firstNonEmpty(profile.gender, next.gender) : '';
+  next.race = next.sensitive_optin ? firstNonEmpty(profile.race, next.race) : '';
+  next.veteran = next.sensitive_optin ? firstNonEmpty(profile.veteran, next.veteran) : '';
+  next.disability = next.sensitive_optin ? firstNonEmpty(profile.disability, next.disability) : '';
+  next.pronouns_sensitive = next.sensitive_optin ? firstNonEmpty(profile.pronouns_sensitive, next.pronouns_sensitive) : '';
   next.current_company = firstNonEmpty(profile.current_company, next.current_company, next.experience?.[0]?.company);
   next.current_title = firstNonEmpty(profile.current_title, next.current_title, next.experience?.[0]?.title);
   next.years_of_experience = firstNonEmptyNumber(profile.years_of_experience, next.years_of_experience);
@@ -530,6 +538,14 @@ function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}, learn
       answer = baseAnswers.why_role;
     } else if (/years? of (professional )?experience|how many years/.test(lower)) {
       answer = baseAnswers.years_of_experience;
+    } else if (/gender|gender identity|sex at birth/.test(lower)) {
+      answer = baseAnswers.gender || '';
+    } else if (/race|ethnicity|ethnic background/.test(lower)) {
+      answer = baseAnswers.race || '';
+    } else if (/veteran|protected veteran|military service/.test(lower)) {
+      answer = baseAnswers.veteran || '';
+    } else if (/disability|disability status/.test(lower)) {
+      answer = baseAnswers.disability || '';
     } else if (/cybersecurity saas/.test(lower)) {
       answer = wantsBinaryAnswer(lower) ? 'Yes' : baseAnswers.why_role;
     } else if (/size of company|most recently worked for/.test(lower)) {
@@ -556,6 +572,17 @@ function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}, learn
   }
 
   return customAnswers;
+}
+
+function sanitizeResumeForAi(resume = {}) {
+  const safeResume = { ...(resume || {}) };
+  delete safeResume.sensitive_optin;
+  delete safeResume.gender;
+  delete safeResume.race;
+  delete safeResume.veteran;
+  delete safeResume.disability;
+  delete safeResume.pronouns_sensitive;
+  return safeResume;
 }
 
 function wantsBinaryAnswer(text) {

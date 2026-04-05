@@ -94,3 +94,30 @@ test('shouldPersistLearnedValue avoids sensitive demographic prompts', () => {
   assert.equal(shouldPersistLearnedValue('Gender identity', 'Prefer not to say'), false);
   assert.equal(shouldPersistLearnedValue('Do you require security clearance?', 'No'), true);
 });
+
+test('structureResume preserves explicit demographic opt-in fields', () => {
+  const resume = structureResume({
+    name: 'Example User',
+    sensitive_optin: true,
+    gender: 'Male',
+    race: 'White',
+    veteran: 'No',
+    disability: 'No',
+    pronouns_sensitive: 'He/him',
+  });
+
+  assert.equal(resume.sensitive_optin, true);
+  assert.equal(resume.gender, 'Male');
+  assert.equal(resume.race, 'White');
+  assert.equal(resume.veteran, 'No');
+  assert.equal(resume.disability, 'No');
+  assert.equal(resume.pronouns_sensitive, 'He/him');
+});
+
+test('resolveAnswerKeyFromCandidates maps common demographic prompts when opted in', () => {
+  const genderKey = resolveAnswerKeyFromCandidates(['Gender identity'], fieldMap, {});
+  const veteranKey = resolveAnswerKeyFromCandidates(['Protected veteran status'], fieldMap, {});
+
+  assert.equal(genderKey, 'gender');
+  assert.equal(veteranKey, 'veteran');
+});

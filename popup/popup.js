@@ -136,6 +136,16 @@ async function initSetupHandlers() {
     }
   });
 
+  const sensitiveOptin = $('sensitive-optin');
+  const sensitiveFields = $('sensitive-fields');
+  if (sensitiveOptin && sensitiveFields) {
+    const syncSensitiveVisibility = () => {
+      sensitiveFields.classList.toggle('hidden', !sensitiveOptin.checked);
+    };
+    sensitiveOptin.addEventListener('change', syncSensitiveVisibility);
+    syncSensitiveVisibility();
+  }
+
   $('save-setup-btn').addEventListener('click', handleSaveSetup);
 }
 
@@ -598,9 +608,19 @@ function fillProfileForm(profile = {}) {
   $('default-additional-info').value = profile.additional_info_default || '';
   $('default-start-date').value = profile.start_date || '';
   $('default-sponsorship').value = profile.requires_sponsorship || '';
+
+  const sensitiveEnabled = !!profile.sensitive_optin;
+  $('sensitive-optin').checked = sensitiveEnabled;
+  $('sensitive-fields').classList.toggle('hidden', !sensitiveEnabled);
+  $('profile-gender').value = sensitiveEnabled ? (profile.gender || '') : '';
+  $('profile-race').value = sensitiveEnabled ? (profile.race || '') : '';
+  $('profile-veteran').value = sensitiveEnabled ? (profile.veteran || '') : '';
+  $('profile-disability').value = sensitiveEnabled ? (profile.disability || '') : '';
+  $('profile-pronouns-sensitive').value = sensitiveEnabled ? (profile.pronouns_sensitive || '') : '';
 }
 
 function readProfileForm() {
+  const sensitiveOptin = $('sensitive-optin').checked;
   return {
     full_name: $('profile-full-name').value.trim(),
     email: $('profile-email').value.trim(),
@@ -622,11 +642,17 @@ function readProfileForm() {
     additional_info_default: $('default-additional-info').value.trim(),
     start_date: $('default-start-date').value.trim(),
     requires_sponsorship: $('default-sponsorship').value,
+    sensitive_optin: sensitiveOptin,
+    gender: sensitiveOptin ? $('profile-gender').value : '',
+    race: sensitiveOptin ? $('profile-race').value : '',
+    veteran: sensitiveOptin ? $('profile-veteran').value : '',
+    disability: sensitiveOptin ? $('profile-disability').value : '',
+    pronouns_sensitive: sensitiveOptin ? $('profile-pronouns-sensitive').value.trim() : '',
   };
 }
 
 function hasAnyProfileValue(profile = {}) {
-  return Object.values(profile).some((value) => String(value || '').trim());
+  return Object.entries(profile).some(([key, value]) => key !== 'sensitive_optin' && String(value || '').trim());
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
