@@ -46,6 +46,7 @@ apply-bot/
 │   ├── popup.html
 │   ├── popup.js
 │   └── popup.css
+├── screenshots/           # README gallery assets
 ├── content/               # Runs on job pages
 │   └── content.js         # Form detection + injection
 ├── background/
@@ -74,6 +75,22 @@ apply-bot/
 | Workday | ✅ | 🔄 | Phase 2 |
 | iCIMS | ✅ | 🔄 | Phase 2 |
 | Generic (any form) | ✅ | 🔄 | Phase 2 |
+
+---
+
+## Screenshots
+
+### Main dashboard
+
+![apply-bot main dashboard](screenshots/main-dashboard.png)
+
+### Tracker workspace
+
+![apply-bot tracker workspace](screenshots/tracker-workspace.png)
+
+### Profile + Memory
+
+![apply-bot profile and memory](screenshots/profile-memory.png)
 
 ---
 
