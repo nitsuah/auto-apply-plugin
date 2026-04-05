@@ -44,6 +44,13 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
   - Context: Google sign-in, ID.me, or similar identity sources may help bootstrap profile fields later, but only after the local-first and consent-first path is stable.
   - Acceptance Criteria: any future identity import remains optional, explicit-consent based, and does not weaken the current on-device default.
 
+### P4 - Nice to have
+
+- [ ] Run an `axe` / a11y audit on the popup and key application-review flows.
+  - Priority: P4
+  - Context: the UI is becoming more workspace-like, so keyboard support, labels, alt text, and contrast should get a structured pass.
+  - Acceptance Criteria: document the biggest accessibility gaps and land the highest-value fixes without bloating the MVP.
+
 ## Done
 
 - [x] Ship the local-first, profile-first autofill baseline.

@@ -21,8 +21,9 @@
         </div>
       </div>
       <div class="header-meta">
-        <span class="mini-stat"><strong id="header-stat-total">0</strong> tracked</span>
-        <span class="mini-stat"><strong id="header-stat-pending">0</strong> review</span>
+        <span class="mini-stat" title="Active applications / total tracked">
+          <strong id="header-stat-pending">0</strong> / <strong id="header-stat-total">0</strong> active
+        </span>
       </div>
     </header>
 
@@ -31,7 +32,7 @@
       <h2 class="section-title">Profile</h2>
       <p class="helper-text">Your resume, settings, and memory all live here.</p>
 
-      <div class="form-group">
+      <div class="form-group" id="profile-api-section">
         <label for="api-key-input">Gemini API Key</label>
         <input
           type="password"
@@ -58,7 +59,7 @@
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="profile-resume-section">
         <label>Resume</label>
         <div class="resume-tabs">
           <button class="tab-btn active" data-tab="upload">Upload File</button>
@@ -81,7 +82,7 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="core-profile-section">
         <label>Core profile details</label>
         <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
         <div class="profile-grid">
@@ -143,7 +144,7 @@
         </div>
       </div>
 
-      <div class="help-card">
+      <div class="help-card" id="profile-memory-section">
         <div class="report-header">
           <span class="report-title">Memory</span>
           <span id="memory-count-badge" class="badge badge-info">0 saved</span>
@@ -198,7 +199,7 @@
         <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
       </div>
 
-      <div class="form-group privacy-group">
+      <div class="form-group privacy-group" id="profile-privacy-section">
         <label>Privacy & consent</label>
         <label class="checkbox-row privacy-check">
           <input type="checkbox" id="privacy-consent" />
@@ -215,58 +216,62 @@
 
     <!-- Main Screen (shown when configured) -->
     <section id="main-screen" class="screen hidden">
-      <div class="status-card">
-        <div class="status-row">
-          <span class="status-label">Resume</span>
-          <span id="resume-status" class="badge badge-ok">✅ Not set</span>
+      <div class="main-dashboard">
+        <div class="main-actions-panel">
+          <div class="action-btns">
+            <button id="fill-btn" class="btn btn-primary btn-full">
+              ⚡ Fill This Application
+            </button>
+            <button id="preview-btn" class="btn btn-secondary btn-full">
+              👁 Preview Answers
+            </button>
+            <button id="edit-resume-btn" class="btn btn-ghost btn-full">
+              ✏️ Edit Profile
+            </button>
+          </div>
+
+          <p id="fill-status" class="status-msg"></p>
+
+          <div id="fill-report-card" class="report-card hidden">
+            <div class="report-header">
+              <span class="report-title">Last fill review</span>
+              <button id="mark-submitted-btn" class="btn btn-ghost btn-sm">✅ Mark Submitted</button>
+            </div>
+            <p id="fill-report-summary" class="report-summary"></p>
+            <ul id="fill-report-unresolved" class="report-list"></ul>
+          </div>
         </div>
-        <div class="status-row">
-          <span class="status-label">API Key</span>
-          <span id="api-status" class="badge badge-ok">✅ Connected</span>
+
+        <div class="main-status-panel">
+          <div class="status-card">
+            <button type="button" id="resume-row" class="status-row status-nav" data-nav-target="resume" title="Open Profile to review your resume and defaults.">
+              <span class="status-label">Resume</span>
+              <span id="resume-status" class="badge badge-ok">Ready</span>
+            </button>
+            <button type="button" id="api-row" class="status-row status-nav" data-nav-target="api" title="Open Profile to update your Gemini key.">
+              <span class="status-label">API</span>
+              <span id="api-status" class="badge badge-info">Optional</span>
+            </button>
+            <button type="button" id="profile-row" class="status-row status-nav" data-nav-target="profile" title="Open Profile to complete core fields.">
+              <span class="status-label">Core Profile</span>
+              <span id="profile-status" class="badge badge-info">—</span>
+            </button>
+            <button type="button" id="privacy-row" class="status-row status-nav" data-nav-target="privacy" title="Open Help and privacy details.">
+              <span class="status-label">Privacy</span>
+              <span id="privacy-status-badge" class="badge badge-ok">Local-first</span>
+            </button>
+            <button type="button" id="learned-row" class="status-row status-nav" data-nav-target="memory" title="Open Memory in Profile.">
+              <span class="status-label">Memory</span>
+              <span id="learned-status" class="badge badge-info">0 saved</span>
+            </button>
+            <button type="button" class="status-row status-nav" id="ats-row" data-nav-target="ats" title="Open a quick explainer for applicant tracking systems.">
+              <span class="status-label">Detected ATS</span>
+              <span id="ats-status" class="badge badge-info">No job page</span>
+            </button>
+            <p id="ats-hint" class="helper-text hidden"></p>
+          </div>
         </div>
-        <div class="status-row">
-          <span class="status-label">Core Profile</span>
-          <span id="profile-status" class="badge badge-info">—</span>
-        </div>
-        <div class="status-row">
-          <span class="status-label">Privacy</span>
-          <span id="privacy-status-badge" class="badge badge-ok">🔒 Local-first</span>
-        </div>
-        <div class="status-row">
-          <span class="status-label">Memory</span>
-          <span id="learned-status" class="badge badge-info">0 saved</span>
-        </div>
-        <div class="status-row" id="ats-row" style="display:none">
-          <span class="status-label">Detected ATS</span>
-          <span id="ats-status" class="badge badge-info">—</span>
-        </div>
-        <p id="ats-hint" class="helper-text hidden"></p>
       </div>
-
-      <div class="action-btns">
-        <button id="fill-btn" class="btn btn-primary btn-full">
-          ⚡ Fill This Application
-        </button>
-        <button id="preview-btn" class="btn btn-secondary btn-full">
-          👁 Preview Answers
-        </button>
-        <button id="edit-resume-btn" class="btn btn-ghost btn-full">
-          ✏️ Edit Profile
-        </button>
-      </div>
-
-      <p id="fill-status" class="status-msg"></p>
-
-      <div id="fill-report-card" class="report-card hidden">
-        <div class="report-header">
-          <span class="report-title">Last fill review</span>
-          <button id="mark-submitted-btn" class="btn btn-ghost btn-sm">✅ Mark Submitted</button>
-        </div>
-        <p id="fill-report-summary" class="report-summary"></p>
-        <ul id="fill-report-unresolved" class="report-list"></ul>
-      </div>
-
-
     </section>
 
     <!-- Tracker Screen -->
@@ -310,12 +315,12 @@
         <h2 class="section-title">Help & privacy</h2>
       </div>
 
-      <div class="help-card">
-        <div class="help-section">
+      <div class="help-card" id="help-legal-section">
+        <div class="help-section" id="help-eula-section">
           <h3>EULA / Terms</h3>
           <p>`apply-bot` is a review-first helper. You control what gets filled and whether anything is submitted.</p>
         </div>
-        <div class="help-section">
+        <div class="help-section" id="help-privacy-section">
           <h3>Privacy</h3>
           <p>Your profile, tracker, and memory stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
         </div>

@@ -11,6 +11,20 @@ let draftSaveTimer = null;
 let draftRestoreTimer = null;
 let draftPersistenceStarted = false;
 
+function hasExtensionContext() {
+  return !!(globalThis.chrome?.runtime?.id && globalThis.chrome?.storage?.local);
+}
+
+function isExtensionContextInvalidatedError(error) {
+  const message = error?.message || String(error || '');
+  return /Extension context invalidated/i.test(message);
+}
+
+function warnIfRelevant(prefix, error) {
+  if (isExtensionContextInvalidatedError(error)) return;
+  console.warn(prefix, error);
+}
+
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
 /**
@@ -43,6 +57,8 @@ async function handleMessage(msg) {
       return handleInjectAnswers(msg.payload);
     case 'DETECT_ATS':
       return { ats: detectAts() };
+    case 'FOCUS_FIELD':
+      return handleFocusField(msg.payload);
     default:
       throw new Error('Unknown message: ' + msg.type);
   }
@@ -108,6 +124,23 @@ async function handleInjectAnswers(answers) {
   const fieldMap = await loadFieldMap();
   const report = fillForm(answers, fieldMap);
   return { success: true, filled: report.filled, report };
+}
+
+async function handleFocusField(target = {}) {
+  const field = findFieldForReviewTarget(target);
+  if (!field) {
+    return { success: false, error: 'Could not find that field on the page. It may have moved or already been completed.' };
+  }
+
+  field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  try {
+    field.focus({ preventScroll: true });
+  } catch {
+    field.focus();
+  }
+  highlightField(field);
+
+  return { success: true, label: describeField(field) };
 }
 
 // ── Load field-map.json ───────────────────────────────────────────────────────
@@ -332,13 +365,13 @@ function fillForm(answers, fieldMap) {
   for (const input of inputs) {
     const key = resolveFieldKey(input, fieldMap, answers);
     if (!key) {
-      unresolved.push(describeField(input));
+      unresolved.push(describeUnresolvedField(input));
       continue;
     }
 
     const value = answers[key];
     if (value === undefined || value === null || value === '') {
-      unresolved.push(describeField(input));
+      unresolved.push(describeUnresolvedField(input));
       continue;
     }
 
@@ -352,11 +385,11 @@ function fillForm(answers, fieldMap) {
       filled++;
       highlightField(input);
     } else {
-      unresolved.push(describeField(input));
+      unresolved.push(describeUnresolvedField(input));
     }
   }
 
-  const uniqueUnresolved = [...new Set(unresolved.filter(Boolean))];
+  const uniqueUnresolved = dedupeUnresolvedFields(unresolved);
   const skipped = preserved + uniqueUnresolved.length;
   console.info(`[apply-bot] Filled ${filled} field(s), preserved ${preserved}, unresolved ${uniqueUnresolved.length}.`);
   queueDraftSave();
@@ -538,6 +571,44 @@ function describeField(el) {
   ).trim();
 }
 
+function describeUnresolvedField(el) {
+  return {
+    label: describeField(el),
+    draftKey: getDraftFieldKey(el),
+    type: (el.getAttribute('type') || el.tagName || '').toLowerCase(),
+  };
+}
+
+function dedupeUnresolvedFields(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const label = typeof item === 'string' ? item : (item?.label || '');
+    const key = typeof item === 'string' ? item : (item?.draftKey || label);
+    if (!label || !key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function findFieldForReviewTarget(target = {}) {
+  const fields = collectDraftableFields();
+  const requestedKey = String(target?.draftKey || '').trim();
+  if (requestedKey) {
+    const byKey = fields.find((field) => getDraftFieldKey(field) === requestedKey);
+    if (byKey) return byKey;
+  }
+
+  const label = normalizeLookupText(target?.label || target?.question || target?.field || target || '');
+  if (!label) return null;
+
+  return fields.find((field) => normalizeLookupText(describeField(field)) === label)
+    || fields.find((field) => {
+      const combined = normalizeLookupText(`${describeField(field)} ${getFieldContextText(field) || ''}`);
+      return combined.includes(label) || label.includes(normalizeLookupText(describeField(field)));
+    })
+    || null;
+}
+
 function setSelectValue(el, value) {
   const lower = value.toLowerCase();
   for (const opt of el.options) {
@@ -681,15 +752,16 @@ function collectDraftableFields() {
 function queueDraftSave() {
   if (draftSaveTimer) clearTimeout(draftSaveTimer);
   draftSaveTimer = setTimeout(() => {
-    saveDraftNow().catch((err) => console.warn('[apply-bot] Failed to save page draft.', err));
+    saveDraftNow().catch((err) => warnIfRelevant('[apply-bot] Failed to save page draft.', err));
   }, 150);
 }
 
 async function saveDraftNow() {
-  if (!chrome?.storage?.local) return;
+  if (!hasExtensionContext()) return;
 
-  const fields = {};
-  const processedGroups = new Set();
+  try {
+    const fields = {};
+    const processedGroups = new Set();
 
   for (const el of collectDraftableFields()) {
     const key = getDraftFieldKey(el);
@@ -738,14 +810,18 @@ async function saveDraftNow() {
   );
   const trimmedDrafts = Object.fromEntries(entries.slice(0, 50));
 
-  await chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: trimmedDrafts });
+    await chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: trimmedDrafts });
 
-  const learnedEntries = collectLearnedAnswerEntries();
-  if (Object.keys(learnedEntries).length) {
-    chrome.runtime.sendMessage({
-      type: 'SAVE_LEARNED_DEFAULTS',
-      payload: { entries: learnedEntries },
-    }).catch(() => {});
+    const learnedEntries = collectLearnedAnswerEntries();
+    if (Object.keys(learnedEntries).length) {
+      chrome.runtime.sendMessage({
+        type: 'SAVE_LEARNED_DEFAULTS',
+        payload: { entries: learnedEntries },
+      }).catch(() => {});
+    }
+  } catch (err) {
+    if (isExtensionContextInvalidatedError(err)) return;
+    throw err;
   }
 }
 
@@ -792,16 +868,17 @@ function collectLearnedAnswerEntries() {
 function scheduleDraftRestore() {
   if (draftRestoreTimer) clearTimeout(draftRestoreTimer);
   draftRestoreTimer = setTimeout(() => {
-    restoreDraftValues().catch((err) => console.warn('[apply-bot] Failed to restore page draft.', err));
+    restoreDraftValues().catch((err) => warnIfRelevant('[apply-bot] Failed to restore page draft.', err));
   }, 120);
 }
 
 async function restoreDraftValues() {
-  if (!chrome?.storage?.local) return;
+  if (!hasExtensionContext()) return;
 
-  const data = await chrome.storage.local.get(DRAFT_STORAGE_KEY);
-  const draft = data[DRAFT_STORAGE_KEY]?.[getDraftPageKey()];
-  if (!draft?.fields) return;
+  try {
+    const data = await chrome.storage.local.get(DRAFT_STORAGE_KEY);
+    const draft = data[DRAFT_STORAGE_KEY]?.[getDraftPageKey()];
+    if (!draft?.fields) return;
 
   const processedGroups = new Set();
 
@@ -842,6 +919,10 @@ async function restoreDraftValues() {
     if (storedValue) {
       setFieldValue(el, String(storedValue));
     }
+  }
+  } catch (err) {
+    if (isExtensionContextInvalidatedError(err)) return;
+    throw err;
   }
 }
 

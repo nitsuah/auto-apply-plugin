@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initTrackerHandlers();
   await initPreviewHandlers();
   await initHelpHandlers();
+  initStatusNavHandlers();
 });
 
 // ── Tab switching (upload vs paste) ──────────────────────────────────────────
@@ -285,38 +286,43 @@ async function loadMainScreen(options = {}) {
     showScreen('main');
   }
 
-  // Status badges
-  $('resume-status').textContent = hasResume
-    ? '✅ ' + (resumeName || 'Loaded')
-    : '⚠️ Profile only';
-  $('resume-status').className = 'badge ' + (hasResume ? 'badge-ok' : 'badge-warn');
+  const resumeTooltip = hasResume
+    ? `Resume is ready (${resumeName || 'loaded'}). Click to edit Profile.`
+    : 'Profile-only mode is active. Click to add or update your resume.';
+  setBadgeState('resume-status', hasResume ? 'Ready' : 'Profile only', hasResume ? 'ok' : 'warn', resumeTooltip);
+  setStatusRowMeta('resume-row', resumeTooltip);
 
-  $('api-status').textContent = hasApiKey ? '✅ Connected' : '⚠️ Optional';
-  $('api-status').className = 'badge ' + (hasApiKey ? 'badge-ok' : 'badge-warn');
-
-  $('privacy-status-badge').textContent = privacyConsent ? '🔒 Local-first' : '⚠️ Review setup';
-  $('privacy-status-badge').className = 'badge ' + (privacyConsent ? 'badge-ok' : 'badge-warn');
-
-  const memoryCount = Number(learnedDefaultsCount || 0);
-  $('learned-status').textContent = `${memoryCount} saved`;
-  $('learned-status').className = 'badge ' + (memoryCount ? 'badge-ok' : 'badge-info');
+  const apiTooltip = hasApiKey
+    ? 'Gemini is connected for optional AI help. Click to edit your Profile settings.'
+    : 'AI help is optional. Click to add or update your Gemini key.';
+  setBadgeState('api-status', hasApiKey ? 'Connected' : 'Optional', hasApiKey ? 'ok' : 'info', apiTooltip);
+  setStatusRowMeta('api-row', apiTooltip);
 
   const completeness = profileCompleteness || { completed: 0, total: 8 };
-  $('profile-status').textContent = `${completeness.completed}/${completeness.total} complete`;
-  $('profile-status').className = 'badge ' + (completeness.completed >= Math.max(4, completeness.total - 2) ? 'badge-ok' : 'badge-warn');
+  const profileReady = completeness.completed >= Math.max(4, completeness.total - 2);
+  const profileTooltip = `Your core profile is ${completeness.completed}/${completeness.total} complete. Click to review Profile.`;
+  setBadgeState('profile-status', `${completeness.completed}/${completeness.total} complete`, profileReady ? 'ok' : 'warn', profileTooltip);
+  setStatusRowMeta('profile-row', profileTooltip);
 
-  // ATS detection
-  if (currentAts) {
-    $('ats-row').style.display = 'flex';
-    $('ats-status').textContent = currentAts;
-    $('ats-hint').classList.remove('hidden');
-    $('ats-hint').textContent = getAtsHint(currentAts);
-  } else {
-    $('ats-row').style.display = 'none';
-    $('ats-status').textContent = '';
-    $('ats-hint').classList.remove('hidden');
-    $('ats-hint').textContent = 'Open a supported job application form to use profile-first autofill.';
-  }
+  const privacyTooltip = privacyConsent
+    ? 'Local-first privacy is enabled. Click for EULA, privacy, and reset controls.'
+    : 'Privacy review is required. Click for EULA and privacy details.';
+  setBadgeState('privacy-status-badge', privacyConsent ? 'Local-first' : 'Review', privacyConsent ? 'ok' : 'warn', privacyTooltip);
+  setStatusRowMeta('privacy-row', privacyTooltip);
+
+  const memoryCount = Number(learnedDefaultsCount || 0);
+  const memoryTooltip = memoryCount
+    ? `${memoryCount} remembered answers are saved. Click to review Memory in Profile.`
+    : 'No remembered answers yet. Click to open Memory in Profile.';
+  setBadgeState('learned-status', memoryCount ? `${memoryCount} saved` : 'Empty', memoryCount ? 'ok' : 'info', memoryTooltip);
+  setStatusRowMeta('learned-row', memoryTooltip);
+
+  const atsMeta = getAtsMeta(currentAts);
+  $('ats-row').style.display = 'flex';
+  setBadgeState('ats-status', atsMeta.label, atsMeta.tone, atsMeta.tip);
+  setStatusRowMeta('ats-row', atsMeta.tip);
+  $('ats-hint').classList.toggle('hidden', !atsMeta.hint);
+  $('ats-hint').textContent = atsMeta.hint || '';
 
   const apps = applications || [];
   applyTrackerSummary(apps);
@@ -343,6 +349,7 @@ async function initMainHandlers() {
     showScreen('tracker');
   });
 
+  bindReviewJumpHandlers('fill-report-unresolved', 'fill-status');
 
   $('fill-btn').addEventListener('click', async () => {
     $('fill-btn').disabled = true;
@@ -780,6 +787,7 @@ async function initHelpHandlers() {
 
 function initPreviewHandlers() {
   $('preview-back-btn').addEventListener('click', () => showScreen('main'));
+  bindReviewJumpHandlers('preview-report-unresolved', 'fill-status');
 
   $('inject-from-preview-btn').addEventListener('click', async () => {
     const resp = await sendMessage({ type: 'GET_LAST_ANSWERS' });
@@ -851,15 +859,24 @@ function renderFillReport(report, opts = {}) {
     Array.isArray(report.unresolved) ? `${report.unresolved.length} to review` : '',
   ].filter(Boolean).join(' • ');
 
-  summaryEl.textContent = summary || emptyMessage;
-
   const unresolved = Array.isArray(report.unresolved) ? report.unresolved : [];
+  summaryEl.textContent = unresolved.length ? `${summary} • click any item to jump` : (summary || emptyMessage);
+
   if (!unresolved.length) {
     listEl.innerHTML = `<li>${esc(emptyMessage)}</li>`;
     return;
   }
 
-  listEl.innerHTML = unresolved.slice(0, 8).map((item) => `<li>${esc(item)}</li>`).join('');
+  listEl.innerHTML = unresolved.slice(0, 8).map((item) => {
+    const payload = encodeURIComponent(JSON.stringify(typeof item === 'string' ? { label: item } : item));
+    return `
+      <li>
+        <button type="button" class="review-jump-btn" data-payload="${escAttr(payload)}" title="Jump to this field on the page">
+          ${esc(getReviewItemLabel(item))}
+        </button>
+      </li>
+    `;
+  }).join('');
 }
 
 function applyStateToSetupForm(state = {}) {
@@ -948,6 +965,76 @@ function hasAnyProfileValue(profile = {}) {
   return Object.entries(profile).some(([key, value]) => key !== 'sensitive_optin' && String(value || '').trim());
 }
 
+function initStatusNavHandlers() {
+  $('main-screen')?.addEventListener('click', async (event) => {
+    const row = event.target.closest('.status-nav');
+    if (!row) return;
+    await openStatusTarget(row.dataset.navTarget || '');
+  });
+}
+
+async function openStatusTarget(target) {
+  if (!target) return;
+
+  if (target === 'ats') {
+    await chrome.tabs.create({ url: 'https://en.wikipedia.org/wiki/Applicant_tracking_system' });
+    return;
+  }
+
+  if (target === 'privacy') {
+    showScreen('help');
+    scrollToSection('help-privacy-section');
+    return;
+  }
+
+  showScreen('setup');
+  const state = await sendMessage({ type: 'GET_STATE' });
+  applyStateToSetupForm(state || {});
+  await renderLearnedDefaults();
+
+  const sectionMap = {
+    resume: 'profile-resume-section',
+    api: 'profile-api-section',
+    profile: 'core-profile-section',
+    memory: 'profile-memory-section',
+  };
+  scrollToSection(sectionMap[target]);
+}
+
+function scrollToSection(sectionId) {
+  if (!sectionId) return;
+  requestAnimationFrame(() => {
+    $(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
+  const list = $(listId);
+  if (!list || list.dataset.jumpBound === 'true') return;
+  list.dataset.jumpBound = 'true';
+
+  list.addEventListener('click', async (event) => {
+    const btn = event.target.closest('.review-jump-btn');
+    if (!btn) return;
+
+    let payload = { label: btn.textContent.trim() };
+    try {
+      payload = JSON.parse(decodeURIComponent(btn.dataset.payload || ''));
+    } catch {
+      // fallback to label only
+    }
+
+    try {
+      const resp = await sendToActiveTab({ type: 'FOCUS_FIELD', payload });
+      if (!resp?.success) throw new Error(resp?.error || 'Could not find that field on the page.');
+      setStatus(statusId, `✅ Jumped to “${resp.label || getReviewItemLabel(payload)}” on the page.`, 'success');
+      window.close();
+    } catch (err) {
+      setStatus(statusId, '❌ ' + err.message, 'error');
+    }
+  });
+}
+
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
 function esc(str) {
@@ -960,6 +1047,81 @@ function esc(str) {
 
 function escAttr(str) {
   return esc(str).replace(/'/g, '&#39;');
+}
+
+function setBadgeState(elId, text, tone = 'info', title = '') {
+  const el = $(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'badge ' + badgeToneClass(tone);
+  if (title) {
+    el.title = title;
+    el.setAttribute('aria-label', title);
+  }
+}
+
+function setStatusRowMeta(rowId, title) {
+  const el = $(rowId);
+  if (!el || !title) return;
+  el.title = title;
+  el.setAttribute('aria-label', title);
+}
+
+function badgeToneClass(tone) {
+  switch (tone) {
+    case 'ok': return 'badge-ok';
+    case 'warn': return 'badge-warn';
+    case 'bad': return 'badge-bad';
+    default: return 'badge-info';
+  }
+}
+
+function getReviewItemLabel(item) {
+  if (typeof item === 'string') return item;
+  return item?.label || item?.question || item?.field || 'Field to review';
+}
+
+function getAtsMeta(ats) {
+  switch (ats) {
+    case 'Greenhouse':
+    case 'Ashby':
+    case 'Lever':
+      return {
+        label: ats,
+        tone: 'ok',
+        tip: `${ats} is supported for profile-first autofill. Click to learn what an ATS is.`,
+        hint: '',
+      };
+    case 'LinkedIn Easy Apply':
+      return {
+        label: ats,
+        tone: 'warn',
+        tip: `${ats} works, but every step should still be reviewed carefully. Click to learn what an ATS is.`,
+        hint: '',
+      };
+    case 'Workday':
+    case 'iCIMS':
+      return {
+        label: ats,
+        tone: 'warn',
+        tip: `${ats} is partially supported. Expect some manual review. Click to learn what an ATS is.`,
+        hint: 'Partial support — keep review on.',
+      };
+    case 'Generic':
+      return {
+        label: 'Generic',
+        tone: 'bad',
+        tip: 'This page does not look like a strongly supported ATS yet. Click to learn what an ATS is.',
+        hint: 'Limited support on this page.',
+      };
+    default:
+      return {
+        label: 'No job page',
+        tone: 'info',
+        tip: 'Open a job application page to detect its ATS. Click to learn what an ATS is.',
+        hint: '',
+      };
+  }
 }
 
 function renderStatusOptions(selectedStatus) {

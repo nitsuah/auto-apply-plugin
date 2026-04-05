@@ -26,6 +26,7 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 - [ ] Explore optional identity-provider imports (Google, ID.me, etc.) for bootstrapping profile data without breaking local-first/privacy guarantees.
 - [ ] Revisit deeper job-fit scoring, verdict assistance, and richer tracker analytics after the storage and review foundations are stable.
+- [ ] Run a lightweight `axe` / accessibility audit on popup navigation, labels, contrast, and keyboard flow as the workspace UI settles.
 
 ## Notes
 
