@@ -34,19 +34,19 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  width: 760px;
+  width: min(480px, 100vw);
   min-height: 520px;
-  max-width: 100%;
+  max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: auto;
   font-size: 13px;
   line-height: 1.5;
-  transition: width 0.16s ease, min-height 0.16s ease;
 }
 
 body[data-screen="setup"],
 body[data-screen="tracker"],
 body[data-screen="preview"] {
-  width: 820px;
+  width: min(1120px, 96vw);
   min-height: 680px;
 }
 
@@ -151,9 +151,8 @@ body[data-standalone="true"][data-screen="preview"] {
 /* ── Screens ── */
 .screen {
   padding: 16px;
-  max-height: calc(100vh - 72px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  flex: 1 1 auto;
+  overflow: visible;
 }
 
 .hidden {
@@ -185,6 +184,7 @@ body[data-standalone="true"][data-screen="preview"] {
 input[type="text"],
 input[type="password"],
 input[type="number"],
+input[type="search"],
 textarea,
 select {
   width: 100%;
@@ -201,6 +201,7 @@ select {
 input[type="text"]:focus,
 input[type="password"]:focus,
 input[type="number"]:focus,
+input[type="search"]:focus,
 textarea:focus,
 select:focus {
   border-color: var(--accent);
@@ -458,8 +459,8 @@ textarea {
 /* ── Status card ── */
 .main-top-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(260px, 0.9fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 12px;
   align-items: start;
   margin-bottom: 12px;
 }
@@ -670,15 +671,26 @@ textarea {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 10px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .tracker-toolbar input[type="search"] {
   flex: 1 1 280px;
   min-width: 220px;
+  background: rgba(15, 23, 42, 0.85);
 }
 
-.tracker-filter-toggle {
-  white-space: nowrap;
+.toggle-chip {
+  min-width: 68px;
+}
+
+.toggle-chip.is-active {
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.08);
 }
 
 .tracker-add-grid {
@@ -694,11 +706,8 @@ textarea {
 
 .tracker-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-  gap: 10px;
-  max-height: calc(100vh - 150px);
-  overflow-y: auto;
-  overflow-x: hidden;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
   align-items: start;
 }
 
@@ -742,7 +751,7 @@ textarea {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 8px;
 }
 
 .tracker-card-summary {
@@ -764,36 +773,31 @@ textarea {
 }
 
 .tracker-summary-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .tracker-summary-role {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text);
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .tracker-summary-meta {
   font-size: 10px;
   color: var(--text-muted);
   margin-top: 4px;
+  line-height: 1.35;
 }
 
 .tracker-summary-note {
   font-size: 10px;
   color: var(--blue);
   margin-top: 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
 }
 
 .tracker-expand-indicator {
@@ -822,15 +826,39 @@ textarea {
 
 .tracker-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
 }
 
+.tracker-card-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.tracker-status-select {
+  width: auto;
+  min-width: 96px;
+  max-width: 100%;
+  background-color: rgba(96, 165, 250, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: var(--blue);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 26px 3px 8px;
+}
+
 .tracker-card-date {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.tracker-link-inline {
+  font-size: 10px;
 }
 
 .tracker-card-fields {
@@ -883,8 +911,6 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px;
-  max-height: 640px;
-  overflow-y: auto;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1076,9 +1102,19 @@ textarea {
   text-decoration: underline;
 }
 
+@media (max-width: 900px) {
+  .tracker-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .main-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tracker-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

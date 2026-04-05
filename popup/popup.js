@@ -446,8 +446,8 @@ async function initTrackerHandlers() {
     await renderTracker();
     showScreen('tracker');
   });
-  $('tracker-active-toggle')?.addEventListener('change', async (event) => {
-    trackerViewState.activeOnly = !!event.target.checked;
+  $('tracker-scope-toggle')?.addEventListener('click', async () => {
+    trackerViewState.activeOnly = !trackerViewState.activeOnly;
     await renderTracker();
     showScreen('tracker');
   });
@@ -455,7 +455,6 @@ async function initTrackerHandlers() {
     trackerViewState.query = '';
     trackerViewState.activeOnly = false;
     if ($('tracker-search-input')) $('tracker-search-input').value = '';
-    if ($('tracker-active-toggle')) $('tracker-active-toggle').checked = false;
     await renderTracker();
     showScreen('tracker');
   });
@@ -608,8 +607,8 @@ function syncTrackerCardSummary(card, patch = {}) {
   ].filter(Boolean).join(' • ');
   const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
 
-  const badge = card.querySelector('.tracker-card-header .badge');
-  if (badge) badge.textContent = formatTrackingStatus(patch.status);
+  const statusSelect = card.querySelector('.tracker-card-header .tracker-status-select');
+  if (statusSelect) statusSelect.value = normalizeTrackingStatus(patch.status);
   const titleEl = card.querySelector('.tracker-summary-title');
   if (titleEl) titleEl.textContent = company;
   const roleEl = card.querySelector('.tracker-summary-role');
@@ -631,9 +630,7 @@ async function renderTracker() {
   if ($('tracker-search-input') && $('tracker-search-input').value !== trackerViewState.query) {
     $('tracker-search-input').value = trackerViewState.query;
   }
-  if ($('tracker-active-toggle')) {
-    $('tracker-active-toggle').checked = trackerViewState.activeOnly;
-  }
+  syncTrackerFilterUi();
 
   if (filteredApps.length === 0) {
     $('tracker-empty').textContent = hasActiveTrackerFilters()
@@ -722,6 +719,18 @@ function setTrackerScreenStatus(msg, type = '') {
   if (!el) return;
   el.textContent = msg;
   el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+function syncTrackerFilterUi() {
+  const toggle = $('tracker-scope-toggle');
+  if (!toggle) return;
+
+  toggle.textContent = trackerViewState.activeOnly ? 'Active' : 'All';
+  toggle.classList.toggle('is-active', trackerViewState.activeOnly);
+  toggle.setAttribute('aria-pressed', String(trackerViewState.activeOnly));
+  toggle.title = trackerViewState.activeOnly
+    ? 'Showing only active pipeline items.'
+    : 'Showing every tracked application.';
 }
 
 function fillTrackerDraftForm(draft = {}) {
@@ -830,12 +839,20 @@ function renderTrackerCard(app) {
     app.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
   const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
+  const jobLink = app.url
+    ? `<a class="tracker-link tracker-link-inline" href="${escAttr(app.url)}" target="_blank" rel="noopener">Open job ↗</a>`
+    : '<span class="tracker-link tracker-link-inline" style="color: var(--text-muted); text-decoration: none;">No link yet</span>';
 
   return `
     <div class="tracker-card${expanded ? ' expanded' : ''}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizeTrackingStatus(app.status))}">
       <div class="tracker-card-header">
-        <span class="badge badge-info">${esc(formatTrackingStatus(app.status))}</span>
-        <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
+        <select class="tracker-status-select" data-field="status" aria-label="Update application status">
+          ${renderStatusOptions(app.status)}
+        </select>
+        <div class="tracker-card-tools">
+          <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
+          ${jobLink}
+        </div>
       </div>
       <button type="button" class="tracker-card-summary tracker-card-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
         <div class="tracker-summary-copy">
@@ -863,13 +880,10 @@ function renderTrackerCard(app) {
           <input data-field="salary_range" type="text" value="${escAttr(app.salary_range || '')}" placeholder="Salary range" />
           <input data-field="scorecard" type="text" value="${escAttr(app.scorecard || '')}" placeholder="Scorecard" />
           <input data-field="verdict" type="text" value="${escAttr(app.verdict || '')}" placeholder="Verdict / notes" />
-          <select data-field="status">
-            ${renderStatusOptions(app.status)}
-          </select>
           <textarea data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
         </div>
         <div class="tracker-card-actions">
-          <a class="tracker-link" href="${escAttr(app.url || '#')}" target="_blank" rel="noopener">Open job ↗</a>
+          ${jobLink}
           <span class="tracker-save-state">Auto-save on blur</span>
           <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
         </div>
