@@ -302,6 +302,14 @@
           <input id="import-csv-input" type="file" accept=".csv,text/csv" class="hidden" />
         </div>
       </div>
+      <div class="tracker-toolbar">
+        <input id="tracker-search-input" type="search" placeholder="Search company, role, notes…" aria-label="Search tracked applications" />
+        <label class="checkbox-row tracker-filter-toggle" style="margin-top:0">
+          <input id="tracker-active-toggle" type="checkbox" />
+          Active only
+        </label>
+        <button id="tracker-clear-filters-btn" class="btn btn-ghost btn-sm" type="button">Clear filters</button>
+      </div>
       <p id="tracker-status" class="status-msg"></p>
 
       <div id="tracker-add-card" class="help-card hidden">

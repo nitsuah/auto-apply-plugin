@@ -12,6 +12,7 @@ import {
 import { structureResume } from '../lib/resume-parser.js';
 import {
   deriveTrackerDetailsFromText,
+  filterApplicationsForQuery,
   isTerminalApplicationStatus,
   normalizeApplicationStatus,
   normalizeEmploymentType,
@@ -199,4 +200,17 @@ Beta,Platform Analyst,Interview,04/01/2026,Contract,No,Austin,,$$,,https://examp
   assert.equal(parsed.items[0].date, '2026-04-03');
   assert.equal(parsed.items[1].employment_type, 'Contract');
   assert.equal(parsed.items[1].date, '2026-04-01');
+});
+
+test('filterApplicationsForQuery narrows tracker results by search text and active-only mode', () => {
+  const apps = [
+    { company: 'Stripe', title: 'IT Systems Engineer', status: 'drafted', verdict: 'Top choice', description: 'Identity and device automation' },
+    { company: 'Northwind', title: 'Systems Administrator', status: 'interview', verdict: 'Panel next week', description: 'Infrastructure and Okta' },
+    { company: 'CloudCo', title: 'Infrastructure Analyst', status: 'rejected', verdict: 'Archived', description: 'Networking and support' },
+  ];
+
+  assert.equal(filterApplicationsForQuery(apps, 'okta').length, 1);
+  assert.equal(filterApplicationsForQuery(apps, 'systems').length, 2);
+  assert.equal(filterApplicationsForQuery(apps, '', { activeOnly: true }).length, 1);
+  assert.equal(filterApplicationsForQuery(apps, 'cloud', { activeOnly: true }).length, 0);
 });

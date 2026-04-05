@@ -58,6 +58,7 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 - [x] Move Memory controls into `Profile`, add header shortcuts, and make tracker edits/card expansion feel like a real workspace.
 - [x] Widen the popup workspace and reduce scroll pressure across tracker, preview, and profile views.
 - [x] Add quick manual tracker entry plus current-page / pasted-JD import for job details.
+- [x] Add tracker search and active-only filters so larger pipelines stay easy to triage.
 
 <!--
 AGENT INSTRUCTIONS:

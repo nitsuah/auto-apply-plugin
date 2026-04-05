@@ -11,7 +11,7 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 ## 2026 Q2 (In Progress)
 
-- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, salary range, verdict, scorecard fields, and a wider lower-scroll popup layout.
+- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, salary range, verdict, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
 - [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
 - [x] Make Memory editable from Profile so users can correct bad captures quickly.
 - [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.

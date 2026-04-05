@@ -68,6 +68,10 @@ const $ = (id) => document.getElementById(id);
 const trackerSaveTimers = new Map();
 const expandedTrackerIds = new Set();
 const expandedMemoryQuestions = new Set();
+const trackerViewState = {
+  query: '',
+  activeOnly: false,
+};
 const popupQuery = new URLSearchParams(window.location.search);
 
 function showScreen(name) {
@@ -437,6 +441,24 @@ async function initTrackerHandlers() {
   $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
   $('import-csv-btn')?.addEventListener('click', () => $('import-csv-input')?.click());
   $('import-csv-input')?.addEventListener('change', importTrackerCsvFile);
+  $('tracker-search-input')?.addEventListener('input', async (event) => {
+    trackerViewState.query = event.target.value || '';
+    await renderTracker();
+    showScreen('tracker');
+  });
+  $('tracker-active-toggle')?.addEventListener('change', async (event) => {
+    trackerViewState.activeOnly = !!event.target.checked;
+    await renderTracker();
+    showScreen('tracker');
+  });
+  $('tracker-clear-filters-btn')?.addEventListener('click', async () => {
+    trackerViewState.query = '';
+    trackerViewState.activeOnly = false;
+    if ($('tracker-search-input')) $('tracker-search-input').value = '';
+    if ($('tracker-active-toggle')) $('tracker-active-toggle').checked = false;
+    await renderTracker();
+    showScreen('tracker');
+  });
 
   $('export-csv-btn').addEventListener('click', async () => {
     const resp = await sendMessage({ type: 'GET_STATE' });
@@ -601,11 +623,22 @@ function syncTrackerCardSummary(card, patch = {}) {
 async function renderTracker() {
   const resp = await sendMessage({ type: 'GET_STATE' });
   const apps = resp?.applications || [];
+  const filteredApps = filterTrackerApplications(apps, trackerViewState.query, { activeOnly: trackerViewState.activeOnly });
   const tbody = $('tracker-body');
   tbody.innerHTML = '';
   applyTrackerSummary(apps);
 
-  if (apps.length === 0) {
+  if ($('tracker-search-input') && $('tracker-search-input').value !== trackerViewState.query) {
+    $('tracker-search-input').value = trackerViewState.query;
+  }
+  if ($('tracker-active-toggle')) {
+    $('tracker-active-toggle').checked = trackerViewState.activeOnly;
+  }
+
+  if (filteredApps.length === 0) {
+    $('tracker-empty').textContent = hasActiveTrackerFilters()
+      ? 'No tracked applications match the current filters.'
+      : 'No applications tracked yet.';
     $('tracker-empty').classList.remove('hidden');
     return;
   }
@@ -621,7 +654,7 @@ async function renderTracker() {
   ];
 
   tbody.innerHTML = lanes.map(([status, label]) => {
-    const laneApps = apps
+    const laneApps = filteredApps
       .filter((app) => normalizeTrackingStatus(app.status) === status)
       .slice()
       .reverse();
@@ -843,6 +876,41 @@ function renderTrackerCard(app) {
       </div>
     </div>
   `;
+}
+
+function hasActiveTrackerFilters() {
+  return !!String(trackerViewState.query || '').trim() || trackerViewState.activeOnly;
+}
+
+function filterTrackerApplications(applications = [], query = '', { activeOnly = false } = {}) {
+  const tokens = String(query || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  return (applications || []).filter((app) => {
+    const status = normalizeTrackingStatus(app.status);
+    if (activeOnly && !['drafted', 'filled'].includes(status)) {
+      return false;
+    }
+
+    if (!tokens.length) return true;
+
+    const haystack = [
+      app.company,
+      app.title,
+      app.location,
+      app.employment_type,
+      app.salary_range,
+      app.scorecard,
+      app.verdict,
+      app.description,
+      app.jd_snippet,
+    ].join(' ').toLowerCase();
+
+    return tokens.every((token) => haystack.includes(token));
+  });
 }
 
 function exportCsv(applications) {
