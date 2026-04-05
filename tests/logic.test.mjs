@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { extractJsonCandidate, parseJsonResponse } from '../lib/gemini.js';
-import { resolveAnswerKeyFromCandidates } from '../lib/form-filler.js';
+import { findLearnedAnswer, resolveAnswerKeyFromCandidates, shouldPersistLearnedValue } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
 import { normalizeApplicationStatus } from '../lib/tracker.js';
 
@@ -79,4 +79,18 @@ test('structureResume derives years of experience when parsed value is zero', ()
   });
 
   assert.ok(resume.years_of_experience >= 1);
+});
+
+test('findLearnedAnswer reuses prior answers for similar prompts', () => {
+  const answer = findLearnedAnswer('Will you need security clearance for this role?', {
+    'Do you require security clearance?': 'No',
+    'What timezone are you in?': 'Eastern',
+  });
+
+  assert.equal(answer, 'No');
+});
+
+test('shouldPersistLearnedValue avoids sensitive demographic prompts', () => {
+  assert.equal(shouldPersistLearnedValue('Gender identity', 'Prefer not to say'), false);
+  assert.equal(shouldPersistLearnedValue('Do you require security clearance?', 'No'), true);
 });

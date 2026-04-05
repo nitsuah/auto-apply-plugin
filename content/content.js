@@ -659,6 +659,54 @@ async function saveDraftNow() {
   const trimmedDrafts = Object.fromEntries(entries.slice(0, 50));
 
   await chrome.storage.local.set({ [DRAFT_STORAGE_KEY]: trimmedDrafts });
+
+  const learnedEntries = collectLearnedAnswerEntries();
+  if (Object.keys(learnedEntries).length) {
+    chrome.runtime.sendMessage({
+      type: 'SAVE_LEARNED_DEFAULTS',
+      payload: { entries: learnedEntries },
+    }).catch(() => {});
+  }
+}
+
+function collectLearnedAnswerEntries() {
+  const entries = {};
+  const processedGroups = new Set();
+
+  for (const el of collectDraftableFields()) {
+    const label = describeField(el);
+    const key = getDraftFieldKey(el);
+    if (!label || label === 'unlabeled field' || !key || processedGroups.has(key)) continue;
+
+    const type = (el.getAttribute('type') || '').toLowerCase();
+
+    if (type === 'radio') {
+      processedGroups.add(key);
+      const radios = el.name
+        ? Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`))
+        : [el];
+      const checked = radios.find((radio) => radio.checked);
+      if (checked) entries[label] = getChoiceIdentity(checked);
+      continue;
+    }
+
+    if (type === 'checkbox') {
+      processedGroups.add(key);
+      const members = getCheckboxGroupMembers(el);
+      if (members.length > 1) {
+        const selected = members.filter((member) => member.checked).map(getChoiceIdentity).filter(Boolean);
+        if (selected.length) entries[label] = selected.join(', ');
+      } else if (el.checked) {
+        entries[label] = 'Yes';
+      }
+      continue;
+    }
+
+    const value = String(el.value || '').trim();
+    if (value) entries[label] = value;
+  }
+
+  return entries;
 }
 
 function scheduleDraftRestore() {

@@ -4,6 +4,7 @@
  */
 
 import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
+import { findLearnedAnswer, shouldPersistLearnedValue } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
 import { addApplication, updateApplication, updateApplicationStatus } from '../lib/tracker.js';
 
@@ -32,6 +33,8 @@ async function handleMessage(msg) {
       return handleUpdateApplication(msg.payload);
     case 'MARK_LAST_SUBMITTED':
       return handleMarkLastSubmitted();
+    case 'SAVE_LEARNED_DEFAULTS':
+      return handleSaveLearnedDefaults(msg.payload);
     case 'ATS_DETECTED':
       return { success: true }; // acknowledged — no action needed
     default:
@@ -49,17 +52,28 @@ async function handleSaveSetup({ resumeRaw, settings, profile }) {
   const data = await chrome.storage.local.get(['resume']);
   const existingResume = data.resume?.structured || null;
   const hasNewResume = typeof resumeRaw === 'string' && resumeRaw.trim() !== '';
+  const nextSettings = {
+    ...(settings || {}),
+    privacy_consent: settings?.privacy_consent === true,
+    privacy_consent_at: settings?.privacy_consent
+      ? (settings?.privacy_consent_at || new Date().toISOString())
+      : null,
+  };
+
+  if (!nextSettings.privacy_consent) {
+    throw new Error('Please review and accept the privacy note before saving your setup.');
+  }
 
   // Save settings first
-  await chrome.storage.local.set({ settings });
+  await chrome.storage.local.set({ settings: nextSettings });
 
   let structured = existingResume ? structureResume(existingResume) : null;
 
   if (hasNewResume) {
-    if (!settings.gemini_api_key) {
+    if (!nextSettings.gemini_api_key) {
       throw new Error('Add a Gemini API key to parse a new resume upload, or save your core profile without parsing.');
     }
-    const parsedResume = await parseResumeWithGemini(resumeRaw, settings.gemini_api_key, settings.gemini_model);
+    const parsedResume = await parseResumeWithGemini(resumeRaw, nextSettings.gemini_api_key, nextSettings.gemini_model);
     const parsedStructured = structureResume(parsedResume);
     structured = structured
       ? mergeStructuredResume(structured, parsedStructured)
@@ -74,7 +88,16 @@ async function handleSaveSetup({ resumeRaw, settings, profile }) {
     throw new Error('Please upload a resume or enter your core profile details first.');
   }
 
-  structured = applyProfileOverrides(structured, profile, settings);
+  // Only persist sensitive fields if opted in
+  const safeProfile = { ...profile };
+  if (!profile.sensitive_optin) {
+    safeProfile.gender = '';
+    safeProfile.race = '';
+    safeProfile.veteran = '';
+    safeProfile.disability = '';
+    safeProfile.pronouns_sensitive = '';
+  }
+  structured = applyProfileOverrides(structured, safeProfile, nextSettings);
 
   // Avoid persisting the full raw resume payload — uploaded files may be large
   // base64-encoded PDFs/DOCXs that can exceed chrome.storage quotas.
@@ -99,12 +122,14 @@ async function getState() {
     'lastAnswers',
     'lastFillReport',
     'lastTrackedApplicationId',
+    'learnedDefaults',
   ]);
   const settings = data.settings || {};
   const resume = data.resume || {};
   const applications = data.applications || [];
   const lastAnswers = data.lastAnswers || null;
   const lastFillReport = data.lastFillReport || null;
+  const learnedDefaults = data.learnedDefaults || {};
 
   // Try to detect ATS from the active tab URL
   let currentAts = null;
@@ -124,8 +149,10 @@ async function getState() {
     geminiModel: settings.gemini_model || null,
     resumeName: resume.structured?.name || null,
     settings,
+    privacyConsent: !!settings.privacy_consent,
     profile,
     profileCompleteness: getProfileCompleteness(profile),
+    learnedDefaultsCount: Object.keys(learnedDefaults).length,
     applications,
     lastAnswers,
     lastFillReport,
@@ -135,9 +162,10 @@ async function getState() {
 }
 
 async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
-  const data = await chrome.storage.local.get(['resume', 'settings']);
+  const data = await chrome.storage.local.get(['resume', 'settings', 'learnedDefaults']);
   const settings = data.settings || {};
   const resume = data.resume || {};
+  const learnedDefaults = data.learnedDefaults || {};
 
   if (!resume.structured) throw new Error('Profile not set up yet');
 
@@ -146,6 +174,7 @@ async function handleGenerateAnswers({ jd, customQuestions, pageUrl }) {
     settings,
     pageUrl,
     customQuestions: customQuestions || [],
+    learnedDefaults,
   });
 
   let answers = { ...deterministicAnswers };
@@ -218,6 +247,29 @@ async function handleMarkLastSubmitted() {
   }
 
   return { success: true };
+}
+
+async function handleSaveLearnedDefaults({ entries } = {}) {
+  const incomingEntries = entries && typeof entries === 'object' ? entries : {};
+  const data = await chrome.storage.local.get('learnedDefaults');
+  const learnedDefaults = {
+    ...(data.learnedDefaults || {}),
+  };
+
+  let saved = 0;
+  for (const [label, value] of Object.entries(incomingEntries)) {
+    const question = String(label || '').trim();
+    const answer = String(value || '').trim();
+    if (!shouldPersistLearnedValue(question, answer)) continue;
+
+    delete learnedDefaults[question];
+    learnedDefaults[question] = answer;
+    saved++;
+  }
+
+  const trimmedLearnedDefaults = Object.fromEntries(Object.entries(learnedDefaults).slice(-75));
+  await chrome.storage.local.set({ learnedDefaults: trimmedLearnedDefaults });
+  return { success: true, saved };
 }
 
 // ── ATS detection from URL ────────────────────────────────────────────────────
@@ -338,7 +390,7 @@ function applyProfileOverrides(resume, profile = {}, settings = {}) {
 
 function getProfileFromResume(resume = {}, settings = {}) {
   const currentExperience = Array.isArray(resume?.experience) ? resume.experience[0] || {} : {};
-  return {
+  const base = {
     full_name: resume?.name || '',
     email: resume?.email || '',
     phone: resume?.phone || '',
@@ -361,6 +413,23 @@ function getProfileFromResume(resume = {}, settings = {}) {
     requires_sponsorship: resume?.requires_sponsorship || '',
     work_authorization: settings.work_authorization || '',
   };
+  // Only surface sensitive fields if opted in
+  if (resume?.sensitive_optin) {
+    base.sensitive_optin = true;
+    base.gender = resume.gender || '';
+    base.race = resume.race || '';
+    base.veteran = resume.veteran || '';
+    base.disability = resume.disability || '';
+    base.pronouns_sensitive = resume.pronouns_sensitive || '';
+  } else {
+    base.sensitive_optin = false;
+    base.gender = '';
+    base.race = '';
+    base.veteran = '';
+    base.disability = '';
+    base.pronouns_sensitive = '';
+  }
+  return base;
 }
 
 function getProfileCompleteness(profile = {}) {
@@ -369,11 +438,14 @@ function getProfileCompleteness(profile = {}) {
   return { completed, total: requiredKeys.length };
 }
 
-function buildDeterministicAnswers({ resume, settings, customQuestions = [] }) {
+function buildDeterministicAnswers({ resume, settings, customQuestions = [], learnedDefaults = {} }) {
   const profile = getProfileFromResume(resume, settings);
   const fullName = profile.full_name;
   const salaryMin = settings.preferred_salary_min ? String(settings.preferred_salary_min) : '';
   const salaryMax = settings.preferred_salary_max ? String(settings.preferred_salary_max) : '';
+  const safeLearnedDefaults = Object.fromEntries(
+    Object.entries(learnedDefaults || {}).filter(([label, value]) => shouldPersistLearnedValue(label, value))
+  );
 
   const baseAnswers = {
     first_name: fullName.split(' ')[0] || '',
@@ -397,6 +469,14 @@ function buildDeterministicAnswers({ resume, settings, customQuestions = [] }) {
     current_title: profile.current_title,
     years_of_experience: profile.years_of_experience || '',
     pronouns: profile.pronouns,
+    // Only include sensitive fields if opted in
+    ...(profile.sensitive_optin ? {
+      gender: profile.gender,
+      race: profile.race,
+      veteran: profile.veteran,
+      disability: profile.disability,
+      pronouns_sensitive: profile.pronouns_sensitive,
+    } : {}),
     work_authorization: settings.work_authorization || '',
     preferred_location: profile.location,
     salary_expectation: [salaryMin, salaryMax].filter(Boolean).join(' - '),
@@ -415,17 +495,23 @@ function buildDeterministicAnswers({ resume, settings, customQuestions = [] }) {
 
   return {
     ...baseAnswers,
-    custom_answers: buildDefaultCustomAnswers(customQuestions, baseAnswers),
+    ...safeLearnedDefaults,
+    custom_answers: buildDefaultCustomAnswers(customQuestions, baseAnswers, safeLearnedDefaults),
   };
 }
 
-function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}) {
+function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}, learnedDefaults = {}) {
   const customAnswers = {};
 
   for (const question of customQuestions) {
     const text = String(question || '').trim();
     const lower = text.toLowerCase();
-    let answer = '';
+    let answer = findLearnedAnswer(text, learnedDefaults);
+
+    if (answer) {
+      customAnswers[text] = answer;
+      continue;
+    }
 
     if (/legally authorized|authorized to work|eligible to work|work authorization/.test(lower)) {
       answer = wantsBinaryAnswer(lower) ? 'Yes' : baseAnswers.work_authorization;

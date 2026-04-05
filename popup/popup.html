@@ -116,7 +116,7 @@
 
       <div class="form-group">
         <label>Saved answer defaults</label>
-        <p class="helper-text">Reusable responses for the common prompts that show up across ATSes.</p>
+        <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms to self-heal similar prompts later.</p>
         <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
         <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
         <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
@@ -128,6 +128,61 @@
             <option value="Yes">Will require sponsorship</option>
           </select>
         </div>
+      </div>
+
+      <div class="form-group privacy-group">
+
+      <div class="form-group sensitive-group">
+        <label>Sensitive / Demographic (optional)</label>
+        <label class="checkbox-row sensitive-check">
+          <input type="checkbox" id="sensitive-optin" />
+          Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
+        </label>
+        <div id="sensitive-fields" class="sensitive-fields hidden">
+          <select id="profile-gender">
+            <option value="">Gender…</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Other">Other</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+          <select id="profile-race">
+            <option value="">Race / Ethnicity…</option>
+            <option value="White">White</option>
+            <option value="Black or African American">Black or African American</option>
+            <option value="Hispanic or Latino">Hispanic or Latino</option>
+            <option value="Asian">Asian</option>
+            <option value="Native American or Alaska Native">Native American or Alaska Native</option>
+            <option value="Native Hawaiian or Pacific Islander">Native Hawaiian or Pacific Islander</option>
+            <option value="Two or more races">Two or more races</option>
+            <option value="Other">Other</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+          <select id="profile-veteran">
+            <option value="">Veteran status…</option>
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+          <select id="profile-disability">
+            <option value="">Disability status…</option>
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+          <input type="text" id="profile-pronouns-sensitive" placeholder="Pronouns (optional)" />
+        </div>
+        <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
+      </div>
+
+      <div class="form-group privacy-group">
+        <label>Privacy & consent</label>
+        <label class="checkbox-row privacy-check">
+          <input type="checkbox" id="privacy-consent" />
+          I understand my profile is stored locally in Chrome, and only optional resume parsing or AI help sends data to Gemini.
+        </label>
+        <p class="helper-text">Local-first by default. We avoid intentionally learning demographic fields, and Google sign-in can be layered in later if needed.</p>
       </div>
 
       <button id="save-setup-btn" class="btn btn-primary btn-full">
@@ -150,6 +205,14 @@
         <div class="status-row">
           <span class="status-label">Core Profile</span>
           <span id="profile-status" class="badge badge-info">—</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Privacy</span>
+          <span id="privacy-status-badge" class="badge badge-ok">🔒 Local-first</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Self-heal memory</span>
+          <span id="learned-status" class="badge badge-info">0 saved</span>
         </div>
         <div class="status-row" id="ats-row" style="display:none">
           <span class="status-label">Detected ATS</span>

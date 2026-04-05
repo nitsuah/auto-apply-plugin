@@ -170,6 +170,11 @@ async function handleSaveSetup() {
     return;
   }
 
+  if (!$('privacy-consent').checked) {
+    setStatus('setup-status', '⚠️ Please review and accept the privacy note first.', 'error');
+    return;
+  }
+
   const settings = {
     gemini_api_key: apiKey,
     gemini_model: $('gemini-model').value || 'auto',
@@ -177,6 +182,8 @@ async function handleSaveSetup() {
     preferred_salary_max: Number($('salary-max').value) || null,
     work_authorization: $('work-auth').value || null,
     preferred_remote: $('prefer-remote').checked,
+    privacy_consent: $('privacy-consent').checked,
+    privacy_consent_at: $('privacy-consent').checked ? new Date().toISOString() : null,
   };
 
   $('save-setup-btn').disabled = true;
@@ -237,12 +244,24 @@ async function readFileAsText(file) {
 
 async function loadMainScreen() {
   const resp = await sendMessage({ type: 'GET_STATE' });
-  const { hasResume, hasApiKey, resumeName, applications, currentAts, profileCompleteness } = resp || {};
+  const {
+    hasResume,
+    hasApiKey,
+    resumeName,
+    applications,
+    currentAts,
+    profileCompleteness,
+    privacyConsent,
+    learnedDefaultsCount,
+  } = resp || {};
 
   applyStateToSetupForm(resp || {});
 
-  if (!hasApiKey && !hasResume) {
+  if (!privacyConsent || (!hasApiKey && !hasResume)) {
     showScreen('setup');
+    if (!privacyConsent) {
+      setStatus('setup-status', 'Review the privacy note once to continue using apply-bot.');
+    }
     return;
   }
 
@@ -256,6 +275,12 @@ async function loadMainScreen() {
 
   $('api-status').textContent = hasApiKey ? '✅ Connected' : '⚠️ Optional';
   $('api-status').className = 'badge ' + (hasApiKey ? 'badge-ok' : 'badge-warn');
+
+  $('privacy-status-badge').textContent = privacyConsent ? '🔒 Local-first' : '⚠️ Review setup';
+  $('privacy-status-badge').className = 'badge ' + (privacyConsent ? 'badge-ok' : 'badge-warn');
+
+  $('learned-status').textContent = learnedDefaultsCount ? `${learnedDefaultsCount} saved` : 'Learning…';
+  $('learned-status').className = 'badge ' + (learnedDefaultsCount ? 'badge-ok' : 'badge-info');
 
   const completeness = profileCompleteness || { completed: 0, total: 8 };
   $('profile-status').textContent = `${completeness.completed}/${completeness.total} complete`;
@@ -547,6 +572,7 @@ function applyStateToSetupForm(state = {}) {
   $('salary-max').value = settings.preferred_salary_max ?? '';
   $('work-auth').value = settings.work_authorization || '';
   $('prefer-remote').checked = settings.preferred_remote !== false;
+  $('privacy-consent').checked = settings.privacy_consent === true;
 
   fillProfileForm(state.profile || {});
 }
