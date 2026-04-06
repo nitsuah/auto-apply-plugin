@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 import { extractJsonCandidate, parseJsonResponse } from '../lib/gemini.js';
 import {
+  findBestSelectOptionValue,
   findLearnedAnswer,
   isIgnoredLearnedPrompt,
   resolveAnswerKeyFromCandidates,
@@ -66,6 +67,22 @@ test('resolveAnswerKeyFromCandidates matches current title and work auth prompts
 
   assert.equal(currentTitleKey, 'current_title');
   assert.equal(workAuthKey, 'work_authorization');
+});
+
+test('findBestSelectOptionValue handles ATS sponsorship and notice-period dropdown wording', () => {
+  const sponsorshipOption = findBestSelectOptionValue([
+    { value: 'YES', text: 'Yes, I will require visa sponsorship now or in the future' },
+    { value: 'NO', text: 'No, I do not require sponsorship for employment' },
+  ], 'No sponsorship required');
+
+  const startDateOption = findBestSelectOptionValue([
+    { value: 'immediate', text: 'Immediately' },
+    { value: '2weeks', text: 'Within 2 weeks' },
+    { value: 'month', text: 'Within 1 month' },
+  ], '2 weeks notice');
+
+  assert.equal(sponsorshipOption?.value, 'NO');
+  assert.equal(startDateOption?.value, '2weeks');
 });
 
 test('normalizeApplicationStatus keeps tracker semantics honest', () => {

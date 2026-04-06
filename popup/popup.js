@@ -2188,7 +2188,12 @@ function badgeToneClass(tone) {
 
 function getReviewItemLabel(item) {
   if (typeof item === 'string') return item;
-  return item?.label || item?.question || item?.field || 'Field to review';
+
+  const label = item?.label || item?.question || item?.field || 'Field to review';
+  const reason = String(item?.reason || '').trim();
+  if (!reason) return label;
+
+  return `${label} — ${reason}`;
 }
 
 function normalizeLookupText(value) {

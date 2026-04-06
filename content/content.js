@@ -378,13 +378,13 @@ function fillForm(answers, fieldMap) {
   for (const input of inputs) {
     const key = resolveFieldKey(input, fieldMap, answers);
     if (!key) {
-      unresolved.push(describeUnresolvedField(input));
+      unresolved.push(describeUnresolvedField(input, 'No matching saved answer yet'));
       continue;
     }
 
     const value = answers[key];
     if (value === undefined || value === null || value === '') {
-      unresolved.push(describeUnresolvedField(input));
+      unresolved.push(describeUnresolvedField(input, 'Answer still needs manual input'));
       continue;
     }
 
@@ -398,7 +398,7 @@ function fillForm(answers, fieldMap) {
       filled++;
       highlightField(input);
     } else {
-      unresolved.push(describeUnresolvedField(input));
+      unresolved.push(describeUnresolvedField(input, 'Review the available choices manually'));
     }
   }
 
@@ -508,33 +508,16 @@ function setFieldValue(el, value) {
   if (type === 'radio') {
     if (!el.name) return false;
     const radios = Array.from(document.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`));
-    const normalizedValue = normalizeLookupText(value);
+    const match = findBestSelectOptionValue(radios.map((radio) => ({
+      value: radio.value,
+      text: `${radio.value} ${getRadioOptionText(radio)}`,
+      option: radio,
+    })), value);
 
-    for (const radio of radios) {
-      const radioText = normalizeLookupText(`${radio.value} ${getRadioOptionText(radio)}`);
-      if (radioText === normalizedValue || radioText.includes(normalizedValue) || normalizedValue.includes(radioText)) {
-        radio.checked = true;
-        fireEvents(radio, ['input', 'change', 'click']);
-        return true;
-      }
-    }
-
-    const wantsYes = /^(true|yes|y|1|agree|i understand)$/i.test(value);
-    const wantsNo = /^(false|no|n|0)$/i.test(value);
-    if (wantsYes || wantsNo) {
-      for (const radio of radios) {
-        const radioText = normalizeLookupText(`${radio.value} ${getRadioOptionText(radio)}`);
-        if (wantsYes && /(yes|true|agree|understand)/.test(radioText)) {
-          radio.checked = true;
-          fireEvents(radio, ['input', 'change', 'click']);
-          return true;
-        }
-        if (wantsNo && /(no|false)/.test(radioText)) {
-          radio.checked = true;
-          fireEvents(radio, ['input', 'change', 'click']);
-          return true;
-        }
-      }
+    if (match?.option) {
+      match.option.checked = true;
+      fireEvents(match.option, ['input', 'change', 'click']);
+      return true;
     }
 
     return false;
@@ -584,11 +567,12 @@ function describeField(el) {
   ).trim();
 }
 
-function describeUnresolvedField(el) {
+function describeUnresolvedField(el, reason = '') {
   return {
     label: describeField(el),
     draftKey: getDraftFieldKey(el),
     type: (el.getAttribute('type') || el.tagName || '').toLowerCase(),
+    reason: String(reason || '').trim(),
   };
 }
 
@@ -622,19 +606,82 @@ function findFieldForReviewTarget(target = {}) {
     || null;
 }
 
+function matchesPositiveChoice(text) {
+  return /(yes|true|authorized|eligible|immediate|immediately|available now|open to relocate|remote|hybrid|agree|understand|will require|need sponsorship)/.test(text);
+}
+
+function matchesNegativeChoice(text) {
+  return /(no|false|not now|do not|don't|without|none|prefer not|on site|onsite|will not require|do not require)/.test(text);
+}
+
+function findBestSelectOptionValue(options = [], value = '') {
+  const desired = normalizeLookupText(value);
+  if (!desired) return null;
+
+  const normalizedOptions = Array.from(options || []).map((option) => ({
+    ...option,
+    value: String(option?.value ?? ''),
+    text: String(option?.text ?? option?.label ?? option?.innerText ?? option?.value ?? '').trim(),
+    normalizedValue: normalizeLookupText(option?.value ?? ''),
+    normalizedText: normalizeLookupText(option?.text ?? option?.label ?? option?.innerText ?? option?.value ?? ''),
+  })).filter((option) => option.normalizedValue || option.normalizedText);
+
+  for (const option of normalizedOptions) {
+    if (option.normalizedValue === desired || option.normalizedText === desired) {
+      return option;
+    }
+  }
+
+  const directMatch = normalizedOptions.find((option) => (
+    option.normalizedText.includes(desired) || desired.includes(option.normalizedText) ||
+    option.normalizedValue.includes(desired) || desired.includes(option.normalizedValue)
+  ));
+  if (directMatch) return directMatch;
+
+  const wantsNegative = matchesNegativeChoice(desired) || /no sponsorship|required sponsorship|without sponsorship|do not require/.test(desired);
+  const wantsPositive = matchesPositiveChoice(desired) || /require sponsorship|need sponsorship|visa sponsorship/.test(desired);
+  const wantsImmediate = /immediate|asap|right away|available now/.test(desired);
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const option of normalizedOptions) {
+    const text = `${option.normalizedValue} ${option.normalizedText}`.trim();
+    let score = 0;
+
+    if (wantsNegative && matchesNegativeChoice(text)) score += 5;
+    if (wantsPositive && matchesPositiveChoice(text)) score += 5;
+    if (wantsImmediate && /immediate|asap|right away|available now/.test(text)) score += 5;
+
+    if (/2 week|two week/.test(desired) && /2 week|two week/.test(text)) score += 6;
+    if (/month|30 day/.test(desired) && /month|30 day/.test(text)) score += 4;
+    if (/remote/.test(desired) && /remote/.test(text)) score += 4;
+    if (/hybrid/.test(desired) && /hybrid/.test(text)) score += 4;
+    if (/on site|onsite/.test(desired) && /on site|onsite/.test(text)) score += 4;
+    if (/prefer not/.test(desired) && /prefer not/.test(text)) score += 6;
+
+    const overlapTokens = desired.split(' ').filter((token) => token.length > 2 && text.includes(token)).length;
+    score += overlapTokens;
+
+    if (score > bestScore) {
+      best = option;
+      bestScore = score;
+    }
+  }
+
+  return bestScore > 0 ? best : null;
+}
+
 function setSelectValue(el, value) {
-  const lower = value.toLowerCase();
-  for (const opt of el.options) {
-    if (opt.value.toLowerCase() === lower || opt.text.toLowerCase() === lower) {
-      el.value = opt.value; fireEvents(el, ['change']); return true;
-    }
-  }
-  for (const opt of el.options) {
-    if (opt.text.toLowerCase().includes(lower) || lower.includes(opt.text.toLowerCase())) {
-      el.value = opt.value; fireEvents(el, ['change']); return true;
-    }
-  }
-  return false;
+  const match = findBestSelectOptionValue(Array.from(el.options).map((opt) => ({
+    value: opt.value,
+    text: opt.text,
+    option: opt,
+  })), value);
+
+  if (!match?.option) return false;
+
+  el.value = match.option.value; fireEvents(el, ['change']); return true;
 }
 
 function fireEvents(el, events) {
