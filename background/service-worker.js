@@ -36,6 +36,10 @@ async function handleMessage(msg) {
       return handleSaveSetup(msg.payload);
     case 'GET_STATE':
       return getState();
+    case 'GET_RESUME_ATTACHMENT':
+      return handleGetResumeAttachment();
+    case 'REMOVE_RESUME_ATTACHMENT':
+      return handleRemoveResumeAttachment();
     case 'GENERATE_ANSWERS':
       return handleGenerateAnswers(msg.payload);
     case 'GET_LAST_ANSWERS':
@@ -78,12 +82,17 @@ async function handleMessage(msg) {
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 // Maximum plain-text excerpt length stored alongside the structured resume.
-// Binary uploads (data URLs) are not excerpted to avoid quota issues.
+// A lightweight preview/downloadable copy can also be kept locally for the
+// Profile workspace without disturbing the main popup flow.
 const MAX_RESUME_EXCERPT_LENGTH = 1000;
+const MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH = 1200;
+const MAX_RESUME_ATTACHMENT_DATA_LENGTH = 1_500_000;
+const MAX_RESUME_ATTACHMENT_TEXT_LENGTH = 200_000;
 
-async function handleSaveSetup({ resumeRaw, settings, profile }) {
+async function handleSaveSetup({ resumeRaw, settings, profile, resumeMeta }) {
   const data = await chrome.storage.local.get(['resume']);
   const existingResume = data.resume?.structured || null;
+  const existingAttachment = sanitizeResumeAttachment(data.resume?.attachment || null);
   const hasNewResume = typeof resumeRaw === 'string' && resumeRaw.trim() !== '';
   const nextSettings = {
     ...(settings || {}),
@@ -132,19 +141,53 @@ async function handleSaveSetup({ resumeRaw, settings, profile }) {
   }
   structured = applyProfileOverrides(structured, safeProfile, nextSettings);
 
-  // Avoid persisting the full raw resume payload — uploaded files may be large
-  // base64-encoded PDFs/DOCXs that can exceed chrome.storage quotas.
-  // Keep only a short plain-text excerpt when the source is not a data URL.
-  const resumeExcerpt =
-    hasNewResume && typeof resumeRaw === 'string' && !resumeRaw.startsWith('data:')
-      ? resumeRaw.slice(0, MAX_RESUME_EXCERPT_LENGTH)
-      : data.resume?.excerpt || null;
+  const shouldPersistResumePreview = hasNewResume || data.resume?.attachmentRemoved !== true;
+  const resumePreviewText = shouldPersistResumePreview
+    ? (
+        hasNewResume
+          ? buildResumePreviewText({
+              resumeRaw,
+              structured,
+              fallbackPreview: data.resume?.excerpt || '',
+            })
+          : buildResumePreviewText({
+              structured,
+              fallbackPreview: data.resume?.excerpt || '',
+            })
+      )
+    : '';
+
+  const resumeExcerpt = resumePreviewText
+    ? resumePreviewText.slice(0, MAX_RESUME_EXCERPT_LENGTH)
+    : null;
+  const nextAttachment = hasNewResume
+    ? buildResumeAttachment({
+        resumeRaw,
+        resumeMeta,
+        structured,
+        previewText: resumePreviewText,
+      })
+    : existingAttachment;
 
   await chrome.storage.local.set({
-    resume: { structured, excerpt: resumeExcerpt },
+    resume: {
+      structured,
+      excerpt: resumeExcerpt,
+      attachment: nextAttachment,
+      attachmentRemoved: hasNewResume ? false : data.resume?.attachmentRemoved === true,
+    },
   });
 
-  return { success: true, resume: structured };
+  return {
+    success: true,
+    resume: structured,
+    resumeAttachment: getResumeAttachmentSummary({
+      structured,
+      excerpt: resumeExcerpt,
+      attachment: nextAttachment,
+      attachmentRemoved: hasNewResume ? false : data.resume?.attachmentRemoved === true,
+    }),
+  };
 }
 
 async function getState() {
@@ -190,13 +233,15 @@ async function getState() {
   }
 
   const profile = getProfileFromResume(resume.structured, settings);
+  const resumeAttachment = getResumeAttachmentSummary(resume);
 
   return {
     hasApiKey: !!settings.gemini_api_key,
     hasResume: !!resume.structured,
     apiKey: settings.gemini_api_key,
     geminiModel: settings.gemini_model || null,
-    resumeName: resume.structured?.name || null,
+    resumeName: resumeAttachment?.name || resume.structured?.name || null,
+    resumeAttachment,
     settings,
     privacyConsent: !!settings.privacy_consent,
     profile,
@@ -263,6 +308,32 @@ async function getLastAnswers() {
     answers: data.lastAnswers || null,
     report: data.lastFillReport || null,
   };
+}
+
+async function handleGetResumeAttachment() {
+  const data = await chrome.storage.local.get('resume');
+  const attachment = getSavedResumeAttachment(data.resume || {});
+  if (!attachment) {
+    throw new Error('No saved resume attachment is available yet.');
+  }
+
+  return { success: true, attachment };
+}
+
+async function handleRemoveResumeAttachment() {
+  const data = await chrome.storage.local.get('resume');
+  const resume = data.resume || {};
+
+  await chrome.storage.local.set({
+    resume: {
+      ...resume,
+      excerpt: null,
+      attachment: null,
+      attachmentRemoved: true,
+    },
+  });
+
+  return { success: true };
 }
 
 async function handleLogApplication(app) {
@@ -527,6 +598,151 @@ function hasAnyProfileData(profile = {}) {
   return Object.entries(profile || {}).some(
     ([key, value]) => key !== 'sensitive_optin' && String(value || '').trim()
   );
+}
+
+function sanitizeResumeAttachment(attachment = null) {
+  if (!attachment || typeof attachment !== 'object') return null;
+
+  const name = String(attachment.name || '').trim();
+  const preview = String(attachment.preview || '').trim().slice(0, MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH);
+  const data = typeof attachment.data === 'string' ? attachment.data : '';
+  const text = typeof attachment.text === 'string' ? attachment.text : '';
+  const downloadMode = attachment.downloadMode === 'data-url' && data ? 'data-url' : 'text';
+
+  if (!name && !preview && !data && !text) {
+    return null;
+  }
+
+  return {
+    name: name || 'resume-preview.txt',
+    mimeType: String(attachment.mimeType || '').trim() || (downloadMode === 'data-url' ? 'application/octet-stream' : 'text/plain'),
+    source: String(attachment.source || 'saved').trim() || 'saved',
+    updatedAt: attachment.updatedAt || null,
+    preview,
+    downloadMode,
+    data: downloadMode === 'data-url' ? data : '',
+    text: downloadMode === 'text' ? text.slice(0, MAX_RESUME_ATTACHMENT_TEXT_LENGTH) : '',
+  };
+}
+
+function extractDataUrlMimeType(dataUrl = '') {
+  const match = String(dataUrl || '').match(/^data:([^;,]+)[;,]/i);
+  return match?.[1] || '';
+}
+
+function buildResumeDownloadText(structured = {}, previewText = '') {
+  const experience = Array.isArray(structured?.experience) ? structured.experience : [];
+  const education = Array.isArray(structured?.education) ? structured.education : [];
+  const skills = Array.isArray(structured?.skills) ? structured.skills : [];
+
+  const lines = [
+    structured?.name || '',
+    [structured?.email, structured?.phone, structured?.location].filter(Boolean).join(' • '),
+    structured?.summary || '',
+    structured?.current_title
+      ? `${structured.current_title}${structured?.current_company ? ` @ ${structured.current_company}` : ''}`
+      : '',
+    skills.length ? `Skills: ${skills.slice(0, 16).join(', ')}` : '',
+    experience.length ? 'Experience:' : '',
+    ...experience.slice(0, 3).map((item) => [item?.title, item?.company].filter(Boolean).join(' — ')),
+    education.length ? 'Education:' : '',
+    ...education.slice(0, 2).map((item) => [item?.degree, item?.school].filter(Boolean).join(' — ')),
+    previewText || '',
+  ].filter(Boolean);
+
+  return lines.join('\n').trim().slice(0, MAX_RESUME_ATTACHMENT_TEXT_LENGTH);
+}
+
+function buildResumePreviewText({ resumeRaw = '', structured = {}, fallbackPreview = '' } = {}) {
+  const raw = String(resumeRaw || '').trim();
+  if (raw && !raw.startsWith('data:')) {
+    return raw.replace(/\r\n/g, '\n').slice(0, MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH);
+  }
+
+  const preview = String(fallbackPreview || buildResumeDownloadText(structured, '') || '').trim();
+  return preview.slice(0, MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH);
+}
+
+function getSavedResumeAttachment(resume = {}) {
+  if (resume?.attachmentRemoved === true) {
+    return null;
+  }
+
+  const storedAttachment = sanitizeResumeAttachment(resume?.attachment || null);
+  if (storedAttachment) {
+    return storedAttachment;
+  }
+
+  const preview = buildResumePreviewText({
+    structured: resume?.structured || {},
+    fallbackPreview: resume?.excerpt || '',
+  });
+  if (!preview) {
+    return null;
+  }
+
+  return sanitizeResumeAttachment({
+    name: 'resume-preview.txt',
+    mimeType: 'text/plain',
+    source: 'saved',
+    updatedAt: null,
+    preview,
+    downloadMode: 'text',
+    text: buildResumeDownloadText(resume?.structured || {}, preview),
+  });
+}
+
+function buildResumeAttachment({ resumeRaw = '', resumeMeta = {}, structured = {}, previewText = '' } = {}) {
+  const raw = String(resumeRaw || '');
+  if (!raw.trim()) {
+    return null;
+  }
+
+  const meta = resumeMeta && typeof resumeMeta === 'object' ? resumeMeta : {};
+  const isDataUrl = raw.startsWith('data:');
+  const source = meta.source === 'paste' ? 'paste' : 'upload';
+  const attachment = {
+    name: String(meta.name || (source === 'paste' ? 'resume-paste.txt' : 'resume-upload')).trim() || 'resume-preview.txt',
+    mimeType: isDataUrl
+      ? (extractDataUrlMimeType(raw) || String(meta.type || '').trim() || 'application/octet-stream')
+      : (String(meta.type || '').trim() || 'text/plain'),
+    source,
+    updatedAt: new Date().toISOString(),
+    preview: String(previewText || '').trim().slice(0, MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH),
+    downloadMode: 'text',
+    data: '',
+    text: '',
+  };
+
+  if (isDataUrl && raw.length <= MAX_RESUME_ATTACHMENT_DATA_LENGTH) {
+    attachment.downloadMode = 'data-url';
+    attachment.data = raw;
+    return sanitizeResumeAttachment(attachment);
+  }
+
+  attachment.text = (
+    !isDataUrl && raw.length <= MAX_RESUME_ATTACHMENT_TEXT_LENGTH
+      ? raw
+      : buildResumeDownloadText(structured, previewText)
+  ).slice(0, MAX_RESUME_ATTACHMENT_TEXT_LENGTH);
+
+  return sanitizeResumeAttachment(attachment);
+}
+
+function getResumeAttachmentSummary(resume = {}) {
+  const attachment = getSavedResumeAttachment(resume);
+  if (!attachment) {
+    return null;
+  }
+
+  return {
+    name: attachment.name,
+    source: attachment.source,
+    updatedAt: attachment.updatedAt,
+    preview: attachment.preview,
+    hasDownload: !!(attachment.data || attachment.text || attachment.preview),
+    downloadLabel: attachment.downloadMode === 'data-url' ? 'Download copy' : 'Download preview',
+  };
 }
 
 function sanitizeLearnedDefaultsMap(map = {}, ignoredMap = {}) {

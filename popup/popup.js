@@ -73,6 +73,7 @@ const trackerViewState = {
   activeOnly: false,
 };
 const popupQuery = new URLSearchParams(window.location.search);
+const DEFAULT_RESUME_DROP_LABEL = '📄 Drop PDF / DOCX / TXT here or click to browse';
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -86,6 +87,12 @@ function setStatus(elId, msg, type = '') {
   const el = $(elId);
   el.textContent = msg;
   el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+function setResumeDropLabel(fileName = '') {
+  const dropLabel = $('file-drop-label');
+  if (!dropLabel) return;
+  dropLabel.textContent = fileName ? `📄 ${fileName}` : DEFAULT_RESUME_DROP_LABEL;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -124,12 +131,9 @@ async function initSetupHandlers() {
   // File drop/change
   const fileInput = $('resume-file');
   const dropZone = $('file-drop-zone');
-  const dropLabel = $('file-drop-label');
 
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) {
-      dropLabel.textContent = '📄 ' + fileInput.files[0].name;
-    }
+    setResumeDropLabel(fileInput.files[0]?.name || '');
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -145,7 +149,7 @@ async function initSetupHandlers() {
       const dt = new DataTransfer();
       dt.items.add(file);
       fileInput.files = dt.files;
-      dropLabel.textContent = '📄 ' + file.name;
+      setResumeDropLabel(file.name);
     }
   });
 
@@ -159,6 +163,36 @@ async function initSetupHandlers() {
     syncSensitiveVisibility();
   }
 
+  $('download-resume-attachment-btn')?.addEventListener('click', async () => {
+    try {
+      const resp = await sendMessage({ type: 'GET_RESUME_ATTACHMENT' });
+      if (!resp?.success || !resp.attachment) {
+        throw new Error(resp?.error || 'No saved resume attachment is available yet.');
+      }
+      downloadResumeAttachment(resp.attachment);
+      setStatus('setup-status', '✅ Downloaded your saved resume copy.', 'success');
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + err.message, 'error');
+    }
+  });
+
+  $('remove-resume-attachment-btn')?.addEventListener('click', async () => {
+    const confirmed = confirm('Remove the saved local resume attachment preview? Your structured profile details will stay intact.');
+    if (!confirmed) return;
+
+    try {
+      const resp = await sendMessage({ type: 'REMOVE_RESUME_ATTACHMENT' });
+      if (!resp?.success) {
+        throw new Error(resp?.error || 'Could not remove the saved attachment.');
+      }
+      const state = await sendMessage({ type: 'GET_STATE' });
+      applyStateToSetupForm(state || {});
+      setStatus('setup-status', '✅ Saved resume attachment removed.', 'success');
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + err.message, 'error');
+    }
+  });
+
   $('save-setup-btn').addEventListener('click', handleSaveSetup);
 }
 
@@ -171,9 +205,17 @@ async function handleSaveSetup() {
   // Determine resume source
   const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
   let resumeRaw = '';
+  let resumeMeta = null;
 
   if (activeTab === 'paste') {
     resumeRaw = $('resume-text').value.trim();
+    if (resumeRaw) {
+      resumeMeta = {
+        name: 'resume-paste.txt',
+        type: 'text/plain',
+        source: 'paste',
+      };
+    }
     if (!resumeRaw && !hasExistingResume && !hasAnyProfileValue(profile)) {
       setStatus('setup-status', '⚠️ Paste your resume text or enter key profile fields.', 'error');
       return;
@@ -182,6 +224,11 @@ async function handleSaveSetup() {
     const file = $('resume-file').files[0];
     if (file) {
       resumeRaw = await readFileAsText(file);
+      resumeMeta = {
+        name: file.name,
+        type: file.type || '',
+        source: 'upload',
+      };
     } else if (!hasExistingResume && !hasAnyProfileValue(profile)) {
       setStatus('setup-status', '⚠️ Upload a resume or enter key profile fields first.', 'error');
       return;
@@ -216,12 +263,13 @@ async function handleSaveSetup() {
   );
 
   try {
-    const resp = await sendMessage({ type: 'SAVE_SETUP', payload: { resumeRaw, settings, profile } });
+    const resp = await sendMessage({ type: 'SAVE_SETUP', payload: { resumeRaw, resumeMeta, settings, profile } });
     if (resp?.success) {
       fillProfileForm(resp?.resume || profile);
+      renderResumeAttachment(resp?.resumeAttachment || state?.resumeAttachment || null);
       setStatus(
         'setup-status',
-        resumeRaw ? '✅ Resume parsed and profile saved!' : '✅ Core profile saved!',
+        resumeRaw ? '✅ Resume parsed, saved, and attached locally!' : '✅ Core profile saved!',
         'success'
       );
       setTimeout(() => loadMainScreen(), 800);
@@ -1451,7 +1499,102 @@ function applyStateToSetupForm(state = {}) {
   $('prefer-remote').checked = settings.preferred_remote !== false;
   $('privacy-consent').checked = settings.privacy_consent === true;
 
+  renderResumeAttachment(state.resumeAttachment || null);
   fillProfileForm(state.profile || {});
+}
+
+function renderResumeAttachment(attachment = null) {
+  const card = $('resume-attachment-card');
+  if (!card) return;
+
+  const fileInput = $('resume-file');
+  if (!attachment) {
+    card.classList.add('hidden');
+    if (!fileInput?.files?.[0]) {
+      setResumeDropLabel('');
+    }
+    return;
+  }
+
+  card.classList.remove('hidden');
+  $('resume-attachment-name').textContent = attachment.name || 'resume-preview.txt';
+  $('resume-attachment-meta').textContent = [
+    getResumeAttachmentSourceLabel(attachment.source),
+    attachment.updatedAt ? `saved ${formatSavedTimestamp(attachment.updatedAt)}` : 'saved locally',
+  ].filter(Boolean).join(' • ');
+  $('resume-attachment-preview').textContent = attachment.preview || 'A local preview copy is saved for this browser profile.';
+
+  const downloadBtn = $('download-resume-attachment-btn');
+  if (downloadBtn) {
+    downloadBtn.textContent = attachment.downloadLabel || 'Download copy';
+    downloadBtn.disabled = attachment.hasDownload === false;
+  }
+
+  if (!fileInput?.files?.[0]) {
+    setResumeDropLabel(attachment.name || '');
+  }
+}
+
+function downloadResumeAttachment(attachment = {}) {
+  const fileName = getResumeAttachmentDownloadName(attachment);
+  let href = '';
+
+  if (attachment.downloadMode === 'data-url' && attachment.data) {
+    href = attachment.data;
+  } else {
+    const text = String(attachment.text || attachment.preview || '').trim();
+    if (!text) {
+      throw new Error('No saved resume preview is available to download yet.');
+    }
+    const blob = new Blob([text], { type: attachment.mimeType || 'text/plain;charset=utf-8' });
+    href = URL.createObjectURL(blob);
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }
+
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function getResumeAttachmentSourceLabel(source = '') {
+  switch (source) {
+    case 'paste':
+      return 'Pasted text';
+    case 'upload':
+      return 'Uploaded file';
+    default:
+      return 'Saved preview';
+  }
+}
+
+function getResumeAttachmentDownloadName(attachment = {}) {
+  const rawName = String(attachment.name || '').trim() || 'resume-preview.txt';
+  if (attachment.downloadMode === 'data-url') {
+    return rawName;
+  }
+
+  if (/\.txt$/i.test(rawName)) {
+    return rawName;
+  }
+
+  return rawName.replace(/(\.[a-z0-9]+)?$/i, '-preview.txt');
+}
+
+function formatSavedTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'recently';
+  }
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function fillProfileForm(profile = {}) {
