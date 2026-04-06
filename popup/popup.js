@@ -687,7 +687,19 @@ async function renderTracker() {
     },
   ];
 
-  tbody.innerHTML = lanes.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
+  const visibleLanes = lanes.filter((lane) => getTrackerLaneCount(filteredApps, lane) > 0);
+  const lanesToRender = visibleLanes.length ? visibleLanes : lanes;
+  tbody.innerHTML = lanesToRender.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
+}
+
+function getTrackerLaneCount(applications, lane) {
+  if (Array.isArray(lane.groups)) {
+    return lane.groups.reduce((sum, group) => {
+      return sum + applications.filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status))).length;
+    }, 0);
+  }
+
+  return applications.filter((app) => lane.statuses.includes(normalizeTrackingStatus(app.status))).length;
 }
 
 function renderTrackerLane(applications, lane) {
@@ -712,9 +724,7 @@ function renderTrackerLane(applications, lane) {
       `;
     }).join('');
 
-    const total = lane.groups.reduce((sum, group) => {
-      return sum + applications.filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status))).length;
-    }, 0);
+    const total = getTrackerLaneCount(applications, lane);
 
     return `
       <section class="tracker-lane tracker-lane-stacked">

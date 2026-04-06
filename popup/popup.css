@@ -79,6 +79,11 @@ body[data-standalone="true"][data-screen="preview"] {
   min-height: 900px;
 }
 
+body[data-standalone="true"][data-screen="tracker"] {
+  width: calc(100vw - 24px);
+  min-height: calc(100vh - 16px);
+}
+
 #app {
   display: flex;
   flex-direction: column;
@@ -90,6 +95,10 @@ body[data-standalone="true"] #app {
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
+}
+
+body[data-standalone="true"][data-screen="tracker"] #app {
+  max-width: none;
 }
 
 /* ── Header ── */
@@ -810,9 +819,49 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   align-items: start;
 }
 
+body[data-standalone="true"][data-screen="tracker"] .screen {
+  padding: 12px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding-bottom: 8px;
+  background: rgba(15, 17, 23, 0.96);
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-toolbar {
+  position: sticky;
+  top: 44px;
+  z-index: 4;
+  background: rgba(26, 29, 39, 0.96);
+  backdrop-filter: blur(8px);
+}
+
 body[data-standalone="true"][data-screen="tracker"] .tracker-list {
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-lane {
+  padding: 8px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-card {
+  padding: 7px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-card-header {
+  margin-bottom: 6px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-summary-meta {
+  margin-top: 2px;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
+  margin-top: 2px;
 }
 
 .tracker-lane {
@@ -1237,6 +1286,12 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-list {
   text-decoration: underline;
 }
 
+@media (max-width: 1400px) {
+  body[data-standalone="true"][data-screen="tracker"] .tracker-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1200px) {
   .tracker-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1250,6 +1305,11 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-list {
 
   .main-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  body[data-standalone="true"][data-screen="tracker"] .tracker-header,
+  body[data-standalone="true"][data-screen="tracker"] .tracker-toolbar {
+    position: static;
   }
 
   .tracker-list,
