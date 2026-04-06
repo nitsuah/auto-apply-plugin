@@ -485,6 +485,15 @@ async function initTrackerHandlers() {
       return;
     }
 
+    const deleteBtn = event.target.closest('.tracker-delete-btn');
+    if (deleteBtn) {
+      const card = deleteBtn.closest('.tracker-card');
+      if (card) {
+        await deleteTrackerCard(card);
+      }
+      return;
+    }
+
     const saveBtn = event.target.closest('.tracker-save-btn');
     if (!saveBtn) return;
 
@@ -648,34 +657,78 @@ async function renderTracker() {
   $('tracker-empty').classList.add('hidden');
 
   const lanes = [
-    ['drafted', '🟡 Drafted'],
-    ['filled', '📝 Filled'],
-    ['submitted', '✅ Submitted'],
-    ['interview', '📅 Interview'],
-    ['offer', '🎉 Offer'],
-    ['rejected', '❌ Rejected'],
+    { key: 'drafted', label: '🟡 Drafted', statuses: ['drafted'] },
+    { key: 'filled', label: '📝 Filled', statuses: ['filled'] },
+    { key: 'submitted', label: '✅ Submitted', statuses: ['submitted'] },
+    {
+      key: 'later',
+      label: '📌 Later stages',
+      groups: [
+        { key: 'interview', label: '📅 Interview', statuses: ['interview'] },
+        { key: 'offer', label: '🎉 Offer', statuses: ['offer'] },
+        { key: 'rejected', label: '❌ Rejected', statuses: ['rejected'] },
+      ],
+    },
   ];
 
-  tbody.innerHTML = lanes.map(([status, label]) => {
-    const laneApps = filteredApps
-      .filter((app) => normalizeTrackingStatus(app.status) === status)
-      .slice()
-      .reverse();
+  tbody.innerHTML = lanes.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
+}
 
-    const cards = laneApps.length
-      ? laneApps.map(renderTrackerCard).join('')
-      : '<p class="empty-msg" style="padding:8px 0">Nothing here yet.</p>';
+function renderTrackerLane(applications, lane) {
+  if (Array.isArray(lane.groups)) {
+    const sections = lane.groups.map((group) => {
+      const laneApps = applications
+        .filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status)))
+        .slice()
+        .reverse();
+      const cards = laneApps.length
+        ? laneApps.map(renderTrackerCard).join('')
+        : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
+
+      return `
+        <div class="tracker-lane-group">
+          <div class="tracker-lane-subheader">
+            <span class="tracker-lane-subtitle">${group.label}</span>
+            <span class="tracker-lane-count">${laneApps.length}</span>
+          </div>
+          <div class="tracker-lane-cards">${cards}</div>
+        </div>
+      `;
+    }).join('');
+
+    const total = lane.groups.reduce((sum, group) => {
+      return sum + applications.filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status))).length;
+    }, 0);
 
     return `
-      <section class="tracker-lane">
+      <section class="tracker-lane tracker-lane-stacked">
         <div class="tracker-lane-header">
-          <span class="tracker-lane-title">${label}</span>
-          <span class="tracker-lane-count">${laneApps.length}</span>
+          <span class="tracker-lane-title">${lane.label}</span>
+          <span class="tracker-lane-count">${total}</span>
         </div>
-        <div class="tracker-lane-cards">${cards}</div>
+        ${sections}
       </section>
     `;
-  }).join('');
+  }
+
+  const laneApps = applications
+    .filter((app) => lane.statuses.includes(normalizeTrackingStatus(app.status)))
+    .slice()
+    .reverse();
+
+  const cards = laneApps.length
+    ? laneApps.map(renderTrackerCard).join('')
+    : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
+
+  return `
+    <section class="tracker-lane">
+      <div class="tracker-lane-header">
+        <span class="tracker-lane-title">${lane.label}</span>
+        <span class="tracker-lane-count">${laneApps.length}</span>
+      </div>
+      <div class="tracker-lane-cards">${cards}</div>
+    </section>
+  `;
 }
 
 function toggleTrackerAddForm(forceOpen) {
@@ -891,11 +944,38 @@ function renderTrackerCard(app) {
         <div class="tracker-card-actions">
           ${jobLink}
           <span class="tracker-save-state">Auto-save on blur</span>
-          <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
+          <div class="tracker-card-action-buttons">
+            <button class="btn btn-ghost btn-sm tracker-delete-btn" data-id="${escAttr(app.id)}">Delete</button>
+            <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
+          </div>
         </div>
       </div>
     </div>
   `;
+}
+
+async function deleteTrackerCard(card) {
+  const id = card?.dataset?.id;
+  if (!id) return;
+
+  const company = card.querySelector('.tracker-summary-title')?.textContent?.trim() || 'this application';
+  const confirmed = confirm(`Delete ${company} from the tracker? This only removes the local tracker card.`);
+  if (!confirmed) return;
+
+  const resp = await sendMessage({
+    type: 'DELETE_APPLICATION',
+    payload: { id },
+  });
+
+  if (!resp?.success) {
+    throw new Error(resp?.error || 'Could not delete that tracker entry.');
+  }
+
+  expandedTrackerIds.delete(id);
+  setTrackerScreenStatus('✅ Tracker entry deleted.', 'success');
+  await renderTracker();
+  await loadMainScreen({ showMain: false });
+  showScreen('tracker');
 }
 
 function hasActiveTrackerFilters() {

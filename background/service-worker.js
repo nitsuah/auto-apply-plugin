@@ -13,6 +13,7 @@ import {
 import { structureResume } from '../lib/resume-parser.js';
 import {
   addApplication,
+  deleteApplication,
   deriveTrackerDetailsFromText,
   importApplicationsFromCsv,
   isTerminalApplicationStatus,
@@ -47,6 +48,8 @@ async function handleMessage(msg) {
       return handleImportApplicationsCsv(msg.payload);
     case 'UPDATE_APPLICATION':
       return handleUpdateApplication(msg.payload);
+    case 'DELETE_APPLICATION':
+      return handleDeleteApplication(msg.payload);
     case 'MARK_LAST_SUBMITTED':
       return handleMarkLastSubmitted();
     case 'SAVE_LEARNED_DEFAULTS':
@@ -313,6 +316,24 @@ async function handleUpdateApplication({ id, patch }) {
   }
 
   return { success: true, entry };
+}
+
+async function handleDeleteApplication({ id } = {}) {
+  if (!id) throw new Error('Application id is required');
+  const removed = await deleteApplication(id);
+  if (!removed) {
+    throw new Error('Could not find that tracked application to delete.');
+  }
+
+  const data = await chrome.storage.local.get('lastTrackedApplicationId');
+  if (data.lastTrackedApplicationId === id) {
+    await chrome.storage.local.set({
+      lastFillReport: null,
+      lastTrackedApplicationId: null,
+    });
+  }
+
+  return { success: true, removed };
 }
 
 async function handleMarkLastSubmitted() {

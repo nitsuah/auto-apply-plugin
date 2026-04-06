@@ -44,15 +44,20 @@ body {
 }
 
 body[data-screen="setup"],
-body[data-screen="tracker"],
 body[data-screen="preview"] {
   width: 980px;
   min-width: 980px;
   min-height: 680px;
 }
 
+body[data-screen="tracker"] {
+  width: 1180px;
+  min-width: 1180px;
+  min-height: 700px;
+}
+
 body[data-standalone="true"] {
-  width: min(980px, calc(100vw - 24px));
+  width: min(1180px, calc(100vw - 24px));
   min-width: 0;
   min-height: calc(100vh - 16px);
 }
@@ -80,7 +85,7 @@ body[data-standalone="true"][data-screen="preview"] {
 
 body[data-standalone="true"] #app {
   width: 100%;
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 
@@ -739,7 +744,7 @@ textarea {
 
 .tracker-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   align-items: start;
 }
@@ -776,6 +781,30 @@ textarea {
   display: grid;
   gap: 8px;
   min-width: 0;
+}
+
+.tracker-lane-group + .tracker-lane-group {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tracker-lane-subheader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tracker-lane-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.tracker-lane-empty {
+  padding: 8px 0;
 }
 
 .tracker-card {
@@ -910,6 +939,13 @@ textarea {
   align-items: center;
   gap: 8px;
   margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tracker-card-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tracker-save-state {
@@ -1133,6 +1169,12 @@ textarea {
 
 .review-jump-btn:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 1200px) {
+  .tracker-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
