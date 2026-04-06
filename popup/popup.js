@@ -774,6 +774,10 @@ async function initMainHandlers() {
   });
 
   $('header-tracker-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('tracker');
+      if (opened) return;
+    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -836,10 +840,15 @@ async function initMainHandlers() {
   });
 
   $('edit-resume-btn').addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('setup', 'core-profile-section');
+      if (opened) return;
+    }
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });
     applyStateToSetupForm(state || {});
     await renderLearnedDefaults();
+    scrollToSection('core-profile-section');
   });
 }
 
@@ -847,6 +856,10 @@ async function initMainHandlers() {
 
 async function initTrackerHandlers() {
   $('view-tracker-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('tracker');
+      if (opened) return;
+    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -1610,6 +1623,10 @@ async function initHelpHandlers() {
   $('help-back-btn')?.addEventListener('click', () => loadMainScreen());
 
   $('header-help-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('help', 'help-legal-section');
+      if (opened) return;
+    }
     showScreen('help');
   });
 
@@ -1908,25 +1925,38 @@ function initStatusNavHandlers() {
 }
 
 function isStandaloneView() {
-  return popupQuery.get('standalone') === '1' || isPreviewMode();
+  return popupQuery.get('standalone') === '1';
 }
 
-async function openExpandedWorkspace(screen) {
+function buildExpandedWorkspaceUrl(screen, sectionId = '') {
+  if (hasExtensionRuntime() && !isPreviewMode()) {
+    const url = new URL(chrome.runtime.getURL('popup/popup.html'));
+    url.searchParams.set('screen', screen);
+    url.searchParams.set('standalone', '1');
+    if (sectionId) url.searchParams.set('section', sectionId);
+    return url.toString();
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('screen', screen);
+  url.searchParams.set('standalone', '1');
+  url.searchParams.set('demo', '1');
+  if (sectionId) url.searchParams.set('section', sectionId);
+  return url.toString();
+}
+
+async function openExpandedWorkspace(screen, sectionId = '') {
+  const url = buildExpandedWorkspaceUrl(screen, sectionId);
+
+  if (!hasExtensionRuntime() || isPreviewMode()) {
+    window.location.href = url;
+    return true;
+  }
+
   try {
-    const currentWindow = await chrome.windows.getLastFocused();
-    const width = screen === 'tracker' ? 1280 : 980;
-    const height = Math.max(760, Math.min((currentWindow?.height || 960) - 80, 920));
-    const left = Math.max(0, (currentWindow?.left || 0) + Math.max(0, (currentWindow?.width || width) - width - 24));
-    const top = Math.max(0, (currentWindow?.top || 0) + 48);
-    const url = chrome.runtime.getURL(`popup/popup.html?screen=${encodeURIComponent(screen)}&standalone=1`);
-    await chrome.windows.create({
+    await chrome.tabs.create({
       url,
-      type: 'popup',
-      width,
-      height,
-      left,
-      top,
-      focused: true,
+      active: true,
     });
     window.close();
     return true;
@@ -1937,11 +1967,16 @@ async function openExpandedWorkspace(screen) {
 
 async function applyInitialRequestedScreen() {
   const screen = popupQuery.get('screen');
-  if (!screen) return;
+  const sectionId = popupQuery.get('section');
+  if (!screen) {
+    if (sectionId) scrollToSection(sectionId);
+    return;
+  }
 
   if (screen === 'tracker') {
     await renderTracker();
     showScreen('tracker');
+    if (sectionId) scrollToSection(sectionId);
     return;
   }
 
@@ -1950,11 +1985,13 @@ async function applyInitialRequestedScreen() {
     const state = await sendMessage({ type: 'GET_STATE' });
     applyStateToSetupForm(state || {});
     await renderLearnedDefaults();
+    if (sectionId) scrollToSection(sectionId);
     return;
   }
 
   if (screen === 'help') {
     showScreen('help');
+    if (sectionId) scrollToSection(sectionId);
   }
 }
 
@@ -1962,15 +1999,15 @@ async function openStatusTarget(target) {
   if (!target) return;
 
   if (target === 'privacy' || target === 'ats') {
+    const helpSection = target === 'ats' ? 'help-ats-section' : 'help-privacy-section';
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('help', helpSection);
+      if (opened) return;
+    }
     showScreen('help');
-    scrollToSection(target === 'ats' ? 'help-ats-section' : 'help-privacy-section');
+    scrollToSection(helpSection);
     return;
   }
-
-  showScreen('setup');
-  const state = await sendMessage({ type: 'GET_STATE' });
-  applyStateToSetupForm(state || {});
-  await renderLearnedDefaults();
 
   const sectionMap = {
     resume: 'profile-resume-section',
@@ -1978,7 +2015,18 @@ async function openStatusTarget(target) {
     profile: 'core-profile-section',
     memory: 'profile-memory-section',
   };
-  scrollToSection(sectionMap[target]);
+
+  const sectionId = sectionMap[target];
+  if (!isStandaloneView()) {
+    const opened = await openExpandedWorkspace('setup', sectionId);
+    if (opened) return;
+  }
+
+  showScreen('setup');
+  const state = await sendMessage({ type: 'GET_STATE' });
+  applyStateToSetupForm(state || {});
+  await renderLearnedDefaults();
+  scrollToSection(sectionId);
 }
 
 function scrollToSection(sectionId) {

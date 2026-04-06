@@ -21,6 +21,7 @@ A Chrome extension that:
 3. **Reads the JD** from the page
 4. **Generates tailored answers** per role using free Gemini API
 5. **Fills the form** in place — you just review and submit
+6. **Opens Tracker / Profile in dedicated workspace tabs** so the quick-apply popup stays clean and compact
 
 **Free. Local. Private. Fast.**
 

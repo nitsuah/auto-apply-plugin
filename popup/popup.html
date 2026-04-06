@@ -237,7 +237,13 @@
     <!-- Main Screen (shown when configured) -->
     <section id="main-screen" class="screen hidden">
       <div class="main-top-grid">
-        <div class="main-actions-panel">
+        <div class="main-actions-panel workspace-card">
+          <div class="panel-heading">
+            <div>
+              <div class="panel-kicker">Quick actions</div>
+              <div class="panel-title">Apply workflow</div>
+            </div>
+          </div>
           <div class="action-btns">
             <button id="fill-btn" class="btn btn-primary btn-full">
               ⚡ Fill This Application
@@ -246,38 +252,47 @@
               👁 Preview Answers
             </button>
             <button id="edit-resume-btn" class="btn btn-ghost btn-full">
-              ✏️ Edit Profile
+              🗂 Open Profile
             </button>
           </div>
+          <p class="helper-text main-panel-note">Tracker, Profile, and Help now open in dedicated workspace tabs so this popup stays compact and fast.</p>
           <p id="fill-status" class="status-msg"></p>
         </div>
 
         <div class="main-status-panel">
-          <div class="status-card">
-            <button type="button" id="resume-row" class="status-row status-nav" data-nav-target="resume" title="Open Profile to review your resume and defaults.">
-              <span class="status-label">Resume</span>
-              <span id="resume-status" class="badge badge-ok">Ready</span>
-            </button>
-            <button type="button" id="api-row" class="status-row status-nav" data-nav-target="api" title="Open Profile to update your Gemini key.">
-              <span class="status-label">API</span>
-              <span id="api-status" class="badge badge-info">Optional</span>
-            </button>
-            <button type="button" id="profile-row" class="status-row status-nav" data-nav-target="profile" title="Open Profile to complete core fields.">
-              <span class="status-label">Core Profile</span>
-              <span id="profile-status" class="badge badge-info">—</span>
-            </button>
-            <button type="button" id="privacy-row" class="status-row status-nav" data-nav-target="privacy" title="Open Help and privacy details.">
-              <span class="status-label">Privacy</span>
-              <span id="privacy-status-badge" class="badge badge-ok">Local-first</span>
-            </button>
-            <button type="button" id="learned-row" class="status-row status-nav" data-nav-target="memory" title="Open Memory in Profile.">
-              <span class="status-label">Memory</span>
-              <span id="learned-status" class="badge badge-info">0 saved</span>
-            </button>
-            <button type="button" class="status-row status-nav" id="ats-row" data-nav-target="ats" title="Open a quick explainer for applicant tracking systems.">
-              <span class="status-label">Detected ATS</span>
-              <span id="ats-status" class="badge badge-info">No job page</span>
-            </button>
+          <div class="status-card workspace-card">
+            <div class="panel-heading">
+              <div>
+                <div class="panel-kicker">Connections</div>
+                <div class="panel-title">Workspace health</div>
+              </div>
+            </div>
+            <div class="status-stack">
+              <button type="button" id="resume-row" class="status-row status-nav" data-nav-target="resume" title="Open Profile to review your resume and defaults.">
+                <span class="status-label">Resume</span>
+                <span id="resume-status" class="badge badge-ok">Ready</span>
+              </button>
+              <button type="button" id="api-row" class="status-row status-nav" data-nav-target="api" title="Open Profile to update your Gemini key.">
+                <span class="status-label">API</span>
+                <span id="api-status" class="badge badge-info">Optional</span>
+              </button>
+              <button type="button" id="profile-row" class="status-row status-nav" data-nav-target="profile" title="Open Profile to complete core fields.">
+                <span class="status-label">Core Profile</span>
+                <span id="profile-status" class="badge badge-info">—</span>
+              </button>
+              <button type="button" id="privacy-row" class="status-row status-nav" data-nav-target="privacy" title="Open Help and privacy details.">
+                <span class="status-label">Privacy</span>
+                <span id="privacy-status-badge" class="badge badge-ok">Local-first</span>
+              </button>
+              <button type="button" id="learned-row" class="status-row status-nav" data-nav-target="memory" title="Open Memory in Profile.">
+                <span class="status-label">Memory</span>
+                <span id="learned-status" class="badge badge-info">0 saved</span>
+              </button>
+              <button type="button" class="status-row status-nav" id="ats-row" data-nav-target="ats" title="Open a quick explainer for applicant tracking systems.">
+                <span class="status-label">Detected ATS</span>
+                <span id="ats-status" class="badge badge-info">No job page</span>
+              </button>
+            </div>
             <p id="ats-hint" class="helper-text hidden"></p>
           </div>
         </div>
