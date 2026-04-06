@@ -1950,7 +1950,11 @@ function buildExpandedWorkspaceUrl(screen, sectionId = '') {
 async function openExpandedWorkspace(screen, sectionId = '') {
   const url = buildExpandedWorkspaceUrl(screen, sectionId);
 
-  if (!hasExtensionRuntime() || isPreviewMode()) {
+  if (isPreviewMode()) {
+    return false;
+  }
+
+  if (!hasExtensionRuntime()) {
     window.location.href = url;
     return true;
   }
