@@ -81,6 +81,7 @@ apply-bot/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
+> Tip: for quick mock-data UI refreshes, open `popup/popup.html?screen=tracker&standalone=1&demo=1` directly in the browser.
 
 ### Main dashboard
 

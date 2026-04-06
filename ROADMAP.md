@@ -15,6 +15,7 @@ updated: 2026-04-05 (tracker-workspace-planning)
 - [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
 - [x] Make Memory editable from Profile so users can correct bad captures quickly.
 - [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.
+- [x] Add a standalone mock-data preview mode so popup UI review and README screenshot refreshes work without the extension runtime.
 
 ## 2026 Q3 (Planned)
 

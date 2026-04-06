@@ -7,10 +7,15 @@
 
 /**
  * Send a message to the background service worker and return the response.
+ * Falls back to a local preview state when the popup is opened outside the
+ * extension runtime (for screenshots or standalone UI review).
  * @param {object} msg
  * @returns {Promise<any>}
  */
 async function sendMessage(msg) {
+  if (isPreviewMode()) {
+    return handlePreviewMessage(msg);
+  }
   return chrome.runtime.sendMessage(msg);
 }
 
@@ -20,6 +25,10 @@ async function sendMessage(msg) {
  * @returns {Promise<any>}
  */
 async function sendToActiveTab(msg) {
+  if (isPreviewMode()) {
+    return handlePreviewTabMessage(msg);
+  }
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error('No active tab found');
 
@@ -28,6 +37,10 @@ async function sendToActiveTab(msg) {
 }
 
 async function ensureContentScriptReady(tabId) {
+  if (isPreviewMode()) {
+    return;
+  }
+
   try {
     await chrome.tabs.sendMessage(tabId, { type: 'DETECT_ATS' });
     return;
@@ -73,6 +86,15 @@ const trackerViewState = {
   activeOnly: false,
 };
 const popupQuery = new URLSearchParams(window.location.search);
+let previewState = createPreviewState();
+
+function hasExtensionRuntime() {
+  return typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+}
+
+function isPreviewMode() {
+  return popupQuery.get('demo') === '1' || window.location.protocol === 'file:' || !hasExtensionRuntime();
+}
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -84,14 +106,406 @@ function showScreen(name) {
 
 function setStatus(elId, msg, type = '') {
   const el = $(elId);
+  if (!el) return;
   el.textContent = msg;
   el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+function syncPreviewModeBanner() {
+  const banner = $('preview-mode-banner');
+  if (!banner) return;
+
+  const showBanner = isPreviewMode() && popupQuery.get('demo') !== '1';
+  banner.classList.toggle('hidden', !showBanner);
+  if (!showBanner) return;
+
+  banner.textContent = 'Preview mode: sample local data is shown because the popup is open outside the Chrome extension runtime.';
+}
+
+function createPreviewState() {
+  return {
+    resumeName: 'Alex_Harper_Resume.pdf',
+    currentAts: 'greenhouse',
+    settings: {
+      gemini_api_key: 'demo-key',
+      gemini_model: 'auto',
+      preferred_salary_min: 165000,
+      preferred_salary_max: 220000,
+      work_authorization: 'US Citizen',
+      preferred_remote: true,
+      privacy_consent: true,
+      privacy_consent_at: '2026-04-05T12:00:00.000Z',
+    },
+    profile: {
+      full_name: 'Alex Harper',
+      email: 'alex.harper@example.com',
+      phone: '(555) 010-0142',
+      location: 'Nashville, TN',
+      address_line1: '123 Main St',
+      city: 'Nashville',
+      state_region: 'TN',
+      postal_code: '37203',
+      linkedin: 'https://linkedin.com/in/alexharper',
+      github: 'https://github.com/alexharper',
+      portfolio: 'https://alexharper.dev',
+      current_company: 'Northwind Systems',
+      current_title: 'Senior Systems Engineer',
+      years_of_experience: '9',
+      pronouns: 'they/them',
+      why_company_default: 'I like joining teams where internal tooling and user trust matter.',
+      why_role_default: 'This role fits my background in workflow automation, IT systems, and cross-functional delivery.',
+      additional_info_default: 'Happy to share more details during the interview process.',
+      start_date: '2 weeks',
+      requires_sponsorship: 'No',
+      sensitive_optin: false,
+    },
+    applications: [
+      {
+        id: 'preview-1',
+        company: '1Password',
+        title: 'Staff IT Engineer, Enterprise Tools',
+        status: 'filled',
+        date: '2026-04-05',
+        url: 'https://jobs.example.com/1password',
+        location: 'Remote',
+        employment_type: 'Full-time',
+        remote: true,
+        salary_range: '$180k - $215k',
+        scorecard: 'Strong fit',
+        verdict: 'Priority',
+        description: 'Leading internal tooling and workflow automation across enterprise systems.',
+        jd_snippet: 'Internal tooling and workflow automation across enterprise systems.',
+      },
+      {
+        id: 'preview-2',
+        company: 'Northwind',
+        title: 'Platform Systems Administrator',
+        status: 'interview',
+        date: '2026-04-02',
+        url: 'https://jobs.example.com/northwind',
+        location: 'Nashville, TN',
+        employment_type: 'Full-time',
+        remote: false,
+        salary_range: '$150k - $175k',
+        scorecard: 'Panel next week',
+        verdict: 'Maybe',
+        description: 'Own the platform operations roadmap and keep systems healthy.',
+        jd_snippet: 'Own the platform operations roadmap.',
+      },
+      {
+        id: 'preview-3',
+        company: 'CloudCo',
+        title: 'Infrastructure Analyst',
+        status: 'rejected',
+        date: '2026-04-01',
+        url: 'https://jobs.example.com/cloudco',
+        location: 'Austin, TX',
+        employment_type: 'Contract',
+        remote: false,
+        salary_range: '$70/hr',
+        scorecard: 'Archived',
+        verdict: 'No',
+        description: 'Short-term infrastructure migration support.',
+        jd_snippet: 'Infrastructure migration support.',
+      },
+    ],
+    learnedDefaults: [
+      {
+        question: 'Why are you interested in this role?',
+        answer: 'It lines up with the systems, automation, and internal-platform work I already enjoy doing.',
+      },
+      {
+        question: 'Are you authorized to work in the United States?',
+        answer: 'Yes — I am authorized to work in the United States and do not require sponsorship.',
+      },
+    ],
+    ignoredDefaults: [
+      {
+        question: 'Paste a cover letter addressed to the hiring team',
+        answer: 'Ignored in preview mode so this one stays out of autofill.',
+      },
+    ],
+    lastAnswers: {
+      full_name: 'Alex Harper',
+      email: 'alex.harper@example.com',
+      phone: '(555) 010-0142',
+      location: 'Nashville, TN',
+      work_authorization: 'US Citizen',
+      why_role: 'This role fits my background in workflow automation and systems reliability.',
+    },
+    lastFillReport: {
+      filled: 14,
+      preserved: 3,
+      unresolved: [
+        { label: 'Years of experience with Okta' },
+        { label: 'Preferred interview times' },
+      ],
+    },
+  };
+}
+
+function clonePreviewValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function getPreviewProfileCompleteness(profile = {}) {
+  const keys = [
+    'full_name',
+    'email',
+    'phone',
+    'location',
+    'linkedin',
+    'current_title',
+    'years_of_experience',
+    'work_authorization',
+  ];
+  const completed = keys.filter((key) => String(profile[key] || previewState.settings[key] || '').trim()).length;
+  return { completed, total: keys.length };
+}
+
+function getPreviewStatePayload() {
+  const settings = previewState.settings || {};
+  return {
+    hasResume: true,
+    hasApiKey: true,
+    apiKey: settings.gemini_api_key || 'demo-key',
+    geminiModel: settings.gemini_model || 'auto',
+    resumeName: previewState.resumeName || 'Preview_Resume.pdf',
+    settings: clonePreviewValue(settings),
+    profile: clonePreviewValue(previewState.profile || {}),
+    applications: clonePreviewValue(previewState.applications || []),
+    currentAts: previewState.currentAts || 'greenhouse',
+    profileCompleteness: getPreviewProfileCompleteness(previewState.profile || {}),
+    privacyConsent: settings.privacy_consent !== false,
+    learnedDefaultsCount: Array.isArray(previewState.learnedDefaults) ? previewState.learnedDefaults.length : 0,
+    lastFillReport: clonePreviewValue(previewState.lastFillReport || null),
+  };
+}
+
+function makePreviewId(prefix = 'preview') {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function upsertPreviewMemory(question, answer, { ignored = false } = {}) {
+  const activeKey = ignored ? 'ignoredDefaults' : 'learnedDefaults';
+  const otherKey = ignored ? 'learnedDefaults' : 'ignoredDefaults';
+  previewState[otherKey] = (previewState[otherKey] || []).filter((item) => item.question !== question);
+
+  const current = Array.isArray(previewState[activeKey]) ? previewState[activeKey] : [];
+  const existingIndex = current.findIndex((item) => item.question === question);
+  const nextItem = { question, answer };
+  if (existingIndex >= 0) {
+    current.splice(existingIndex, 1, nextItem);
+  } else {
+    current.unshift(nextItem);
+  }
+  previewState[activeKey] = current;
+}
+
+async function handlePreviewMessage(msg = {}) {
+  switch (msg?.type) {
+    case 'GET_STATE':
+      return getPreviewStatePayload();
+
+    case 'SAVE_SETUP': {
+      const payload = msg.payload || {};
+      previewState.settings = {
+        ...previewState.settings,
+        ...(payload.settings || {}),
+      };
+      previewState.profile = {
+        ...previewState.profile,
+        ...(payload.profile || {}),
+      };
+      if (payload.resumeRaw) {
+        previewState.resumeName = 'Preview_Resume.txt';
+      }
+      return {
+        success: true,
+        resume: clonePreviewValue(previewState.profile),
+      };
+    }
+
+    case 'GET_LAST_ANSWERS':
+      return {
+        success: true,
+        answers: clonePreviewValue(previewState.lastAnswers || {}),
+        report: clonePreviewValue(previewState.lastFillReport || null),
+      };
+
+    case 'GET_LEARNED_DEFAULTS':
+      return {
+        success: true,
+        items: clonePreviewValue(previewState.learnedDefaults || []),
+        ignoredItems: clonePreviewValue(previewState.ignoredDefaults || []),
+      };
+
+    case 'UPDATE_LEARNED_DEFAULT':
+      upsertPreviewMemory(msg?.payload?.question || '', msg?.payload?.answer || '');
+      return { success: true };
+
+    case 'IGNORE_LEARNED_DEFAULT': {
+      const question = msg?.payload?.question || '';
+      const item = (previewState.learnedDefaults || []).find((entry) => entry.question === question);
+      upsertPreviewMemory(question, item?.answer || '', { ignored: true });
+      return { success: true };
+    }
+
+    case 'DELETE_IGNORED_LEARNED_DEFAULT': {
+      const question = msg?.payload?.question || '';
+      const item = (previewState.ignoredDefaults || []).find((entry) => entry.question === question);
+      upsertPreviewMemory(question, item?.answer || '', { ignored: false });
+      return { success: true };
+    }
+
+    case 'DELETE_LEARNED_DEFAULT': {
+      const question = msg?.payload?.question || '';
+      previewState.learnedDefaults = (previewState.learnedDefaults || []).filter((item) => item.question !== question);
+      previewState.ignoredDefaults = (previewState.ignoredDefaults || []).filter((item) => item.question !== question);
+      return { success: true };
+    }
+
+    case 'PARSE_APPLICATION_DRAFT': {
+      const draft = msg?.payload?.draft || {};
+      const text = String(msg?.payload?.text || '');
+      const salaryMatch = text.match(/\$\s?\d[\d,]*(?:\s?[-–]\s?\$?\d[\d,]*)?/);
+      return {
+        success: true,
+        details: {
+          location: draft.location || (/remote/i.test(text) ? 'Remote' : 'Unknown'),
+          employment_type: draft.employment_type || (/contract/i.test(text) ? 'Contract' : /part[- ]?time/i.test(text) ? 'Part-time' : 'Full-time'),
+          remote: Boolean(draft.remote || /remote/i.test(text)),
+          salary_range: draft.salary_range || (salaryMatch ? salaryMatch[0].replace(/\s+/g, ' ') : ''),
+        },
+      };
+    }
+
+    case 'LOG_APPLICATION': {
+      const payload = msg.payload || {};
+      const application = {
+        id: payload.id || makePreviewId('app'),
+        company: payload.company || 'New company',
+        title: payload.title || 'Untitled role',
+        status: payload.status || 'drafted',
+        date: payload.date || new Date().toISOString().slice(0, 10),
+        url: payload.url || '',
+        location: payload.location || 'Unknown',
+        employment_type: payload.employment_type || 'Full-time',
+        remote: !!payload.remote,
+        salary_range: payload.salary_range || '',
+        scorecard: payload.scorecard || '',
+        verdict: payload.verdict || '',
+        description: payload.description || '',
+        jd_snippet: payload.jd_snippet || '',
+        answers_generated: !!payload.answers_generated,
+        fill_report: payload.fill_report || null,
+      };
+      previewState.applications = [application, ...(previewState.applications || [])];
+      return { success: true, application: clonePreviewValue(application) };
+    }
+
+    case 'UPDATE_APPLICATION': {
+      const { id, patch = {} } = msg.payload || {};
+      let updated = null;
+      previewState.applications = (previewState.applications || []).map((app) => {
+        if (app.id !== id) return app;
+        updated = { ...app, ...patch };
+        return updated;
+      });
+      return updated
+        ? { success: true, application: clonePreviewValue(updated) }
+        : { success: false, error: 'Could not find that preview tracker card.' };
+    }
+
+    case 'DELETE_APPLICATION': {
+      const id = msg?.payload?.id;
+      const before = (previewState.applications || []).length;
+      previewState.applications = (previewState.applications || []).filter((app) => app.id !== id);
+      return before !== previewState.applications.length
+        ? { success: true }
+        : { success: false, error: 'Could not find that preview tracker card.' };
+    }
+
+    case 'MARK_LAST_SUBMITTED': {
+      if (previewState.applications?.length) {
+        previewState.applications[0].status = 'submitted';
+      }
+      return { success: true };
+    }
+
+    case 'IMPORT_APPLICATIONS_CSV':
+      return {
+        success: true,
+        imported: 0,
+        skipped: 0,
+        preview: true,
+      };
+
+    case 'CLEAR_TEMP_DATA':
+      return { success: true };
+
+    case 'RESET_ALL_DATA':
+      previewState = createPreviewState();
+      return { success: true };
+
+    default:
+      return {
+        success: false,
+        error: 'Preview mode only. Load the extension in Chrome to use this action on a live page.',
+      };
+  }
+}
+
+async function handlePreviewTabMessage(msg = {}) {
+  switch (msg?.type) {
+    case 'DETECT_ATS':
+      return { success: true, ats: previewState.currentAts || 'greenhouse' };
+
+    case 'FILL_FORM':
+      return {
+        success: true,
+        warning: 'Preview mode only — no live page was modified.',
+        report: clonePreviewValue(previewState.lastFillReport || null),
+      };
+
+    case 'GET_JOB_INFO':
+      return {
+        success: true,
+        job: {
+          company: 'Example Labs',
+          title: 'Platform Automation Engineer',
+          url: 'https://example.com/jobs/platform-automation-engineer',
+          location: 'Remote',
+          employment_type: 'Full-time',
+          remote: true,
+          salary_range: '$165,000 - $195,000',
+          jd: 'Own internal tooling, improve hiring workflows, and partner closely with IT and People Ops.',
+        },
+      };
+
+    case 'INJECT_ANSWERS':
+      return { success: true, preview: true };
+
+    case 'FOCUS_FIELD':
+      return { success: true, label: getReviewItemLabel(msg.payload || {}) };
+
+    default:
+      return {
+        success: false,
+        error: 'Preview mode only. Open the extension on a live application page to use this action.',
+      };
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.body.dataset.standalone = isStandaloneView() ? 'true' : 'false';
+  document.body.dataset.preview = isPreviewMode() ? 'true' : 'false';
+  syncPreviewModeBanner();
   await initTabs();
   await initSetupHandlers();
   await loadMainScreen();
@@ -1494,7 +1908,7 @@ function initStatusNavHandlers() {
 }
 
 function isStandaloneView() {
-  return popupQuery.get('standalone') === '1';
+  return popupQuery.get('standalone') === '1' || isPreviewMode();
 }
 
 async function openExpandedWorkspace(screen) {

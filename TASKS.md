@@ -59,6 +59,7 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 - [x] Widen the popup workspace and reduce scroll pressure across tracker, preview, and profile views.
 - [x] Add quick manual tracker entry plus current-page / pasted-JD import for job details.
 - [x] Add tracker search and active-only filters so larger pipelines stay easy to triage.
+- [x] Add a standalone demo mode for popup screenshots and docs refreshes so file-based UI review stays fast and stable.
 
 <!--
 AGENT INSTRUCTIONS:
