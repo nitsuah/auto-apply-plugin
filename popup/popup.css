@@ -46,19 +46,6 @@ body {
   line-height: 1.5;
 }
 
-body[data-screen="setup"],
-body[data-screen="preview"] {
-  width: 980px;
-  min-width: 980px;
-  min-height: 700px;
-}
-
-body[data-screen="tracker"] {
-  width: 1280px;
-  min-width: 1280px;
-  min-height: 760px;
-}
-
 body[data-standalone="true"] {
   min-width: 0;
   min-height: calc(100vh - 16px);
@@ -90,7 +77,7 @@ body[data-standalone="true"][data-screen="help"] {
   flex-direction: column;
   min-height: 100%;
   width: 100%;
-  min-width: inherit;
+  min-width: 0;
 }
 
 body[data-standalone="true"] #app {
