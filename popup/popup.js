@@ -1545,10 +1545,30 @@ async function openExpandedWorkspace(screen, sectionId = '') {
 
   try {
     const url = buildExpandedWorkspaceUrl(screen, sectionId);
-    await chrome.tabs.create({
-      url,
-      active: true,
+    const baseUrl = chrome.runtime.getURL('popup/popup.html');
+    const tabs = await chrome.tabs.query({});
+    const existing = tabs.find((tab) => {
+      if (!tab?.id || !tab.url || !tab.url.startsWith(baseUrl)) return false;
+      try {
+        const tabUrl = new URL(tab.url);
+        return tabUrl.searchParams.get('screen') === screen;
+      } catch {
+        return false;
+      }
     });
+
+    if (existing?.id) {
+      await chrome.tabs.update(existing.id, { active: true, url });
+      if (typeof existing.windowId === 'number') {
+        await chrome.windows.update(existing.windowId, { focused: true });
+      }
+    } else {
+      await chrome.tabs.create({
+        url,
+        active: true,
+      });
+    }
+
     window.close();
     return true;
   } catch {

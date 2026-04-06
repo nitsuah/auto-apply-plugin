@@ -747,9 +747,14 @@ textarea {
 
 .tracker-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
   align-items: start;
+}
+
+body[data-standalone="true"][data-screen="tracker"] .tracker-list {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
 }
 
 .tracker-lane {
@@ -1189,13 +1194,8 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .tracker-list {
+  .tracker-list,
+  body[data-standalone="true"][data-screen="tracker"] .tracker-list {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 1100px) {
-  .tracker-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
