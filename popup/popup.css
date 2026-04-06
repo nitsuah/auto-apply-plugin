@@ -37,8 +37,8 @@ body {
     radial-gradient(circle at top right, rgba(96, 165, 250, 0.07), transparent 0, transparent 28%),
     var(--bg);
   color: var(--text);
-  width: 400px;
-  min-width: 400px;
+  width: 420px;
+  min-width: 420px;
   min-height: 520px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -492,8 +492,8 @@ textarea {
 /* ── Status card ── */
 .main-top-grid {
   display: grid;
-  grid-template-columns: minmax(172px, 0.92fr) minmax(0, 1.08fr);
-  gap: 12px;
+  grid-template-columns: minmax(156px, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
   align-items: stretch;
   margin-bottom: 12px;
 }
@@ -1238,20 +1238,22 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  body[data-standalone="true"] #app {
+    width: 100%;
+  }
+
+  .tracker-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 380px) {
   body {
     width: 100%;
     min-width: 0;
   }
 
-  body[data-standalone="true"] #app {
-    width: 100%;
-  }
-
   .main-top-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tracker-list {
     grid-template-columns: 1fr;
   }
 }

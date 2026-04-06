@@ -774,10 +774,6 @@ async function initMainHandlers() {
   });
 
   $('header-tracker-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('tracker');
-      if (opened) return;
-    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -840,10 +836,6 @@ async function initMainHandlers() {
   });
 
   $('edit-resume-btn').addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('setup', 'core-profile-section');
-      if (opened) return;
-    }
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });
     applyStateToSetupForm(state || {});
@@ -856,10 +848,6 @@ async function initMainHandlers() {
 
 async function initTrackerHandlers() {
   $('view-tracker-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('tracker');
-      if (opened) return;
-    }
     await renderTracker();
     showScreen('tracker');
   });
@@ -1623,10 +1611,6 @@ async function initHelpHandlers() {
   $('help-back-btn')?.addEventListener('click', () => loadMainScreen());
 
   $('header-help-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('help', 'help-legal-section');
-      if (opened) return;
-    }
     showScreen('help');
   });
 
@@ -1925,7 +1909,9 @@ function initStatusNavHandlers() {
 }
 
 function isStandaloneView() {
-  return popupQuery.get('standalone') === '1';
+  const requested = popupQuery.get('standalone') === '1';
+  if (!requested) return false;
+  return isPreviewMode() || Math.max(window.innerWidth, document.documentElement?.clientWidth || 0) >= 720;
 }
 
 function buildExpandedWorkspaceUrl(screen, sectionId = '') {
@@ -2000,10 +1986,6 @@ async function openStatusTarget(target) {
 
   if (target === 'privacy' || target === 'ats') {
     const helpSection = target === 'ats' ? 'help-ats-section' : 'help-privacy-section';
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('help', helpSection);
-      if (opened) return;
-    }
     showScreen('help');
     scrollToSection(helpSection);
     return;
@@ -2017,11 +1999,6 @@ async function openStatusTarget(target) {
   };
 
   const sectionId = sectionMap[target];
-  if (!isStandaloneView()) {
-    const opened = await openExpandedWorkspace('setup', sectionId);
-    if (opened) return;
-  }
-
   showScreen('setup');
   const state = await sendMessage({ type: 'GET_STATE' });
   applyStateToSetupForm(state || {});
