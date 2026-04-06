@@ -127,7 +127,12 @@ async function handleSaveSetup({ resumeRaw, settings, profile, resumeMeta }) {
   }
 
   if (!structured) {
-    throw new Error('Please upload a resume or enter your core profile details first.');
+    return {
+      success: true,
+      resume: null,
+      settingsSavedOnly: true,
+      resumeAttachment: getResumeAttachmentSummary(data.resume || {}),
+    };
   }
 
   // Only persist sensitive fields if opted in

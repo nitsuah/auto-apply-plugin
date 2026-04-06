@@ -50,6 +50,12 @@ body[data-screen="preview"] {
   min-height: 680px;
 }
 
+body[data-screen="ai"] {
+  width: 760px;
+  min-width: 760px;
+  min-height: 620px;
+}
+
 body[data-screen="tracker"] {
   width: 1180px;
   min-width: 1180px;
@@ -68,7 +74,8 @@ body[data-standalone="true"][data-screen="setup"] {
 }
 
 body[data-standalone="true"][data-screen="main"],
-body[data-standalone="true"][data-screen="help"] {
+body[data-standalone="true"][data-screen="help"],
+body[data-standalone="true"][data-screen="ai"] {
   width: min(980px, calc(100vw - 24px));
   min-height: 780px;
 }
@@ -338,11 +345,13 @@ textarea {
 .profile-workspace {
   display: grid;
   gap: 12px;
+  max-width: 980px;
 }
 
 .profile-main-column,
 .profile-side-column,
-.profile-side-grid {
+.profile-side-grid,
+.profile-consent-gated {
   min-width: 0;
   display: grid;
   gap: 12px;
@@ -352,7 +361,8 @@ textarea {
 .profile-main-column > .form-group,
 .profile-side-column > .form-group,
 .profile-side-column > .help-card,
-.profile-side-grid > * {
+.profile-side-grid > *,
+.profile-consent-gated > * {
   margin-bottom: 0;
   min-width: 0;
 }
@@ -463,21 +473,13 @@ textarea {
 }
 
 body[data-standalone="true"][data-screen="setup"] .profile-workspace {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.1fr);
+  grid-template-columns: 1fr;
   align-items: start;
+  max-width: 980px;
 }
 
 body[data-standalone="true"][data-screen="setup"] .profile-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-body[data-standalone="true"][data-screen="setup"] .profile-side-grid {
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.9fr);
-  align-items: start;
-}
-
-body[data-standalone="true"][data-screen="setup"] .profile-save-bar {
-  grid-column: 1 / -1;
 }
 
 body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-list {
@@ -485,8 +487,7 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 }
 
 @media (max-width: 1100px) {
-  body[data-standalone="true"][data-screen="setup"] .profile-workspace,
-  body[data-standalone="true"][data-screen="setup"] .profile-side-grid {
+  body[data-standalone="true"][data-screen="setup"] .profile-workspace {
     grid-template-columns: 1fr;
   }
 }
@@ -511,6 +512,20 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: rgba(96, 165, 250, 0.06);
+}
+
+.consent-locked {
+  opacity: 0.58;
+}
+
+.consent-locked .profile-panel,
+.consent-locked .help-card {
+  box-shadow: none;
+}
+
+#ai-locked-note.hidden,
+#profile-privacy-section.hidden {
+  display: none;
 }
 
 .privacy-check {

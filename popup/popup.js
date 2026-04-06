@@ -95,6 +95,40 @@ function setResumeDropLabel(fileName = '') {
   dropLabel.textContent = fileName ? `📄 ${fileName}` : DEFAULT_RESUME_DROP_LABEL;
 }
 
+function setElementsDisabled(container, disabled) {
+  if (!container) return;
+  container.querySelectorAll('input, textarea, select, button').forEach((el) => {
+    el.disabled = disabled;
+  });
+}
+
+function syncConsentGate() {
+  const consentAccepted = $('privacy-consent')?.checked === true;
+  $('profile-privacy-section')?.classList.toggle('hidden', consentAccepted);
+
+  const profileGate = $('profile-consent-gated');
+  const aiGate = $('ai-consent-gated');
+  profileGate?.classList.toggle('consent-locked', !consentAccepted);
+  aiGate?.classList.toggle('consent-locked', !consentAccepted);
+  setElementsDisabled(profileGate, !consentAccepted);
+  setElementsDisabled(aiGate, !consentAccepted);
+
+  $('ai-locked-note')?.classList.toggle('hidden', consentAccepted);
+}
+
+function readSettingsForm() {
+  return {
+    gemini_api_key: $('api-key-input').value.trim(),
+    gemini_model: $('gemini-model').value || 'auto',
+    preferred_salary_min: Number($('salary-min').value) || null,
+    preferred_salary_max: Number($('salary-max').value) || null,
+    work_authorization: $('work-auth').value || null,
+    preferred_remote: $('prefer-remote').checked,
+    privacy_consent: $('privacy-consent').checked,
+    privacy_consent_at: $('privacy-consent').checked ? new Date().toISOString() : null,
+  };
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -105,6 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initMainHandlers();
   await initTrackerHandlers();
   await initPreviewHandlers();
+  await initAiHandlers();
   await initHelpHandlers();
   initStatusNavHandlers();
   await applyInitialRequestedScreen();
@@ -153,6 +188,13 @@ async function initSetupHandlers() {
     }
   });
 
+  $('privacy-consent')?.addEventListener('change', () => {
+    syncConsentGate();
+    if ($('privacy-consent').checked) {
+      setStatus('setup-status', '✅ Privacy accepted. Profile and AI settings are now unlocked.', 'success');
+    }
+  });
+
   const sensitiveOptin = $('sensitive-optin');
   const sensitiveFields = $('sensitive-fields');
   if (sensitiveOptin && sensitiveFields) {
@@ -197,7 +239,8 @@ async function initSetupHandlers() {
 }
 
 async function handleSaveSetup() {
-  const apiKey = $('api-key-input').value.trim();
+  const settings = readSettingsForm();
+  const apiKey = settings.gemini_api_key;
   const state = await sendMessage({ type: 'GET_STATE' });
   const hasExistingResume = !!state?.hasResume;
   const profile = readProfileForm();
@@ -236,25 +279,14 @@ async function handleSaveSetup() {
   }
 
   if (!apiKey && resumeRaw) {
-    setStatus('setup-status', '⚠️ Add a Gemini key to parse a new resume upload, or save your profile only.', 'error');
+    setStatus('setup-status', '⚠️ Add a Gemini key in the AI panel to parse a new resume upload, or save your profile only.', 'error');
     return;
   }
 
-  if (!$('privacy-consent').checked) {
+  if (!settings.privacy_consent) {
     setStatus('setup-status', '⚠️ Please review and accept the privacy note first.', 'error');
     return;
   }
-
-  const settings = {
-    gemini_api_key: apiKey,
-    gemini_model: $('gemini-model').value || 'auto',
-    preferred_salary_min: Number($('salary-min').value) || null,
-    preferred_salary_max: Number($('salary-max').value) || null,
-    work_authorization: $('work-auth').value || null,
-    preferred_remote: $('prefer-remote').checked,
-    privacy_consent: $('privacy-consent').checked,
-    privacy_consent_at: $('privacy-consent').checked ? new Date().toISOString() : null,
-  };
 
   $('save-setup-btn').disabled = true;
   setStatus(
@@ -269,7 +301,9 @@ async function handleSaveSetup() {
       renderResumeAttachment(resp?.resumeAttachment || state?.resumeAttachment || null);
       setStatus(
         'setup-status',
-        resumeRaw ? '✅ Resume parsed, saved, and attached locally!' : '✅ Core profile saved!',
+        resumeRaw
+          ? '✅ Resume parsed, saved, and attached locally!'
+          : (resp?.settingsSavedOnly ? '✅ Preferences saved.' : '✅ Core profile saved!'),
         'success'
       );
       setTimeout(() => loadMainScreen(), 800);
@@ -280,6 +314,42 @@ async function handleSaveSetup() {
     setStatus('setup-status', '❌ ' + err.message, 'error');
   } finally {
     $('save-setup-btn').disabled = false;
+  }
+}
+
+async function handleSaveAiSettings() {
+  const settings = readSettingsForm();
+  if (!settings.privacy_consent) {
+    setStatus('ai-status', '⚠️ Accept privacy once in Profile before editing AI settings.', 'error');
+    return;
+  }
+
+  const profile = readProfileForm();
+  $('save-ai-settings-btn').disabled = true;
+  setStatus('ai-status', '⏳ Saving AI settings…');
+
+  try {
+    const resp = await sendMessage({
+      type: 'SAVE_SETUP',
+      payload: {
+        resumeRaw: '',
+        resumeMeta: null,
+        settings,
+        profile,
+      },
+    });
+
+    if (!resp?.success) {
+      throw new Error(resp?.error || 'Could not save AI settings.');
+    }
+
+    await loadMainScreen({ showMain: false });
+    showScreen('ai');
+    setStatus('ai-status', '✅ AI settings saved.', 'success');
+  } catch (err) {
+    setStatus('ai-status', '❌ ' + err.message, 'error');
+  } finally {
+    $('save-ai-settings-btn').disabled = false;
   }
 }
 
@@ -349,8 +419,8 @@ async function loadMainScreen(options = {}) {
   setStatusRowMeta('resume-row', resumeTooltip);
 
   const apiTooltip = hasApiKey
-    ? 'Gemini is connected for optional AI help. Click to edit your Profile settings.'
-    : 'AI help is optional. Click to add or update your Gemini key.';
+    ? 'Gemini is connected for optional AI help. Click to open the AI panel.'
+    : 'AI help is optional. Click to add or update your Gemini key in the AI panel.';
   setBadgeState('api-status', hasApiKey ? 'Connected' : 'Optional', hasApiKey ? 'ok' : 'info', apiTooltip);
   setStatusRowMeta('api-row', apiTooltip);
 
@@ -1266,6 +1336,23 @@ function renderIgnoredMemoryGroup(container, items, emptyMessage) {
   }).join('');
 }
 
+async function initAiHandlers() {
+  $('ai-back-btn')?.addEventListener('click', () => loadMainScreen());
+
+  $('header-ai-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('ai', 'ai-settings-section');
+      if (opened) return;
+    }
+
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    showScreen('ai');
+  });
+
+  $('save-ai-settings-btn')?.addEventListener('click', handleSaveAiSettings);
+}
+
 async function initHelpHandlers() {
   $('help-back-btn')?.addEventListener('click', () => loadMainScreen());
 
@@ -1348,15 +1435,23 @@ async function initHelpHandlers() {
   });
 
   $('open-privacy-setup-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('setup', 'profile-privacy-section');
-      if (opened) return;
+    const state = await sendMessage({ type: 'GET_STATE' });
+    if (!state?.privacyConsent) {
+      if (!isStandaloneView()) {
+        const opened = await openExpandedWorkspace('setup', 'profile-privacy-section');
+        if (opened) return;
+      }
+
+      showScreen('setup');
+      await renderLearnedDefaults();
+      scrollToSection('profile-privacy-section');
+      setStatus('setup-status', 'Review and accept the privacy note once to unlock your profile.', 'error');
+      return;
     }
 
-    showScreen('setup');
-    await renderLearnedDefaults();
-    scrollToSection('profile-privacy-section');
-    setStatus('setup-status', 'Review or update your profile, privacy, and memory settings below.');
+    showScreen('help');
+    scrollToSection('help-privacy-section');
+    setStatus('help-status', 'Privacy details remain available here anytime.', 'success');
   });
 
   $('clear-cache-btn')?.addEventListener('click', async () => {
@@ -1485,7 +1580,7 @@ function renderFillReport(report, opts = {}) {
 }
 
 function applyStateToSetupForm(state = {}) {
-  if (state.apiKey) $('api-key-input').value = state.apiKey;
+  $('api-key-input').value = state.apiKey || '';
 
   const modelSelect = $('gemini-model');
   const savedModel = state.geminiModel || 'auto';
@@ -1499,6 +1594,7 @@ function applyStateToSetupForm(state = {}) {
   $('prefer-remote').checked = settings.preferred_remote !== false;
   $('privacy-consent').checked = settings.privacy_consent === true;
 
+  syncConsentGate();
   renderResumeAttachment(state.resumeAttachment || null);
   fillProfileForm(state.profile || {});
 }
@@ -1750,6 +1846,14 @@ async function applyInitialRequestedScreen() {
     return;
   }
 
+  if (screen === 'ai') {
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    showScreen('ai');
+    if (sectionId) scrollToSection(sectionId);
+    return;
+  }
+
   if (screen === 'help') {
     showScreen('help');
     if (sectionId) scrollToSection(sectionId);
@@ -1771,9 +1875,21 @@ async function openStatusTarget(target) {
     return;
   }
 
+  if (target === 'api') {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('ai', 'ai-settings-section');
+      if (opened) return;
+    }
+
+    showScreen('ai');
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    scrollToSection('ai-settings-section');
+    return;
+  }
+
   const sectionMap = {
     resume: 'profile-resume-section',
-    api: 'profile-api-section',
     profile: 'core-profile-section',
     memory: 'profile-memory-section',
   };
