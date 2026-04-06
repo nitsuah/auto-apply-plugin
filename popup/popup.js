@@ -803,13 +803,12 @@ function syncTrackerCardSummary(card, patch = {}) {
 
   const company = patch.company || 'Unknown company';
   const title = patch.title || 'Untitled role';
-  const statusMeta = getTrackingStatusMeta(patch.status);
   const summaryMeta = [
     patch.location || 'Unknown',
     patch.employment_type || 'Full-time',
     patch.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
-  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : statusMeta.cardHint);
+  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
 
   const statusSelect = card.querySelector('.tracker-card-header .tracker-status-select');
   if (statusSelect) {
@@ -817,8 +816,6 @@ function syncTrackerCardSummary(card, patch = {}) {
     statusSelect.dataset.statusTone = normalizeTrackingStatus(patch.status);
   }
 
-  const statusFlavorEl = card.querySelector('.tracker-status-flavor');
-  if (statusFlavorEl) statusFlavorEl.textContent = statusMeta.cardHint;
   const titleEl = card.querySelector('.tracker-summary-title');
   if (titleEl) titleEl.textContent = company;
   const roleEl = card.querySelector('.tracker-summary-role');
@@ -1013,9 +1010,7 @@ async function renderTracker() {
     },
   ];
 
-  const visibleLanes = lanes.filter((lane) => getTrackerLaneCount(filteredApps, lane) > 0);
-  const lanesToRender = visibleLanes.length ? visibleLanes : lanes;
-  tbody.innerHTML = lanesToRender.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
+  tbody.innerHTML = lanes.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
 }
 
 function getTrackerLaneCount(applications, lane) {
@@ -1241,13 +1236,12 @@ async function saveNewApplicationFromForm() {
 function renderTrackerCard(app) {
   const expanded = expandedTrackerIds.has(app.id);
   const normalizedStatus = normalizeTrackingStatus(app.status);
-  const statusMeta = getTrackingStatusMeta(normalizedStatus);
   const summaryMeta = [
     app.location || 'Unknown',
     app.employment_type || 'Full-time',
     app.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
-  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : statusMeta.cardHint);
+  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
   const jobLink = app.url
     ? `<a class="tracker-link tracker-link-inline" href="${escAttr(app.url)}" target="_blank" rel="noopener">Open job ↗</a>`
     : '<span class="tracker-link tracker-link-inline" style="color: var(--text-muted); text-decoration: none;">No link yet</span>';
@@ -1255,28 +1249,26 @@ function renderTrackerCard(app) {
   return `
     <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
       <div class="tracker-card-header">
-        <div class="tracker-status-stack">
+        <button type="button" class="tracker-card-summary tracker-card-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
+          <div class="tracker-summary-copy">
+            <div class="tracker-summary-title">${esc(app.company || 'Unknown company')}</div>
+            <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
+            <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
+            <div class="tracker-summary-salary${app.salary_range ? '' : ' hidden'}">${esc(app.salary_range || 'Pay range not saved yet')}</div>
+            <div class="tracker-summary-note">${esc(summaryNote)}</div>
+          </div>
+          <span class="tracker-expand-indicator">▾</span>
+        </button>
+        <div class="tracker-card-tools tracker-card-tools-right">
+          <label class="tracker-status-label">Status</label>
           <select class="tracker-status-select" data-field="status" data-status-tone="${escAttr(normalizedStatus)}" aria-label="Update application status">
             ${renderStatusOptions(app.status)}
           </select>
-          <div class="tracker-status-flavor">${esc(statusMeta.cardHint)}</div>
-        </div>
-        <div class="tracker-card-tools">
           <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
           <span class="tracker-card-drag-hint" title="Drag to reorder or move this card to another status lane">↕ Drag</span>
           ${jobLink}
         </div>
       </div>
-      <button type="button" class="tracker-card-summary tracker-card-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
-        <div class="tracker-summary-copy">
-          <div class="tracker-summary-title">${esc(app.company || 'Unknown company')}</div>
-          <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
-          <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
-          <div class="tracker-summary-salary${app.salary_range ? '' : ' hidden'}">${esc(app.salary_range || 'Pay range not saved yet')}</div>
-          <div class="tracker-summary-note">${esc(summaryNote)}</div>
-        </div>
-        <span class="tracker-expand-indicator">▾</span>
-      </button>
       <div class="tracker-card-details">
         <div class="tracker-card-fields">
           <input data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
@@ -2274,7 +2266,7 @@ function renderStatusOptions(selectedStatus) {
 
   return TRACKER_STATUS_ORDER.map((value) => {
     const meta = getTrackingStatusMeta(value);
-    return `<option value="${value}"${current === value ? ' selected' : ''}>${meta.emoji} ${meta.label} — ${meta.optionHint}</option>`;
+    return `<option value="${value}"${current === value ? ' selected' : ''}>${meta.label}</option>`;
   }).join('');
 }
 
