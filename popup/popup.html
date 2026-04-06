@@ -27,10 +27,14 @@
 
     <!-- Setup Screen (shown when not configured) -->
     <section id="setup-screen" class="screen hidden">
-      <h2 class="section-title">Profile</h2>
-      <p class="helper-text">Your resume, settings, and memory all live here.</p>
+      <div class="profile-screen-header">
+        <h2 class="section-title">Profile</h2>
+        <p class="helper-text">Your resume, settings, and memory all live here.</p>
+      </div>
 
-      <div class="form-group" id="profile-api-section">
+      <div class="profile-workspace">
+        <div class="profile-main-column">
+          <div class="form-group profile-panel" id="profile-api-section">
         <label for="api-key-input">Gemini API Key</label>
         <input
           type="password"
@@ -46,7 +50,7 @@
         >Get a free key →</a>
       </div>
 
-      <div class="form-group">
+      <div class="form-group profile-panel">
         <label for="gemini-model">Gemini Model</label>
         <select id="gemini-model">
           <option value="auto" selected>Auto-detect best available (recommended)</option>
@@ -57,7 +61,7 @@
         </select>
       </div>
 
-      <div class="form-group" id="profile-resume-section">
+      <div class="form-group profile-panel" id="profile-resume-section">
         <label>Resume</label>
         <div class="resume-tabs">
           <button class="tab-btn active" data-tab="upload">Upload File</button>
@@ -80,7 +84,7 @@
         </div>
       </div>
 
-      <div class="form-group" id="core-profile-section">
+      <div class="form-group profile-panel" id="core-profile-section">
         <label>Core profile details</label>
         <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
         <div class="profile-grid">
@@ -104,7 +108,7 @@
         </div>
       </div>
 
-      <div class="form-group settings-group">
+      <div class="form-group settings-group profile-panel">
         <label>Preferences (optional)</label>
         <div class="inline-fields">
           <input type="number" id="salary-min" placeholder="Min salary" />
@@ -126,7 +130,7 @@
         </label>
       </div>
 
-      <div class="form-group">
+      <div class="form-group profile-panel">
         <label>Saved answer defaults</label>
         <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
         <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
@@ -142,7 +146,10 @@
         </div>
       </div>
 
-      <div class="help-card memory-card-shell" id="profile-memory-section">
+        </div>
+
+        <aside class="profile-side-column">
+          <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
         <div class="report-header">
           <span class="report-title memory-title">Memory</span>
           <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
@@ -164,7 +171,7 @@
         </div>
       </div>
 
-      <div class="form-group sensitive-group">
+      <div class="form-group sensitive-group profile-panel">
         <label>Sensitive / Demographic (optional)</label>
         <label class="checkbox-row sensitive-check">
           <input type="checkbox" id="sensitive-optin" />
@@ -218,7 +225,7 @@
         <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
       </div>
 
-      <div class="form-group privacy-group" id="profile-privacy-section">
+      <div class="form-group privacy-group profile-panel" id="profile-privacy-section">
         <label>Privacy & consent</label>
         <label class="checkbox-row privacy-check">
           <input type="checkbox" id="privacy-consent" />
@@ -227,10 +234,14 @@
         <p class="helper-text">Local-first by default. Sensitive autofill stays opt-in and on-device, and any future identity imports should follow the same consent-first flow.</p>
       </div>
 
-      <button id="save-setup-btn" class="btn btn-primary btn-full">
-        Save Profile / Parse Resume ✨
-      </button>
-      <p id="setup-status" class="status-msg"></p>
+          <div class="profile-save-bar">
+            <button id="save-setup-btn" class="btn btn-primary btn-full">
+              Save Profile / Parse Resume ✨
+            </button>
+            <p id="setup-status" class="status-msg"></p>
+          </div>
+        </aside>
+      </div>
     </section>
 
     <!-- Main Screen (shown when configured) -->

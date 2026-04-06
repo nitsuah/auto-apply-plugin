@@ -322,6 +322,51 @@ textarea {
   display: none;
 }
 
+.profile-screen-header {
+  margin-bottom: 12px;
+}
+
+.profile-workspace {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-main-column,
+.profile-side-column {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.profile-main-column > .form-group,
+.profile-side-column > .form-group,
+.profile-side-column > .help-card {
+  margin-bottom: 0;
+}
+
+.profile-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.profile-panel .helper-text:last-child {
+  margin-bottom: 0;
+}
+
+.profile-save-bar {
+  position: sticky;
+  bottom: 0;
+  padding-top: 4px;
+  background: linear-gradient(180deg, rgba(15, 17, 23, 0), rgba(15, 17, 23, 0.96) 26%);
+}
+
+.profile-save-bar .status-msg {
+  text-align: left;
+}
+
 /* ── Settings ── */
 .inline-fields {
   display: flex;
@@ -350,6 +395,19 @@ textarea {
 
 .profile-grid .inline-fields {
   grid-column: 1 / -1;
+}
+
+body[data-standalone="true"][data-screen="setup"] .profile-workspace {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+  align-items: start;
+}
+
+body[data-standalone="true"][data-screen="setup"] .profile-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-list {
+  grid-template-columns: 1fr;
 }
 
 .sep {
