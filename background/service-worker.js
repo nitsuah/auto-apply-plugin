@@ -52,6 +52,8 @@ async function handleMessage(msg) {
       return handleImportApplicationsCsv(msg.payload);
     case 'UPDATE_APPLICATION':
       return handleUpdateApplication(msg.payload);
+    case 'REORDER_APPLICATIONS':
+      return handleReorderApplications(msg.payload);
     case 'DELETE_APPLICATION':
       return handleDeleteApplication(msg.payload);
     case 'MARK_LAST_SUBMITTED':
@@ -392,6 +394,31 @@ async function handleUpdateApplication({ id, patch }) {
   }
 
   return { success: true, entry };
+}
+
+async function handleReorderApplications({ updates } = {}) {
+  const items = Array.isArray(updates) ? updates : [];
+  if (!items.length) {
+    return { success: true, updated: 0 };
+  }
+
+  const updatedEntries = [];
+  for (const item of items) {
+    if (!item?.id) continue;
+    const entry = await updateApplication(item.id, {
+      status: item.status,
+      sort_order: item.sort_order,
+    });
+    if (entry) {
+      updatedEntries.push(entry);
+    }
+  }
+
+  return {
+    success: true,
+    updated: updatedEntries.length,
+    entries: updatedEntries,
+  };
 }
 
 async function handleDeleteApplication({ id } = {}) {

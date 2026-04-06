@@ -993,6 +993,13 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   display: grid;
   gap: 8px;
   min-width: 0;
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+}
+
+.tracker-lane-cards.drag-target {
+  background: rgba(74, 222, 128, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.28);
 }
 
 .tracker-lane-group + .tracker-lane-group {
@@ -1026,6 +1033,13 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px;
+  cursor: grab;
+}
+
+.tracker-card.dragging {
+  opacity: 0.6;
+  border-style: dashed;
+  cursor: grabbing;
 }
 
 .tracker-card-summary {
@@ -1065,6 +1079,16 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--text-muted);
   margin-top: 4px;
   line-height: 1.35;
+}
+
+.tracker-summary-salary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #86efac;
+  margin-top: 4px;
 }
 
 .tracker-summary-note {
@@ -1113,9 +1137,16 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   gap: 4px;
 }
 
+.tracker-status-stack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .tracker-status-select {
   width: auto;
-  min-width: 96px;
+  min-width: 170px;
   max-width: 100%;
   background-color: rgba(96, 165, 250, 0.14);
   border: 1px solid rgba(96, 165, 250, 0.28);
@@ -1124,6 +1155,56 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   font-size: 10px;
   font-weight: 700;
   padding: 3px 26px 3px 8px;
+}
+
+.tracker-status-select[data-status-tone="drafted"] {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: var(--yellow);
+}
+
+.tracker-status-select[data-status-tone="filled"] {
+  background: rgba(96, 165, 250, 0.14);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: var(--blue);
+}
+
+.tracker-status-select[data-status-tone="submitted"] {
+  background: rgba(74, 222, 128, 0.14);
+  border-color: rgba(74, 222, 128, 0.35);
+  color: var(--accent);
+}
+
+.tracker-status-select[data-status-tone="interview"] {
+  background: rgba(192, 132, 252, 0.14);
+  border-color: rgba(192, 132, 252, 0.35);
+  color: var(--purple);
+}
+
+.tracker-status-select[data-status-tone="offer"] {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(134, 239, 172, 0.5);
+  color: #86efac;
+}
+
+.tracker-status-select[data-status-tone="rejected"] {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.34);
+  color: var(--red);
+}
+
+.tracker-status-flavor {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.tracker-card-drag-hint {
+  font-size: 10px;
+  color: var(--yellow);
+  border: 1px dashed rgba(251, 191, 36, 0.35);
+  border-radius: 999px;
+  padding: 1px 6px;
 }
 
 .tracker-card-date {

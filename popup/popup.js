@@ -74,6 +74,49 @@ const trackerViewState = {
 };
 const popupQuery = new URLSearchParams(window.location.search);
 const DEFAULT_RESUME_DROP_LABEL = '📄 Drop PDF / DOCX / TXT here or click to browse';
+const trackerDragState = {
+  id: '',
+  status: '',
+};
+const TRACKER_STATUS_META = {
+  drafted: {
+    label: 'Drafted',
+    emoji: '🟡',
+    optionHint: 'saved lead / not sent',
+    cardHint: 'Saved lead — tailor before sending',
+  },
+  filled: {
+    label: 'Filled',
+    emoji: '📝',
+    optionHint: 'prepped and ready',
+    cardHint: 'Profile is filled — review and send next',
+  },
+  submitted: {
+    label: 'Submitted',
+    emoji: '✅',
+    optionHint: 'application sent',
+    cardHint: 'Application is out the door',
+  },
+  interview: {
+    label: 'Interview',
+    emoji: '📅',
+    optionHint: 'talking with the team',
+    cardHint: 'Active conversations underway',
+  },
+  offer: {
+    label: 'Offer',
+    emoji: '🎉',
+    optionHint: 'final stage / decision time',
+    cardHint: 'Strong signal — decision stage',
+  },
+  rejected: {
+    label: 'Rejected',
+    emoji: '❌',
+    optionHint: 'closed out / archived',
+    cardHint: 'Closed out locally for reference',
+  },
+};
+const TRACKER_STATUS_ORDER = Object.keys(TRACKER_STATUS_META);
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -581,6 +624,11 @@ async function initTrackerHandlers() {
   $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
   $('import-csv-btn')?.addEventListener('click', () => $('import-csv-input')?.click());
   $('import-csv-input')?.addEventListener('change', importTrackerCsvFile);
+
+  if ($('new-application-status')) {
+    $('new-application-status').innerHTML = renderStatusOptions($('new-application-status').value || 'drafted');
+  }
+
   $('tracker-search-input')?.addEventListener('input', async (event) => {
     trackerViewState.query = event.target.value || '';
     await renderTracker();
@@ -604,6 +652,11 @@ async function initTrackerHandlers() {
     exportCsv(resp?.applications || []);
     setTrackerScreenStatus('✅ Exported the current tracker as CSV.', 'success');
   });
+
+  $('tracker-body').addEventListener('dragstart', handleTrackerDragStart);
+  $('tracker-body').addEventListener('dragover', handleTrackerDragOver);
+  $('tracker-body').addEventListener('drop', handleTrackerDrop);
+  $('tracker-body').addEventListener('dragend', handleTrackerDragEnd);
 
   $('tracker-body').addEventListener('click', async (event) => {
     const toggleBtn = event.target.closest('.tracker-card-toggle');
@@ -716,6 +769,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
 
     const nextStatus = normalizeTrackingStatus(patch.status);
     card.dataset.status = nextStatus;
+    card.dataset.sortOrder = String(resp?.entry?.sort_order ?? card.dataset.sortOrder ?? '');
     syncTrackerCardSummary(card, patch);
     await loadMainScreen({ showMain: false });
 
@@ -749,28 +803,182 @@ function syncTrackerCardSummary(card, patch = {}) {
 
   const company = patch.company || 'Unknown company';
   const title = patch.title || 'Untitled role';
+  const statusMeta = getTrackingStatusMeta(patch.status);
   const summaryMeta = [
     patch.location || 'Unknown',
     patch.employment_type || 'Full-time',
     patch.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
-  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
+  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : statusMeta.cardHint);
 
   const statusSelect = card.querySelector('.tracker-card-header .tracker-status-select');
-  if (statusSelect) statusSelect.value = normalizeTrackingStatus(patch.status);
+  if (statusSelect) {
+    statusSelect.value = normalizeTrackingStatus(patch.status);
+    statusSelect.dataset.statusTone = normalizeTrackingStatus(patch.status);
+  }
+
+  const statusFlavorEl = card.querySelector('.tracker-status-flavor');
+  if (statusFlavorEl) statusFlavorEl.textContent = statusMeta.cardHint;
   const titleEl = card.querySelector('.tracker-summary-title');
   if (titleEl) titleEl.textContent = company;
   const roleEl = card.querySelector('.tracker-summary-role');
   if (roleEl) roleEl.textContent = title;
   const metaEl = card.querySelector('.tracker-summary-meta');
   if (metaEl) metaEl.textContent = summaryMeta;
+  const salaryEl = card.querySelector('.tracker-summary-salary');
+  if (salaryEl) {
+    salaryEl.textContent = patch.salary_range || 'Pay range not saved yet';
+    salaryEl.classList.toggle('hidden', !String(patch.salary_range || '').trim());
+  }
   const noteEl = card.querySelector('.tracker-summary-note');
   if (noteEl) noteEl.textContent = summaryNote;
 }
 
+function handleTrackerDragStart(event) {
+  const card = event.target.closest('.tracker-card');
+  if (!card) return;
+
+  trackerDragState.id = card.dataset.id || '';
+  trackerDragState.status = card.dataset.status || 'drafted';
+  card.classList.add('dragging');
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', trackerDragState.id);
+  }
+}
+
+function handleTrackerDragOver(event) {
+  const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
+  const container = event.target.closest('.tracker-lane-cards');
+  if (!dragging || !container) return;
+
+  event.preventDefault();
+  document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((el) => el.classList.remove('drag-target'));
+  container.classList.add('drag-target');
+
+  const afterElement = getTrackerDragAfterElement(container, event.clientY);
+  if (!afterElement) {
+    container.appendChild(dragging);
+  } else if (afterElement !== dragging) {
+    container.insertBefore(dragging, afterElement);
+  }
+}
+
+async function handleTrackerDrop(event) {
+  const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
+  const container = event.target.closest('.tracker-lane-cards');
+  if (!dragging || !container) return;
+
+  event.preventDefault();
+  const movedId = trackerDragState.id;
+  const destinationStatus = container.dataset.statusTarget || dragging.dataset.status || 'drafted';
+
+  try {
+    await persistTrackerBoardOrder(movedId, destinationStatus);
+  } catch (err) {
+    setTrackerScreenStatus('❌ ' + err.message, 'error');
+  } finally {
+    clearTrackerDragState();
+  }
+}
+
+function handleTrackerDragEnd() {
+  clearTrackerDragState();
+}
+
+function clearTrackerDragState() {
+  trackerDragState.id = '';
+  trackerDragState.status = '';
+  document.querySelectorAll('.tracker-card.dragging').forEach((card) => card.classList.remove('dragging'));
+  document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
+}
+
+function getTrackerDragAfterElement(container, y) {
+  const draggableCards = [...container.querySelectorAll('.tracker-card:not(.dragging)')];
+  return draggableCards.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child };
+    }
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+}
+
+async function persistTrackerBoardOrder(movedId, destinationStatus) {
+  const containers = [...document.querySelectorAll('#tracker-body .tracker-lane-cards')];
+  const totalCards = containers.reduce((count, container) => {
+    return count + container.querySelectorAll('.tracker-card').length;
+  }, 0);
+
+  let nextSortOrder = totalCards;
+  const updates = [];
+
+  for (const container of containers) {
+    const status = container.dataset.statusTarget || 'drafted';
+    const cards = [...container.querySelectorAll('.tracker-card')];
+    for (const card of cards) {
+      const id = card.dataset.id || '';
+      if (!id) continue;
+
+      const sortOrder = nextSortOrder--;
+      const currentStatus = card.dataset.status || 'drafted';
+      const currentSortOrder = Number(card.dataset.sortOrder || Number.NaN);
+      card.dataset.status = status;
+      card.dataset.sortOrder = String(sortOrder);
+
+      if (currentStatus !== status || currentSortOrder !== sortOrder) {
+        updates.push({ id, status, sort_order: sortOrder });
+      }
+    }
+  }
+
+  if (!updates.length) {
+    return;
+  }
+
+  setTrackerScreenStatus('⏳ Updating board order…');
+  const resp = await sendMessage({
+    type: 'REORDER_APPLICATIONS',
+    payload: { updates },
+  });
+
+  if (!resp?.success) {
+    throw new Error(resp?.error || 'Could not reorder the tracker board.');
+  }
+
+  await renderTracker();
+  await loadMainScreen({ showMain: false });
+  showScreen('tracker');
+
+  const movedStatusMeta = getTrackingStatusMeta(destinationStatus);
+  setTrackerScreenStatus(
+    movedId
+      ? `✅ Moved card to ${movedStatusMeta.label} — ${movedStatusMeta.optionHint}.`
+      : '✅ Tracker board order updated.',
+    'success'
+  );
+}
+
+function sortTrackerApplications(applications = []) {
+  return [...(applications || [])].sort((a, b) => {
+    const aOrder = Number(a?.sort_order);
+    const bOrder = Number(b?.sort_order);
+    const hasA = Number.isFinite(aOrder);
+    const hasB = Number.isFinite(bOrder);
+
+    if (hasA || hasB) {
+      return (hasB ? bOrder : Number.NEGATIVE_INFINITY) - (hasA ? aOrder : Number.NEGATIVE_INFINITY);
+    }
+
+    return String(b?.updated_at || '').localeCompare(String(a?.updated_at || ''));
+  });
+}
+
 async function renderTracker() {
   const resp = await sendMessage({ type: 'GET_STATE' });
-  const apps = resp?.applications || [];
+  const apps = sortTrackerApplications(resp?.applications || []);
   const filteredApps = filterTrackerApplications(apps, trackerViewState.query, { activeOnly: trackerViewState.activeOnly });
   const tbody = $('tracker-body');
   tbody.innerHTML = '';
@@ -824,20 +1032,18 @@ function renderTrackerLane(applications, lane) {
   if (Array.isArray(lane.groups)) {
     const sections = lane.groups.map((group) => {
       const laneApps = applications
-        .filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status)))
-        .slice()
-        .reverse();
+        .filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status)));
       const cards = laneApps.length
         ? laneApps.map(renderTrackerCard).join('')
         : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
 
       return `
-        <div class="tracker-lane-group">
+        <div class="tracker-lane-group" data-status-target="${escAttr(group.statuses[0])}">
           <div class="tracker-lane-subheader">
             <span class="tracker-lane-subtitle">${group.label}</span>
             <span class="tracker-lane-count">${laneApps.length}</span>
           </div>
-          <div class="tracker-lane-cards">${cards}</div>
+          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${cards}</div>
         </div>
       `;
     }).join('');
@@ -856,21 +1062,19 @@ function renderTrackerLane(applications, lane) {
   }
 
   const laneApps = applications
-    .filter((app) => lane.statuses.includes(normalizeTrackingStatus(app.status)))
-    .slice()
-    .reverse();
+    .filter((app) => lane.statuses.includes(normalizeTrackingStatus(app.status)));
 
   const cards = laneApps.length
     ? laneApps.map(renderTrackerCard).join('')
     : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
 
   return `
-    <section class="tracker-lane">
+    <section class="tracker-lane" data-status-target="${escAttr(lane.statuses[0])}">
       <div class="tracker-lane-header">
         <span class="tracker-lane-title">${lane.label}</span>
         <span class="tracker-lane-count">${laneApps.length}</span>
       </div>
-      <div class="tracker-lane-cards">${cards}</div>
+      <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${cards}</div>
     </section>
   `;
 }
@@ -1036,24 +1240,30 @@ async function saveNewApplicationFromForm() {
 
 function renderTrackerCard(app) {
   const expanded = expandedTrackerIds.has(app.id);
+  const normalizedStatus = normalizeTrackingStatus(app.status);
+  const statusMeta = getTrackingStatusMeta(normalizedStatus);
   const summaryMeta = [
     app.location || 'Unknown',
     app.employment_type || 'Full-time',
     app.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
-  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
+  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : statusMeta.cardHint);
   const jobLink = app.url
     ? `<a class="tracker-link tracker-link-inline" href="${escAttr(app.url)}" target="_blank" rel="noopener">Open job ↗</a>`
     : '<span class="tracker-link tracker-link-inline" style="color: var(--text-muted); text-decoration: none;">No link yet</span>';
 
   return `
-    <div class="tracker-card${expanded ? ' expanded' : ''}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizeTrackingStatus(app.status))}">
+    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
       <div class="tracker-card-header">
-        <select class="tracker-status-select" data-field="status" aria-label="Update application status">
-          ${renderStatusOptions(app.status)}
-        </select>
+        <div class="tracker-status-stack">
+          <select class="tracker-status-select" data-field="status" data-status-tone="${escAttr(normalizedStatus)}" aria-label="Update application status">
+            ${renderStatusOptions(app.status)}
+          </select>
+          <div class="tracker-status-flavor">${esc(statusMeta.cardHint)}</div>
+        </div>
         <div class="tracker-card-tools">
           <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
+          <span class="tracker-card-drag-hint" title="Drag to reorder or move this card to another status lane">↕ Drag</span>
           ${jobLink}
         </div>
       </div>
@@ -1062,6 +1272,7 @@ function renderTrackerCard(app) {
           <div class="tracker-summary-title">${esc(app.company || 'Unknown company')}</div>
           <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
           <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
+          <div class="tracker-summary-salary${app.salary_range ? '' : ' hidden'}">${esc(app.salary_range || 'Pay range not saved yet')}</div>
           <div class="tracker-summary-note">${esc(summaryNote)}</div>
         </div>
         <span class="tracker-expand-indicator">▾</span>
@@ -2050,20 +2261,21 @@ function getAtsMeta(ats) {
   }
 }
 
+function getTrackingStatusMeta(status) {
+  const normalized = normalizeTrackingStatus(status);
+  return {
+    key: normalized,
+    ...(TRACKER_STATUS_META[normalized] || TRACKER_STATUS_META.drafted),
+  };
+}
+
 function renderStatusOptions(selectedStatus) {
   const current = normalizeTrackingStatus(selectedStatus);
-  const options = [
-    ['drafted', 'Drafted'],
-    ['filled', 'Filled'],
-    ['submitted', 'Submitted'],
-    ['interview', 'Interview'],
-    ['offer', 'Offer'],
-    ['rejected', 'Rejected'],
-  ];
 
-  return options.map(([value, label]) => (
-    `<option value="${value}"${current === value ? ' selected' : ''}>${label}</option>`
-  )).join('');
+  return TRACKER_STATUS_ORDER.map((value) => {
+    const meta = getTrackingStatusMeta(value);
+    return `<option value="${value}"${current === value ? ' selected' : ''}>${meta.emoji} ${meta.label} — ${meta.optionHint}</option>`;
+  }).join('');
 }
 
 function renderEmploymentTypeOptions(selectedType) {
