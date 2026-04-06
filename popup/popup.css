@@ -57,23 +57,26 @@ body[data-screen="tracker"] {
 }
 
 body[data-standalone="true"] {
-  width: min(1180px, calc(100vw - 24px));
+  width: min(1240px, calc(100vw - 24px));
   min-width: 0;
   min-height: calc(100vh - 16px);
 }
 
 body[data-standalone="true"][data-screen="setup"] {
-  min-height: 860px;
+  width: min(1180px, calc(100vw - 24px));
+  min-height: 900px;
 }
 
 body[data-standalone="true"][data-screen="main"],
 body[data-standalone="true"][data-screen="help"] {
-  min-height: 760px;
+  width: min(980px, calc(100vw - 24px));
+  min-height: 780px;
 }
 
 body[data-standalone="true"][data-screen="tracker"],
 body[data-standalone="true"][data-screen="preview"] {
-  min-height: 860px;
+  width: min(1440px, calc(100vw - 24px));
+  min-height: 900px;
 }
 
 #app {
@@ -85,7 +88,7 @@ body[data-standalone="true"][data-screen="preview"] {
 
 body[data-standalone="true"] #app {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
