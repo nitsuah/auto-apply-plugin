@@ -21,7 +21,6 @@ A Chrome extension that:
 3. **Reads the JD** from the page
 4. **Generates tailored answers** per role using free Gemini API
 5. **Fills the form** in place — you just review and submit
-6. **Keeps the quick-apply popup compact** while still supporting richer tracker and profile workflows
 
 **Free. Local. Private. Fast.**
 
@@ -82,7 +81,6 @@ apply-bot/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
-> Tip: for quick mock-data UI refreshes, open `popup/popup.html?screen=tracker&standalone=1&demo=1` directly in the browser.
 
 ### Main dashboard
 
