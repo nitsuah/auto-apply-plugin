@@ -659,6 +659,11 @@ async function initTrackerHandlers() {
   $('tracker-body').addEventListener('dragend', handleTrackerDragEnd);
 
   $('tracker-body').addEventListener('click', async (event) => {
+    if (event.target.closest('.tracker-summary-title-link')) {
+      event.stopPropagation();
+      return;
+    }
+
     const toggleBtn = event.target.closest('.tracker-card-toggle');
     if (toggleBtn) {
       const card = toggleBtn.closest('.tracker-card');
@@ -1242,31 +1247,27 @@ function renderTrackerCard(app) {
     app.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' • ');
   const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
-  const jobLink = app.url
-    ? `<a class="tracker-link tracker-link-inline" href="${escAttr(app.url)}" target="_blank" rel="noopener">Open job ↗</a>`
-    : '<span class="tracker-link tracker-link-inline" style="color: var(--text-muted); text-decoration: none;">No link yet</span>';
+  const companyLabel = app.url
+    ? `<a class="tracker-summary-title-link" href="${escAttr(app.url)}" target="_blank" rel="noopener">${esc(app.company || 'Unknown company')}</a>`
+    : esc(app.company || 'Unknown company');
 
   return `
     <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
       <div class="tracker-card-header">
-        <button type="button" class="tracker-card-summary tracker-card-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
+        <div class="tracker-card-summary tracker-card-toggle" role="button" tabindex="0" aria-expanded="${expanded ? 'true' : 'false'}">
           <div class="tracker-summary-copy">
-            <div class="tracker-summary-title">${esc(app.company || 'Unknown company')}</div>
+            <div class="tracker-summary-title">${companyLabel}</div>
             <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
             <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
             <div class="tracker-summary-salary${app.salary_range ? '' : ' hidden'}">${esc(app.salary_range || 'Pay range not saved yet')}</div>
-            <div class="tracker-summary-note">${esc(summaryNote)}</div>
           </div>
-          <span class="tracker-expand-indicator">▾</span>
-        </button>
+        </div>
         <div class="tracker-card-tools tracker-card-tools-right">
-          <label class="tracker-status-label">Status</label>
           <select class="tracker-status-select" data-field="status" data-status-tone="${escAttr(normalizedStatus)}" aria-label="Update application status">
             ${renderStatusOptions(app.status)}
           </select>
+          <div class="tracker-card-note-right">${esc(summaryNote)}</div>
           <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
-          <span class="tracker-card-drag-hint" title="Drag to reorder or move this card to another status lane">↕ Drag</span>
-          ${jobLink}
         </div>
       </div>
       <div class="tracker-card-details">
@@ -1289,7 +1290,6 @@ function renderTrackerCard(app) {
           <textarea data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
         </div>
         <div class="tracker-card-actions">
-          ${jobLink}
           <span class="tracker-save-state">Auto-save on blur</span>
           <div class="tracker-card-action-buttons">
             <button class="btn btn-ghost btn-sm tracker-delete-btn" data-id="${escAttr(app.id)}">Delete</button>
