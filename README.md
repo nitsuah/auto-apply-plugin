@@ -138,7 +138,7 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scor
 {
   "resume": {
     "structured": { "name": "", "email": "", "skills": [], "experience": [], ... },
-    "excerpt": "plain-text excerpt (≤1000 chars, null for binary uploads)"
+    "excerpt": "plain-text excerpt/preview (≤1000 chars, including uploaded file/data-URL resumes)"
   },
   "settings": {
     "gemini_api_key": "...",
@@ -153,7 +153,7 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scor
       "company": "Anthropic",
       "title": "IT Systems Engineer",
       "url": "...",
-      "status": "applied",
+      "status": "submitted",
       "date": "2026-04-04",
       "jd_snippet": "...",
       "answers_generated": true

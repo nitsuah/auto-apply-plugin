@@ -678,7 +678,7 @@ function buildResumeDownloadText(structured = {}, previewText = '') {
     experience.length ? 'Experience:' : '',
     ...experience.slice(0, 3).map((item) => [item?.title, item?.company].filter(Boolean).join(' — ')),
     education.length ? 'Education:' : '',
-    ...education.slice(0, 2).map((item) => [item?.degree, item?.school].filter(Boolean).join(' — ')),
+    ...education.slice(0, 2).map((item) => [item?.degree, item?.institution || item?.school].filter(Boolean).join(' — ')),
     previewText || '',
   ].filter(Boolean);
 

@@ -131,7 +131,6 @@
   "preferred location": "preferred_location",
   "on-site": "preferred_location",
   "hybrid": "preferred_location",
-  "notice period": "start_date",
   "available to start work": "start_date",
   "relocation": "preferred_location",
   "willing to relocate": "preferred_location",
