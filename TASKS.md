@@ -29,10 +29,11 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ### P2 - Medium
 
-- [ ] Start a practical `apply-bot` rebrand pass.
+- [/] Start a practical `apply-bot` rebrand pass.
   - Priority: P2
   - Context: the product needs a clearer visual and messaging system, but it should stay grounded in the current MVP goals: local-first autofill, review-first trust, and a real job-workspace feel.
   - Acceptance Criteria: define an achievable naming/branding checklist for popup copy, icons, and docs without derailing the core application workflow.
+  - Progress: user-facing copy now shifts toward “Apply Workspace” across the manifest, popup header, primary CTA, tracker label, and README positioning.
 
 ### P3 - Exploratory
 

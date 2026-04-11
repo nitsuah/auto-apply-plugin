@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>apply-bot</title>
+  <title>Apply Workspace</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
@@ -12,12 +12,12 @@
     <!-- Header -->
     <header class="header">
       <div class="header-top">
-        <button id="header-home-btn" class="logo-btn" type="button" title="Return to Apply">
-          <span class="logo">🤖 apply-bot</span>
+        <button id="header-home-btn" class="logo-btn" type="button" title="Return to the workspace home">
+          <span class="logo">🤖 Apply Workspace</span>
         </button>
         <div class="header-actions">
-          <button id="header-tracker-btn" class="icon-btn" title="Open tracker workspace">
-            📊 <span class="tracker-btn-label">Tracker</span>
+          <button id="header-tracker-btn" class="icon-btn" title="Open the application workspace">
+            📊 <span class="tracker-btn-label">Pipeline</span>
             <span id="header-tracker-count" class="count-pill">0 / 0 active</span>
           </button>
           <button id="header-ai-btn" class="icon-btn" title="Open the AI settings panel">
@@ -41,7 +41,7 @@
             <label>Privacy & consent</label>
             <label class="checkbox-row privacy-check">
               <input type="checkbox" id="privacy-consent" />
-              I understand my profile is stored locally in Chrome, and only optional resume parsing or AI help sends data to Gemini.
+              I understand this workspace stores my profile locally in Chrome, and only optional resume parsing or AI help sends data to Gemini.
             </label>
             <p class="helper-text">Accept this once to unlock the profile. After that, the setup gate disappears and privacy details stay available in Help.</p>
           </div>
@@ -241,7 +241,7 @@
         <div class="main-actions-panel">
           <div class="action-btns">
             <button id="fill-btn" class="btn btn-primary btn-full">
-              ⚡ Fill This Application
+              ⚡ Review + Fill This Application
             </button>
             <button id="preview-btn" class="btn btn-secondary btn-full">
               👁 Preview Answers
@@ -298,8 +298,8 @@
     <section id="tracker-screen" class="screen hidden">
       <div class="tracker-header">
         <div class="tracker-title-group">
-          <h2 class="section-title">Applications</h2>
-          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to the apply view">⚡ Apply</button>
+          <h2 class="section-title">Application Pipeline</h2>
+          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to the review workspace">⚡ Review</button>
         </div>
         <div class="tracker-actions">
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>

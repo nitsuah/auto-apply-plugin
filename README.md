@@ -1,8 +1,8 @@
-# 🤖 apply-bot — Free AI Job Application Chrome Extension
+# 🤖 Apply Workspace — Local-First AI Job Application Chrome Extension
 
-> Upload your resume once. Land on any job page. Hit apply. Done.
+> Save your profile once. Land on any job page. Review tailored answers. Fill faster.
 
-No Docker. No server. No subscription. No bullshit.
+No Docker. No server. No subscription. Review-first by default.
 
 ---
 
@@ -16,13 +16,13 @@ Nobody has time for that. Nobody should have to.
 ## The Solution
 
 A Chrome extension that:
-1. **Learns your resume** once (PDF/Word/paste — Gemini reads it)
+1. **Stores your profile locally** once (resume, defaults, safe memory)
 2. **Detects job application forms** automatically
-3. **Reads the JD** from the page
-4. **Generates tailored answers** per role using free Gemini API
-5. **Fills the form** in place — you just review and submit
+3. **Reads the JD** from the page or pasted text
+4. **Generates tailored answers** per role using your own Gemini API key
+5. **Keeps you in review** before filling the form in place
 
-**Free. Local. Private. Fast.**
+**Local-first. Review-first. Private. Fast.**
 
 ---
 
@@ -40,7 +40,7 @@ A Chrome extension that:
 ## Project Structure
 
 ```
-apply-bot/
+apply-workspace/
 ├── manifest.json          # Chrome MV3 manifest
 ├── popup/                 # Extension popup UI
 │   ├── popup.html
@@ -84,15 +84,15 @@ apply-bot/
 
 ### Main dashboard
 
-![apply-bot main dashboard](screenshots/main-dashboard.png)
+![Apply Workspace main dashboard](screenshots/main-dashboard.png)
 
 ### Tracker workspace
 
-![apply-bot tracker workspace](screenshots/tracker-workspace.png)
+![Apply Workspace tracker workspace](screenshots/tracker-workspace.png)
 
 ### Profile + Memory
 
-![apply-bot profile and memory](screenshots/profile-memory.png)
+![Apply Workspace profile and memory](screenshots/profile-memory.png)
 
 ---
 
