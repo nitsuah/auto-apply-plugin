@@ -1,18 +1,34 @@
 # Features
 
-## Core Capabilities
+Core capabilities are grouped below by category.
 
-### 📊 Feature Category Name
+### 🧠 Candidate Profile Intelligence
 
-Brief description of this category (optional).
+Learns from your resume and saved profile data so future applications can be completed more accurately and consistently.
 
-- **Feature Name**: Description of what it does and how it works
-- **Another Feature**: More details about functionality
+- **Resume Learning**: Extracts and reuses experience, education, skills, and personal details from your resume
+- **Profile Reuse**: Applies previously captured candidate information across multiple job applications
 
-### 🎯 Another Category
+### 🎯 Job Matching and Response Generation
 
-- **Feature One**: Clear, concise description
-- **Feature Two**: Benefits and use cases
+Uses job-specific context to understand role requirements and tailor application content.
+
+- **JD Parsing**: Reads job descriptions to identify requirements, keywords, and role-specific context
+- **Tailored Answer Generation**: Produces customized answers aligned to the job description and your background
+
+### 📝 Application Automation
+
+Focuses on reducing manual effort during the application process.
+
+- **Form Fill Automation**: Automatically fills supported application forms with candidate and job-specific data
+- **Supported ATS Platforms**: Works with supported applicant tracking systems used by common job portals and employer sites
+
+### 📌 Tracking and Workflow
+
+Helps organize and monitor applications after submission.
+
+- **Application Tracker**: Keeps a record of applications, statuses, and related job details in one place
+- **Workflow Support**: Streamlines repeated application steps to make high-volume applying easier to manage
 
 <!--
 AGENT INSTRUCTIONS:

@@ -7,8 +7,8 @@
 | Code Coverage | 0%    |
 | Build Time    | 0s    |
 | Bundle Size   | 0KB   |
-| Test Files    | 0     |
-| Test Cases    | 0     |
+| Test Files    | unknown |
+| Test Cases    | unknown |
 
 ## Health
 
