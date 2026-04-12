@@ -38,27 +38,6 @@ PARSEABLE METRIC NAMES (case-insensitive):
 - "Open Issues" → Health indicator
 - "Health Score" → Overall health
 
-GOOD EXAMPLES - REMOVE THESE EXAMPLES AFTER FIRST USE:
-## Core Metrics
-
-| Metric         | Value  | |
-| -------------- | ------ | |
-| Code Coverage  | 87.5%  | example code coverage |
-| Build Time     | 6.2s   | example detail about build time |
-| Test Files     | 4      | types of files or location text |
-
-## Health
-
-| Metric         | Value    |
-| -------------- | -------- |
-| Open Issues    | 3        |
-| Health Score   | 95/100   |
-
-BAD EXAMPLES (may not parse correctly):
-### Core Metrics (wrong heading level)
-Metric: Code Coverage
-Value: 87% (not in table format)
-
 When updating:
 1. Update values based on latest code analysis or CI/CD outputs
 2. "Code Coverage": Percentage of code covered by tests (e.g., "87.5%")

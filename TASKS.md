@@ -37,6 +37,7 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ### P3 - Exploratory
 
+- [ ] Begin to implement job search results by scraping and searching multiple job pages, starting with LinkedIn and Indeed, etc. and then expanding to a more general multi-site search and alerting capability.
 - [ ] Evaluate identity-based profile import paths.
   - Priority: P3
   - Context: Google sign-in, ID.me, or similar identity sources may help bootstrap profile fields later, but only after the local-first and consent-first path is stable.

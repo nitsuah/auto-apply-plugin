@@ -42,18 +42,6 @@ CRITICAL FORMAT REQUIREMENTS:
 5. You can add brief category descriptions as regular text after the header
 6. Avoid nested lists or complex markdown that breaks parsing
 
-GOOD EXAMPLES:
-### 🤖 AI-Powered Features
-- **Smart Summaries**: Google Gemini-powered repository analysis
-- **Auto-categorization**: Detects repo type (web-app, game, tool, etc.)
-
-BAD EXAMPLES (will break parser):
-## AI Features (wrong heading level)
-- Feature without bold name and colon
-  - Nested sub-item (not supported)
-- Multi-line feature
-  that spans lines (avoid this)
-
 When adding features:
 1. Group related features under appropriate ### categories
 2. Use bold (**Feature Name**) followed by colon and description
