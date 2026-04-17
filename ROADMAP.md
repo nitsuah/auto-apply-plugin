@@ -25,7 +25,8 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 ## 2026 Q4 (Exploratory)
 
-- [ ] Explore optional identity-provider imports (Google, ID.me, etc.) for bootstrapping profile data without breaking local-first/privacy guarantees.
+- [ ] Begin to implement job search results by scraping and searching multiple job pages, starting with LinkedIn and Indeed, etc. and then expanding to a more general multi-site search and alerting capability.
+- [ ] Explore optional identity-provider imports (Google, ID.me, etc.) for bootstrapping profile data without breaking local-first/privacy guarantees. But also for email/etc. auto-fill in the tracker and potential future job-board integrations.
 - [ ] Revisit deeper job-fit scoring, verdict assistance, and richer tracker analytics after the storage and review foundations are stable.
 - [ ] Run a lightweight `axe` / accessibility audit on popup navigation, labels, contrast, and keyboard flow as the workspace UI settles.
 

@@ -2341,3 +2341,42 @@ function formatDate(dateStr) {
     return '—';
   }
 }
+
+// Standalone demo mode: inject mock data if ?demo=1
+const isDemoMode = window.location.search.includes('demo=1');
+if (isDemoMode) {
+  window.DEMO_PROFILE = {
+    name: 'Demo User',
+    email: 'demo@example.com',
+    resume: 'Demo resume text...'
+  };
+  window.DEMO_APPLICATIONS = [
+    { id: '1', company: 'Acme Corp', title: 'Frontend Engineer', status: 'drafted', location: 'Remote', date: '2026-04-01' },
+    { id: '2', company: 'Globex', title: 'Backend Developer', status: 'submitted', location: 'NYC', date: '2026-03-28' },
+    { id: '3', company: 'Initech', title: 'DevOps', status: 'interview', location: 'Remote', date: '2026-03-15' }
+  ];
+  // Patch tracker/profile loading functions to use demo data
+  window.getProfile = async () => window.DEMO_PROFILE;
+  window.getApplications = async () => window.DEMO_APPLICATIONS;
+}
+
+// Add a button to trigger job search (demo)
+document.addEventListener('DOMContentLoaded', () => {
+  const header = document.querySelector('.header-actions');
+  if (header && !document.getElementById('job-search-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'job-search-btn';
+    btn.className = 'icon-btn';
+    btn.title = 'Demo: Search for jobs';
+    btn.innerHTML = '🔍 <span class="tracker-btn-label">Job Search</span>';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.textContent = 'Searching...';
+      const results = await searchJobs('engineer');
+      alert('Demo job search results:\n' + results.map(j => `${j.title} @ ${j.company} (${j.location})`).join('\n'));
+      btn.disabled = false;
+      btn.innerHTML = '🔍 <span class="tracker-btn-label">Job Search</span>';
+    };
+    header.appendChild(btn);
+  }
+});

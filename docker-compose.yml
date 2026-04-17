@@ -1,0 +1,11 @@
+# docker-compose.yml
+
+version: '3.8'
+services:
+  test:
+    build: .
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ENABLE_PRIVACY_CONSENT=${ENABLE_PRIVACY_CONSENT}
+      - TRACKER_STORAGE_KEY=${TRACKER_STORAGE_KEY}
+    command: npm test
