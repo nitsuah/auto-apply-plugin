@@ -1,8 +1,7 @@
----
-updated: 2026-04-05 (tracker-and-privacy-planning)
----
-
 # TASKS
+---
+updated: 2026-04-05
+---
 
 ## In Progress
 
@@ -18,22 +17,13 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
   - Context: privacy consent, help/reset flows, and profile-adjacent Memory now exist; the next work is tightening clarity and keeping the controls easy to trust.
   - Acceptance Criteria: the privacy story remains explicit, Memory stays easy to review/correct, and reset/delete flows remain one click away.
 
-## Todo
-
-### P1 - High
-
-- [x] Finish CSV import for prior applications.
-  - Priority: P1
-  - Context: manual quick-add is now in place, and bulk history import now supports a documented CSV schema directly from the tracker header.
-  - Acceptance Criteria: CSV import uses a documented schema, validates cleanly, and avoids cluttering the core tracker flow.
-
-### P2 - Medium
-
 - [/] Start a practical `apply-bot` rebrand pass.
   - Priority: P2
   - Context: the product needs a clearer visual and messaging system, but it should stay grounded in the current MVP goals: local-first autofill, review-first trust, and a real job-workspace feel.
   - Acceptance Criteria: define an achievable naming/branding checklist for popup copy, icons, and docs without derailing the core application workflow.
   - Progress: user-facing copy now shifts toward “Apply Workspace” across the manifest, popup header, primary CTA, tracker label, and README positioning.
+
+## Todo
 
 ### P3 - Exploratory
 
@@ -52,16 +42,6 @@ updated: 2026-04-05 (tracker-and-privacy-planning)
 
 ## Done
 
-- [x] Ship the local-first, profile-first autofill baseline.
-- [x] Add Gemini model discovery/fallback and deterministic answer generation.
-- [x] Keep Docker-only validation green for popup, service worker, and core logic tests.
-- [x] Add privacy consent gating and opt-in handling for sensitive demographic fields.
-- [x] Add safe Memory for non-sensitive answers plus draft persistence across form rerenders.
-- [x] Move Memory controls into `Profile`, add header shortcuts, and make tracker edits/card expansion feel like a real workspace.
-- [x] Widen the popup workspace and reduce scroll pressure across tracker, preview, and profile views.
-- [x] Add quick manual tracker entry plus current-page / pasted-JD import for job details.
-- [x] Add tracker search and active-only filters so larger pipelines stay easy to triage.
-- [x] Add a standalone demo mode for popup screenshots and docs refreshes so file-based UI review stays fast and stable.
 
 <!--
 AGENT INSTRUCTIONS:
