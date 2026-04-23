@@ -1,3 +1,76 @@
+.tracker-card-date-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.tracker-card-date {
+  font-size: 12px;
+  color: var(--text);
+  background: #23263a;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+.tracker-card-date-input {
+  font-size: 10px;
+  color: var(--text-muted);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  width: 110px;
+  margin-top: 2px;
+}
+/* --- Job Search Panel --- */
+#job-search-screen .job-search-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 0;
+}
+#job-search-screen .job-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#job-search-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#job-search-submit-btn {
+  min-width: 80px;
+}
+.job-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.job-search-result {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #f9fafb;
+}
+.job-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+.job-meta {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+.job-link {
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: underline;
+}
 /* ============================================================
    apply-bot — popup styles
    ============================================================ */
