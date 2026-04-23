@@ -1291,10 +1291,10 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--yellow);
 }
 
-.tracker-status-select[data-status-tone="filled"] {
-  background: rgba(96, 165, 250, 0.14);
-  border-color: rgba(96, 165, 250, 0.35);
-  color: var(--blue);
+.tracker-status-select[data-status-tone="retired"] {
+  background: #23242a;
+  border-color: #444;
+  color: #888;
 }
 
 .tracker-status-select[data-status-tone="submitted"] {
