@@ -1,3 +1,117 @@
+// Update date to today and save when status changes to submitted
+// --- Job Search Panel Logic ---
+function showScreen(name) {
+  for (const el of document.querySelectorAll('.screen')) {
+    el.classList.add('hidden');
+  }
+  const screen = document.getElementById(name + '-screen');
+  if (screen) screen.classList.remove('hidden');
+  document.body.dataset.screen = name;
+}
+
+function renderJobSearchResults(results) {
+  const resultsDiv = document.getElementById('job-search-results');
+  if (!resultsDiv) return;
+  if (!results || results.length === 0) {
+    resultsDiv.innerHTML = '<p class="empty-msg">No jobs found for this search.</p>';
+    return;
+  }
+  resultsDiv.innerHTML = results.map(j => `
+    <div class="job-search-result">
+      <div class="job-title">${j.title}</div>
+      <div class="job-meta">${j.company} • ${j.location}</div>
+      <a href="${j.url}" target="_blank" rel="noopener" class="job-link">View job</a>
+    </div>
+  `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Job Search panel events
+  const jobSearchBtn = document.getElementById('job-search-btn');
+  if (jobSearchBtn) {
+    jobSearchBtn.onclick = () => {
+      showScreen('job-search');
+    };
+  }
+  // Header job search button
+  const headerJobSearchBtn = document.getElementById('header-job-search-btn');
+  if (headerJobSearchBtn) {
+    headerJobSearchBtn.onclick = () => {
+      showScreen('job-search');
+    };
+  }
+  const jobSearchBackBtn = document.getElementById('job-search-back-btn');
+  if (jobSearchBackBtn) {
+    jobSearchBackBtn.onclick = () => {
+      showScreen('main');
+    };
+  }
+  const jobSearchInput = document.getElementById('job-search-input');
+  const jobSearchSubmitBtn = document.getElementById('job-search-submit-btn');
+  if (jobSearchSubmitBtn && jobSearchInput) {
+    jobSearchSubmitBtn.onclick = async () => {
+      const query = jobSearchInput.value.trim();
+      if (!query) return;
+      jobSearchSubmitBtn.disabled = true;
+      jobSearchSubmitBtn.textContent = 'Searching...';
+      const { searchJobs } = await import('../lib/job-search.js');
+      const results = await searchJobs(query);
+      renderJobSearchResults(results);
+      jobSearchSubmitBtn.disabled = false;
+      jobSearchSubmitBtn.textContent = 'Search';
+    };
+    jobSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') jobSearchSubmitBtn.click();
+    });
+  }
+});
+// Helper for date input formatting (YYYY-MM-DD)
+function formatDateInput(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+// Track expanded state for rejected column
+let expandedRejected = false;
+
+// Event delegation for show more/less button
+document.addEventListener('click', function (e) {
+  if (e.target && e.target.classList.contains('tracker-show-more-rejected')) {
+    expandedRejected = !expandedRejected;
+    // Re-render tracker UI (assume renderTracker is main entry)
+    if (typeof renderTracker === 'function') renderTracker();
+  }
+});
+
+// Update date to today when status changes to submitted
+// SINGLE GLOBAL HANDLER FOR DATE/STATUS ON TRACKER CARDS
+document.addEventListener('change', function (e) {
+  if (e.target && e.target.matches('input.tracker-card-date-input[data-field="date"]')) {
+    const card = e.target.closest('.tracker-card');
+    if (card && typeof saveTrackerCard === 'function') {
+      saveTrackerCard(card, { showMessage: true });
+    }
+  }
+  if (e.target && e.target.classList.contains('tracker-status-select')) {
+    const card = e.target.closest('.tracker-card');
+    if (!card) return;
+    const newStatus = e.target.value;
+    if (newStatus === 'submitted') {
+      const today = new Date().toISOString().slice(0, 10);
+      let dateInput = card.querySelector('input[data-field="date"]');
+      if (dateInput) {
+        dateInput.value = today;
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      let dateSpan = card.querySelector('span.tracker-card-date');
+      if (dateSpan) {
+        dateSpan.textContent = today;
+      }
+    }
+  }
+});
 /**
  * apply-bot — popup.js
  * Handles all UI logic for the extension popup.
@@ -85,11 +199,12 @@ const TRACKER_STATUS_META = {
     optionHint: 'saved lead / not sent',
     cardHint: 'Saved lead — tailor before sending',
   },
-  filled: {
-    label: 'Filled',
-    emoji: '📝',
-    optionHint: 'prepped and ready',
-    cardHint: 'Profile is filled — review and send next',
+  retired: {
+    label: 'Retired',
+    emoji: '⬜',
+    optionHint: 'job unlisted / no reply',
+    cardHint: 'Job closed or unlisted — not an explicit rejection',
+    tone: 'grey',
   },
   submitted: {
     label: 'Submitted',
@@ -116,7 +231,7 @@ const TRACKER_STATUS_META = {
     cardHint: 'Closed out locally for reference',
   },
 };
-const TRACKER_STATUS_ORDER = Object.keys(TRACKER_STATUS_META);
+const TRACKER_STATUS_ORDER = ['drafted', 'submitted', 'interview', 'offer', 'rejected', 'retired'];
 
 function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -186,6 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initHelpHandlers();
   initStatusNavHandlers();
   await applyInitialRequestedScreen();
+
 });
 
 // ── Tab switching (upload vs paste) ──────────────────────────────────────────
@@ -501,11 +617,11 @@ async function loadMainScreen(options = {}) {
 
 function applyTrackerSummary(apps = []) {
   const total = apps.length;
-  const filled = apps.filter((a) => normalizeTrackingStatus(a.status) === 'filled').length;
-  const pending = apps.filter((a) => ['drafted', 'filled'].includes(normalizeTrackingStatus(a.status))).length;
+  const retired = apps.filter((a) => normalizeTrackingStatus(a.status) === 'retired').length;
+  const pending = apps.filter((a) => ['drafted', 'retired'].includes(normalizeTrackingStatus(a.status))).length;
 
   if ($('stat-total')) $('stat-total').textContent = total;
-  if ($('stat-applied')) $('stat-applied').textContent = filled;
+  if ($('stat-applied')) $('stat-applied').textContent = retired;
   if ($('stat-pending')) $('stat-pending').textContent = pending;
   if ($('header-tracker-count')) {
     $('header-tracker-count').textContent = `${pending} / ${total} active`;
@@ -540,7 +656,7 @@ async function initMainHandlers() {
       if (resp?.success) {
         const report = resp.report || {};
         const summary = [
-          `${report.filled || 0} filled`,
+          `${report.retired || 0} retired`,
           report.preserved ? `${report.preserved} kept` : '',
           Array.isArray(report.unresolved) && report.unresolved.length
             ? `${report.unresolved.length} to review`
@@ -548,7 +664,7 @@ async function initMainHandlers() {
         ].filter(Boolean).join(' • ');
 
         const message = resp?.warning
-          ? `✅ Common fields filled (${summary || 'profile-first mode'}). ${resp.warning}`
+          ? `✅ Common fields retired (${summary || 'profile-first mode'}). ${resp.warning}`
           : `✅ Fill complete${summary ? ` — ${summary}` : ''}. Review before submitting.`;
         setStatus('fill-status', message, 'success');
         renderFillReport(report);
@@ -731,6 +847,16 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
   const previousStatus = card.dataset.status || 'drafted';
   const saveBtn = card.querySelector('.tracker-save-btn');
   const saveState = card.querySelector('.tracker-save-state');
+  let date = '';
+  const dateInput = card.querySelector('input[data-field="date"]');
+  if (dateInput) {
+    date = dateInput.value;
+  } else {
+    const dateSpan = card.querySelector('span.tracker-card-date');
+    if (dateSpan) {
+      date = dateSpan.textContent;
+    }
+  }
   const patch = {
     company: card.querySelector('[data-field="company"]')?.value || '',
     title: card.querySelector('[data-field="title"]')?.value || '',
@@ -742,6 +868,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
     scorecard: card.querySelector('[data-field="scorecard"]')?.value || '',
     verdict: card.querySelector('[data-field="verdict"]')?.value || '',
     description: card.querySelector('[data-field="description"]')?.value || '',
+    date: date || '',
   };
 
   if (saveBtn) {
@@ -915,26 +1042,26 @@ async function persistTrackerBoardOrder(movedId, destinationStatus) {
   }, 0);
 
   let nextSortOrder = totalCards;
-  const updates = [];
-
-  for (const container of containers) {
-    const status = container.dataset.statusTarget || 'drafted';
-    const cards = [...container.querySelectorAll('.tracker-card')];
-    for (const card of cards) {
-      const id = card.dataset.id || '';
-      if (!id) continue;
-
-      const sortOrder = nextSortOrder--;
-      const currentStatus = card.dataset.status || 'drafted';
-      const currentSortOrder = Number(card.dataset.sortOrder || Number.NaN);
-      card.dataset.status = status;
-      card.dataset.sortOrder = String(sortOrder);
-
-      if (currentStatus !== status || currentSortOrder !== sortOrder) {
-        updates.push({ id, status, sort_order: sortOrder });
-      }
-    }
-  }
+  const lanes = [
+    { key: 'drafted', label: '🟡 Drafted', statuses: ['drafted'] },
+    { key: 'submitted', label: '✅ Submitted', statuses: ['submitted'] },
+    {
+      key: 'later',
+      label: '📌 Later stages',
+      groups: [
+        { key: 'interview', label: '📅 Interview', statuses: ['interview'] },
+        { key: 'offer', label: '🎉 Offer', statuses: ['offer'] },
+      ],
+    },
+    {
+      key: 'final',
+      label: '🛑 Final stage',
+      groups: [
+        { key: 'rejected', label: '❌ Rejected', statuses: ['rejected'] },
+        { key: 'filled', label: '⬜ Filled (Closed)', statuses: ['filled'] },
+      ],
+    },
+  ];
 
   if (!updates.length) {
     return;
@@ -1002,7 +1129,6 @@ async function renderTracker() {
 
   const lanes = [
     { key: 'drafted', label: '🟡 Drafted', statuses: ['drafted'] },
-    { key: 'filled', label: '📝 Filled', statuses: ['filled'] },
     { key: 'submitted', label: '✅ Submitted', statuses: ['submitted'] },
     {
       key: 'later',
@@ -1010,7 +1136,14 @@ async function renderTracker() {
       groups: [
         { key: 'interview', label: '📅 Interview', statuses: ['interview'] },
         { key: 'offer', label: '🎉 Offer', statuses: ['offer'] },
+      ],
+    },
+    {
+      key: 'final',
+      label: '🛑 Final stage',
+      groups: [
         { key: 'rejected', label: '❌ Rejected', statuses: ['rejected'] },
+        { key: 'filled', label: '⬜ Filled (Closed)', statuses: ['filled'] },
       ],
     },
   ];
@@ -1031,19 +1164,26 @@ function getTrackerLaneCount(applications, lane) {
 function renderTrackerLane(applications, lane) {
   if (Array.isArray(lane.groups)) {
     const sections = lane.groups.map((group) => {
-      const laneApps = applications
-        .filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status)));
-      const cards = laneApps.length
-        ? laneApps.map(renderTrackerCard).join('')
+      let laneApps = applications.filter((app) => group.statuses.includes(normalizeTrackingStatus(app.status)));
+      let showMore = false;
+      if (group.key === 'rejected' && laneApps.length > 5) {
+        showMore = true;
+      }
+      const visibleApps = (showMore && !expandedRejected) ? laneApps.slice(0, 5) : laneApps;
+      const cards = visibleApps.length
+        ? visibleApps.map(renderTrackerCard).join('')
         : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
-
+      let showMoreBtn = '';
+      if (showMore) {
+        showMoreBtn = `<button class="btn btn-link btn-xs tracker-show-more-rejected" data-status="rejected">${expandedRejected ? 'Show less' : 'Show more'}</button>`;
+      }
       return `
         <div class="tracker-lane-group" data-status-target="${escAttr(group.statuses[0])}">
           <div class="tracker-lane-subheader">
             <span class="tracker-lane-subtitle">${group.label}</span>
             <span class="tracker-lane-count">${laneApps.length}</span>
           </div>
-          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${cards}</div>
+          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${cards}${showMoreBtn}</div>
         </div>
       `;
     }).join('');
@@ -1098,6 +1238,10 @@ function toggleTrackerAddForm(forceOpen) {
     return;
   }
 
+  // Always default status to drafted when opening add form
+  if ($('new-application-status')) {
+    $('new-application-status').value = 'drafted';
+  }
   $('new-application-company')?.focus();
 }
 
@@ -1267,7 +1411,8 @@ function renderTrackerCard(app) {
             ${renderStatusOptions(app.status)}
           </select>
           <div class="tracker-card-note-right">${esc(summaryNote)}</div>
-          <span class="tracker-card-date">${esc(formatDate(app.date))}</span>
+          <span class='tracker-card-date-label'>Date:</span>
+          <span class='tracker-card-date'>${esc(formatDate(app.date))}</span>
         </div>
       </div>
       <div class="tracker-card-details">
@@ -1283,6 +1428,10 @@ function renderTrackerCard(app) {
               <input data-field="remote" type="checkbox" ${app.remote ? 'checked' : ''} />
               Remote
             </label>
+            ${expanded ? `<label class="date-row" style="margin-left:10px;font-size:12px;">
+              <span style="margin-right:4px;">Submission date</span>
+              <input class="tracker-card-date-input" data-field="date" type="date" value="${escAttr(app.date ? formatDateInput(app.date) : '')}" aria-label="Edit submission date" />
+            </label>` : ''}
           </div>
           <input data-field="salary_range" type="text" value="${escAttr(app.salary_range || '')}" placeholder="Salary range" />
           <input data-field="scorecard" type="text" value="${escAttr(app.scorecard || '')}" placeholder="Scorecard" />
@@ -1338,7 +1487,7 @@ function filterTrackerApplications(applications = [], query = '', { activeOnly =
 
   return (applications || []).filter((app) => {
     const status = normalizeTrackingStatus(app.status);
-    if (activeOnly && !['drafted', 'filled'].includes(status)) {
+    if (activeOnly && !['drafted', 'retired'].includes(status)) {
       return false;
     }
 
@@ -1735,7 +1884,7 @@ function renderFillReport(report, opts = {}) {
   if (!card || !summaryEl || !listEl) return;
 
   const hasReport = !!report && (
-    Number(report.filled || 0) > 0 ||
+    Number(report.retired || 0) > 0 || 
     Number(report.preserved || 0) > 0 ||
     (Array.isArray(report.unresolved) && report.unresolved.length > 0)
   );
@@ -1755,7 +1904,7 @@ function renderFillReport(report, opts = {}) {
   }
 
   const summary = [
-    `${report.filled || 0} filled`,
+    `${report.retired || 0} retired`,
     report.preserved ? `${report.preserved} kept` : '',
     Array.isArray(report.unresolved) ? `${report.unresolved.length} to review` : '',
   ].filter(Boolean).join(' • ');
@@ -2287,6 +2436,7 @@ function normalizeTrackingStatus(status) {
   const value = String(status || '').toLowerCase().trim();
   if (!value) return 'drafted';
   if (value === 'applied') return 'submitted';
+  if (value === 'filled') return 'retired';
   return value;
 }
 
@@ -2294,8 +2444,8 @@ function formatTrackingStatus(status) {
   switch (normalizeTrackingStatus(status)) {
     case 'submitted':
       return '✅ Submitted';
-    case 'filled':
-      return '📝 Filled';
+    case 'retired':
+      return '⬜ Retired';
     case 'interview':
       return '📅 Interview';
     case 'offer':
@@ -2325,22 +2475,8 @@ function getAtsHint(ats) {
   }
 }
 
-/**
- * Format a date string (ISO or any valid date) for display as YYYY-MM-DD.
- * Returns '—' if the value is falsy or not a valid date.
- * @param {string|null|undefined} dateStr
- * @returns {string}
- */
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return String(dateStr).slice(0, 10) || '—';
-    return d.toISOString().slice(0, 10);
-  } catch {
-    return '—';
-  }
-}
+
+// ...existing code...
 
 // Standalone demo mode: inject mock data if ?demo=1
 const isDemoMode = window.location.search.includes('demo=1');
@@ -2360,23 +2496,3 @@ if (isDemoMode) {
   window.getApplications = async () => window.DEMO_APPLICATIONS;
 }
 
-// Add a button to trigger job search (demo)
-document.addEventListener('DOMContentLoaded', () => {
-  const header = document.querySelector('.header-actions');
-  if (header && !document.getElementById('job-search-btn')) {
-    const btn = document.createElement('button');
-    btn.id = 'job-search-btn';
-    btn.className = 'icon-btn';
-    btn.title = 'Demo: Search for jobs';
-    btn.innerHTML = '🔍 <span class="tracker-btn-label">Job Search</span>';
-    btn.onclick = async () => {
-      btn.disabled = true;
-      btn.textContent = 'Searching...';
-      const results = await searchJobs('engineer');
-      alert('Demo job search results:\n' + results.map(j => `${j.title} @ ${j.company} (${j.location})`).join('\n'));
-      btn.disabled = false;
-      btn.innerHTML = '🔍 <span class="tracker-btn-label">Job Search</span>';
-    };
-    header.appendChild(btn);
-  }
-});
