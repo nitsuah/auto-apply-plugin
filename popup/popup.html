@@ -1,19 +1,3 @@
-    <!-- Job Search Screen -->
-    <section id="job-search-screen" class="screen hidden">
-      <div class="tracker-header">
-        <h2 class="section-title" style="margin:0 auto;text-align:center;">Job Search</h2>
-        <button id="job-search-back-btn" class="btn-back" style="position:absolute;left:16px;top:16px;">← Back</button>
-      </div>
-      <div class="job-search-panel">
-        <div class="job-search-bar">
-          <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
-          <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
-        </div>
-        <div id="job-search-results" class="job-search-results">
-          <p class="empty-msg">No search yet. Enter a query above.</p>
-        </div>
-      </div>
-    </section>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -318,7 +302,7 @@
       <div class="tracker-header">
         <div class="tracker-title-group">
           <h2 class="section-title">Application Pipeline</h2>
-          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to the review workspace">⚡ Review</button>
+          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to Apply">⚡ Review</button>
         </div>
         <div class="tracker-actions">
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
@@ -400,6 +384,23 @@
       <button id="inject-from-preview-btn" class="btn btn-primary btn-full" style="margin-top:12px">
         ⚡ Inject into Form
       </button>
+    </section>
+
+    <!-- Job Search Screen -->
+    <section id="job-search-screen" class="screen hidden">
+      <div class="tracker-header">
+        <h2 class="section-title" style="margin:0 auto;text-align:center;">Job Search</h2>
+        <button id="job-search-back-btn" class="btn-back" style="position:absolute;left:16px;top:16px;">← Back</button>
+      </div>
+      <div class="job-search-panel">
+        <div class="job-search-bar">
+          <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
+          <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+        </div>
+        <div id="job-search-results" class="job-search-results">
+          <p class="empty-msg">No search yet. Enter a query above.</p>
+        </div>
+      </div>
     </section>
 
     <!-- AI Screen -->

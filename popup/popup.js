@@ -73,6 +73,14 @@ function formatDateInput(date) {
   return d.toISOString().slice(0, 10);
 }
 
+// Helper for display formatting (YYYY-MM-DD)
+function formatDate(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 // Track expanded state for rejected column
 let expandedRejected = false;
 
@@ -637,13 +645,20 @@ async function initMainHandlers() {
   });
 
   $('header-tracker-btn')?.addEventListener('click', async () => {
-    if (!isStandaloneView()) {
-      const opened = await openExpandedWorkspace('tracker');
-      if (opened) return;
+    console.log('[DEBUG] Pipeline button clicked');
+    try {
+      if (!isStandaloneView()) {
+        const opened = await openExpandedWorkspace('tracker');
+        if (opened) return;
+      }
+      await renderTracker();
+    } catch (err) {
+      console.error('[ERROR] renderTracker failed:', err);
+      // Optionally show a status message to the user
+      setTrackerScreenStatus('❌ Failed to load pipeline: ' + (err?.message || err), 'error');
+    } finally {
+      showScreen('tracker');
     }
-
-    await renderTracker();
-    showScreen('tracker');
   });
 
   bindReviewJumpHandlers('fill-report-unresolved', 'fill-status');
@@ -1487,7 +1502,8 @@ function filterTrackerApplications(applications = [], query = '', { activeOnly =
 
   return (applications || []).filter((app) => {
     const status = normalizeTrackingStatus(app.status);
-    if (activeOnly && !['drafted', 'retired'].includes(status)) {
+    // Active means NOT rejected/retired/filled
+    if (activeOnly && ['rejected', 'retired', 'filled'].includes(status)) {
       return false;
     }
 
