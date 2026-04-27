@@ -1,8 +1,8 @@
-// POPUP.JS - main logic for the popup UI, orchestrating between modules and handling shared state
+﻿// POPUP.JS - main logic for the popup UI, orchestrating between modules and handling shared state
 // Import DOM helpers and escaping functions from utils.js
 
 import { renderJobSearchResults, initJobSearchHandlers } from './job-search.js';
-import { renderTracker, initTrackerHandlers, renderTrackerLane, renderTrackerCard, filterTrackerApplications, sortTrackerApplications, persistTrackerBoardOrder, getTrackerLaneCount, normalizeTrackingStatus } from '../lib/tracker.js';
+import { normalizeApplicationStatus } from '../lib/tracker.js';
 // import { renderLearnedDefaults, renderMemoryGroup, renderIgnoredMemoryGroup } from './memory.js';
 import { handleSaveAiSettings, initAiHandlers } from './ai.js';
 import { initHelpHandlers } from './help.js';
@@ -10,7 +10,7 @@ import { readSettingsForm, handleSaveSetup } from './profile.js';
 
 import { /* utility exports */ } from '../lib/utils.js';
 import { showScreen } from './navigation.js';
-import { trackerSaveTimers, expandedTrackerIds, trackerViewState, trackerDragState, TRACKER_STATUS_META, TRACKER_STATUS_ORDER } from './tracker.js';
+import { renderTracker, initTrackerHandlers, renderTrackerLane, renderTrackerCard, filterTrackerApplications, sortTrackerApplications, persistTrackerBoardOrder, getTrackerLaneCount, trackerSaveTimers, expandedTrackerIds, trackerViewState, trackerDragState, TRACKER_STATUS_META, TRACKER_STATUS_ORDER } from './tracker.js';
 
 // Consolidate all imports at the top
 import { $, esc, escAttr, truncateText, setBadgeState, setStatusRowMeta, badgeToneClass, getAtsMeta, getAtsHint } from '../lib/utils.js';
@@ -315,8 +315,8 @@ async function loadMainScreen(options = {}) {
 
 function applyTrackerSummary(apps = []) {
   const total = apps.length;
-  const retired = apps.filter((a) => normalizeTrackingStatus(a.status) === 'retired').length;
-  const pending = apps.filter((a) => ['drafted', 'retired'].includes(normalizeTrackingStatus(a.status))).length;
+  const retired = apps.filter((a) => normalizeApplicationStatus(a.status) === 'retired').length;
+  const pending = apps.filter((a) => ['drafted', 'retired'].includes(normalizeApplicationStatus(a.status))).length;
 
   if ($('stat-total')) $('stat-total').textContent = total;
   if ($('stat-applied')) $('stat-applied').textContent = retired;
@@ -809,7 +809,7 @@ function isSensitiveMemoryQuestion(question = '') {
 
 
 function formatTrackingStatus(status) {
-  switch (normalizeTrackingStatus(status)) {
+  switch (normalizeApplicationStatus(status)) {
     case 'submitted':
       return '✅ Submitted';
     case 'retired':
