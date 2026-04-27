@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/logic.test.mjs"
+    "test": "node --test tests/logic.test.mjs",
+    "lint": "eslint popup/popup.js --max-warnings=0"
+  }
+  ,
+  "dependencies": {
+    "eslint": "^8.0.0"
   }
 }

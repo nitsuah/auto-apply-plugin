@@ -10,4 +10,4 @@ RUN npm install --omit=dev || true
 
 COPY . .
 
-CMD ["npm", "test"]
+CMD npm run lint && npm test
