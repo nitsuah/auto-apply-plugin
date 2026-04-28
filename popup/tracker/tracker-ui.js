@@ -1,5 +1,5 @@
 // Barrel export for filterTrackerApplications (re-export from lib/tracker.js)
-import { filterApplicationsForQuery } from '../lib/tracker.js';
+import { filterApplicationsForQuery } from '../../lib/tracker.js';
 import { initTrackerHandlers } from './tracker-handlers.js';
 
 export const filterTrackerApplications = filterApplicationsForQuery;
@@ -9,8 +9,8 @@ export { initTrackerHandlers };
 
 import { getTrackingStatusMeta, TRACKER_STATUS_ORDER } from './tracker-meta.js';
 import { expandedTrackerIds, trackerViewState } from './tracker-state.js';
-import { formatDate } from '../lib/utils.js';
-import { getApplications } from '../lib/tracker.js';
+import { formatDate } from '../../lib/utils.js';
+import { getApplications } from '../../lib/tracker.js';
 
 export async function renderTracker() {
   const trackerBody = document.getElementById('tracker-body');

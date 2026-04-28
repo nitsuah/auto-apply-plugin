@@ -6,9 +6,9 @@ import { handleSaveAiSettings, initAiHandlers } from './ai/ai.js';
 import { initHelpHandlers } from './ux/help.js';
 import { readSettingsForm, handleSaveSetup } from './ux/profile.js';
 import { showScreen, scrollToSection, bindReviewJumpHandlers } from './ux/navigation.js';
-import { renderTracker, initTrackerHandlers, renderTrackerLane, renderTrackerCard, filterTrackerApplications } from './tracker-ui.js';
-import { trackerSaveTimers, expandedTrackerIds, trackerViewState, trackerDragState } from './tracker-state.js';
-import { TRACKER_STATUS_META, TRACKER_STATUS_ORDER } from './tracker-meta.js';
+import { renderTracker, initTrackerHandlers, renderTrackerLane, renderTrackerCard, filterTrackerApplications } from './tracker/tracker-ui.js';
+import { trackerSaveTimers, expandedTrackerIds, trackerViewState, trackerDragState } from './tracker/tracker-state.js';
+import { TRACKER_STATUS_META, TRACKER_STATUS_ORDER } from './tracker/tracker-meta.js';
 import { setStatus, setResumeDropLabel, setElementsDisabled, setBadgeState, setStatusRowMeta } from './ux/state.js';
 import { syncConsentGate } from './ux/consent.js';
 import { renderLearnedDefaults } from './forms/memory.js';
@@ -17,6 +17,7 @@ import { initPreviewHandlers, renderPreview, renderFillReport } from './forms/pr
 // Orchestrate popup logic: wire up modules and initialize UI
 
 document.addEventListener('DOMContentLoaded', () => {
+  showScreen('main'); // CAVEMAN: Always show main/profile screen on popup open
   initJobSearchHandlers(showScreen);
   initTrackerHandlers();
   initAiHandlers();

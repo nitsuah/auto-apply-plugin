@@ -5,27 +5,27 @@ import {
   TRACKER_STATUS_META,
   TRACKER_STATUS_ORDER,
   getTrackingStatusMeta
-} from './tracker-meta.js';
+} from './tracker/tracker-meta.js';
 import {
   expandedTrackerIds,
   trackerViewState,
   trackerDragState,
   trackerSaveTimers
-} from './tracker-state.js';
+} from './tracker/tracker-state.js';
 import {
   renderTracker,
   renderTrackerLane,
   renderTrackerCard
-} from './tracker-ui.js';
+} from './tracker/tracker-ui.js';
 import {
   initTrackerHandlers,
   handleTrackerDragStart,
   handleTrackerDrop
-} from './tracker-handlers.js';
+} from './tracker/tracker-handlers.js';
 import {
   exportCsv,
   importTrackerCsvFile
-} from './tracker-csv.js';
+} from './tracker/tracker-csv.js';
 
 // --- Core tracker orchestrator logic ---
 

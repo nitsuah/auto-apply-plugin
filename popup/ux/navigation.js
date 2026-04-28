@@ -11,6 +11,14 @@ export function showScreen(name) {
   document.body.dataset.screen = name;
 }
 
+// CAVEMAN ADD: Make Apply Bot icon button go home
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const homeBtn = document.getElementById('header-home-btn');
+    if (homeBtn) homeBtn.onclick = () => showScreen('main');
+  });
+}
+
 export function scrollToSection(sectionId) {
   if (!sectionId) return;
   requestAnimationFrame(() => {

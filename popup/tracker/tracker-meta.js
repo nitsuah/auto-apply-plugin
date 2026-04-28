@@ -49,7 +49,7 @@ export const TRACKER_STATUS_META = {
 
 export const TRACKER_STATUS_ORDER = ['drafted', 'submitted', 'pending', 'interview', 'offer', 'rejected', 'retired'];
 
-import { normalizeApplicationStatus } from '../lib/tracker.js';
+import { normalizeApplicationStatus } from '../../lib/tracker.js';
 
 export function getTrackingStatusMeta(status) {
   const normalized = normalizeApplicationStatus(status);
