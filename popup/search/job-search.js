@@ -55,7 +55,7 @@ export function initJobSearchHandlers(showScreen) {
       if (!query) return;
       jobSearchSubmitBtn.disabled = true;
       jobSearchSubmitBtn.textContent = 'Searching...';
-      const { searchJobs } = await import('../lib/job-search.js');
+      const { searchJobs } = await import('../../lib/job-search.js');
       const results = await searchJobs(query);
       renderJobSearchResults(results);
       jobSearchSubmitBtn.disabled = false;

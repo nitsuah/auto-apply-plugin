@@ -1300,6 +1300,12 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: #888;
 }
 
+.tracker-status-select[data-status-tone="pending"] {
+  background: rgba(248, 208, 0, 0.14);
+  border-color: rgba(248, 208, 0, 0.35);
+  color: var(--yellow);
+}
+
 .tracker-status-select[data-status-tone="submitted"] {
   background: rgba(74, 222, 128, 0.14);
   border-color: rgba(74, 222, 128, 0.35);

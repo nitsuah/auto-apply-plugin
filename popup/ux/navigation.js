@@ -1,10 +1,8 @@
 // navigation.js
 // Handles navigation, screen switching, and section scrolling
 
-// ...existing code...
-
 // Show a named screen and hide others
-function showScreen(name) {
+export function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
     el.classList.add('hidden');
   }
@@ -13,14 +11,14 @@ function showScreen(name) {
   document.body.dataset.screen = name;
 }
 
-function scrollToSection(sectionId) {
+export function scrollToSection(sectionId) {
   if (!sectionId) return;
   requestAnimationFrame(() => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
-function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
+export function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
   const list = document.getElementById(listId);
   if (!list || list.dataset.jumpBound === 'true') return;
   list.dataset.jumpBound = 'true';
@@ -47,5 +45,3 @@ function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
     }
   });
 }
-
-export { showScreen, scrollToSection, bindReviewJumpHandlers };
