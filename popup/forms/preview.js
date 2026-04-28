@@ -1,11 +1,16 @@
 // preview.js
 // Handles preview screen logic and rendering
 
+import { showScreen } from '../ux/navigation.js';
+import { bindReviewJumpHandlers } from '../ux/navigation.js';
+
 export function initPreviewHandlers() {
-  $('preview-back-btn').addEventListener('click', () => showScreen('main'));
+  const backBtn = document.getElementById('preview-back-btn');
+  if (backBtn) backBtn.onclick = () => showScreen('main');
   bindReviewJumpHandlers('preview-report-unresolved', 'fill-status');
 
-  $('inject-from-preview-btn').addEventListener('click', async () => {
+  const injectBtn = document.getElementById('inject-from-preview-btn');
+  if (injectBtn) injectBtn.onclick = async () => {
     const resp = await sendMessage({ type: 'GET_LAST_ANSWERS' });
     if (!resp?.answers) return;
     try {
@@ -13,7 +18,7 @@ export function initPreviewHandlers() {
     } catch (err) {
       // tab may not have content script
     }
-  });
+  };
 }
 
 export function renderPreview(answers, report) {

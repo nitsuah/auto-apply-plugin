@@ -17,15 +17,31 @@ import { initPreviewHandlers, renderPreview, renderFillReport } from './forms/pr
 // Orchestrate popup logic: wire up modules and initialize UI
 
 document.addEventListener('DOMContentLoaded', () => {
-  showScreen('main'); // CAVEMAN: Always show main/profile screen on popup open
+  showScreen('main'); // Always show main/profile screen on popup open
   initJobSearchHandlers(showScreen);
   initTrackerHandlers();
   initAiHandlers();
   initHelpHandlers();
-  // Profile/setup panel logic is in profile.js
-  // Memory panel logic is in memory.js
-  // Additional orchestration as needed
-});
 
-// All DOM helpers, state, and navigation are now in their respective modules.
-// All screen logic is now split into forms/, ux/, ai/, and tracker-*.js modules.
+  // Main screen buttons
+  const fillBtn = document.getElementById('fill-btn');
+  if (fillBtn) fillBtn.onclick = () => showScreen('main'); // TODO: implement fill logic
+  const previewBtn = document.getElementById('preview-btn');
+  if (previewBtn) previewBtn.onclick = () => showScreen('preview');
+  const editProfileBtn = document.getElementById('edit-resume-btn');
+  if (editProfileBtn) editProfileBtn.onclick = () => showScreen('main');
+
+  // Status rows
+  const resumeRow = document.getElementById('resume-row');
+  if (resumeRow) resumeRow.onclick = () => showScreen('main');
+  const apiRow = document.getElementById('api-row');
+  if (apiRow) apiRow.onclick = () => showScreen('ai');
+  const profileRow = document.getElementById('profile-row');
+  if (profileRow) profileRow.onclick = () => showScreen('main');
+  const privacyRow = document.getElementById('privacy-row');
+  if (privacyRow) privacyRow.onclick = () => showScreen('help');
+  const memoryRow = document.getElementById('learned-row');
+  if (memoryRow) memoryRow.onclick = () => showScreen('main'); // TODO: implement memory screen
+  const atsRow = document.getElementById('ats-row');
+  if (atsRow) atsRow.onclick = () => alert('ATS explainer coming soon!');
+});
