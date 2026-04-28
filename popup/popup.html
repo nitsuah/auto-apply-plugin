@@ -13,9 +13,12 @@
     <header class="header">
       <div class="header-top">
         <button id="header-home-btn" class="logo-btn" type="button" title="Return to the workspace home">
-          <span class="logo">🤖 Apply Workspace</span>
+          <span class="logo">🤖 Apply Bot</span>
         </button>
         <div class="header-actions">
+          <button id="header-job-search-btn" class="icon-btn" title="Job Search">
+            🔍 <span class="tracker-btn-label">Search</span>
+          </button>
           <button id="header-tracker-btn" class="icon-btn" title="Open the application workspace">
             📊 <span class="tracker-btn-label">Pipeline</span>
             <span id="header-tracker-count" class="count-pill">0 / 0 active</span>
@@ -241,7 +244,7 @@
         <div class="main-actions-panel">
           <div class="action-btns">
             <button id="fill-btn" class="btn btn-primary btn-full">
-              ⚡ Review + Fill This Application
+              ⚡ Fill Form
             </button>
             <button id="preview-btn" class="btn btn-secondary btn-full">
               👁 Preview Answers
@@ -299,7 +302,7 @@
       <div class="tracker-header">
         <div class="tracker-title-group">
           <h2 class="section-title">Application Pipeline</h2>
-          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to the review workspace">⚡ Review</button>
+          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to Apply">⚡ Review</button>
         </div>
         <div class="tracker-actions">
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
@@ -376,11 +379,28 @@
         <ul id="preview-report-unresolved" class="report-list"></ul>
       </div>
       <div id="preview-content" class="preview-content">
-        <p class="empty-msg">Generate answers first by clicking "Fill This Application".</p>
+        <p class="empty-msg">Generate answers first by clicking "Fill Form".</p>
       </div>
       <button id="inject-from-preview-btn" class="btn btn-primary btn-full" style="margin-top:12px">
         ⚡ Inject into Form
       </button>
+    </section>
+
+    <!-- Job Search Screen -->
+    <section id="job-search-screen" class="screen hidden">
+      <div class="tracker-header">
+        <h2 class="section-title" style="margin:0 auto;text-align:center;">Job Search</h2>
+        <button id="job-search-back-btn" class="btn-back" style="position:absolute;left:16px;top:16px;">← Back</button>
+      </div>
+      <div class="job-search-panel">
+        <div class="job-search-bar">
+          <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
+          <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+        </div>
+        <div id="job-search-results" class="job-search-results">
+          <p class="empty-msg">No search yet. Enter a query above.</p>
+        </div>
+      </div>
     </section>
 
     <!-- AI Screen -->
@@ -470,6 +490,6 @@
 
   </div>
 
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

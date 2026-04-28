@@ -1,3 +1,79 @@
+.tracker-card-date-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: 4px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.tracker-card-date {
+  font-size: 12px;
+  color: var(--text);
+  background: #23263a;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+.tracker-card-date-input {
+  font-size: 10px;
+  color: var(--text-muted);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  width: 110px;
+  margin-top: 2px;
+}
+/* --- Job Search Panel --- */
+#job-search-screen .job-search-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 0;
+}
+#job-search-screen .job-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#job-search-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#job-search-submit-btn {
+  min-width: 80px;
+}
+.job-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.job-search-result {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+}
+.job-title {
+  font-weight: 600;
+  font-size: 17px;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+.job-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.job-link {
+  font-size: 13px;
+  color: var(--blue);
+  text-decoration: underline;
+}
 /* ============================================================
    apply-bot — popup styles
    ============================================================ */
@@ -1218,10 +1294,16 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--yellow);
 }
 
-.tracker-status-select[data-status-tone="filled"] {
-  background: rgba(96, 165, 250, 0.14);
-  border-color: rgba(96, 165, 250, 0.35);
-  color: var(--blue);
+.tracker-status-select[data-status-tone="retired"] {
+  background: #23242a;
+  border-color: #444;
+  color: #888;
+}
+
+.tracker-status-select[data-status-tone="pending"] {
+  background: rgba(248, 208, 0, 0.14);
+  border-color: rgba(248, 208, 0, 0.35);
+  color: var(--yellow);
 }
 
 .tracker-status-select[data-status-tone="submitted"] {

@@ -35,3 +35,10 @@ updated: 2026-04-05 (tracker-workspace-planning)
 - Local-first and consent-first remain the product guardrails.
 - Scrape from the page or JD before asking the user to type.
 - Detailed execution work stays in `TASKS.md`.
+  
+	- [ ] Ship multi-source job search panel with ATS/job board handoff:
+		- Aggregate jobs from public APIs and/or scraping.
+		- Normalize and index results for search/filter.
+		- Prioritize extracting ATS/job board links for direct handoff.
+		- Enable one-click "Save to Tracker" and scrape job post details.
+		- Lay groundwork for future OAuth/personalized search if needed.

@@ -25,6 +25,27 @@ updated: 2026-04-05
 
 ## Todo
 
+### P1 - Job Search & ATS Handoff
+
+- [ ] Implement multi-source job search aggregation:
+  - Integrate with public job APIs (e.g. Adzuna, USAJobs, or RapidAPI job endpoints) and/or scrape LinkedIn, Indeed, etc.
+  - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link.
+  - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred).
+  - Add logic to extract and highlight ATS/job board links from job listings (when available).
+  - If only a generic job board link is available, surface that as the main action.
+  - Add a "Save to Tracker" button for each result to capture the job into the user's board.
+  - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page.
+  - Index all captured jobs for fast search/filter in the tracker.
+  - (Optional) Add basic deduplication for jobs appearing on multiple boards.
+
+- [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
+
+#### Acceptance Criteria
+- User can search jobs from multiple sources in one panel.
+- Each result has a clear "Go to job post" action (ATS link if possible).
+- User can save jobs to their tracker with one click.
+- Tracker search/indexing is fast and reliable.
+
 ### P3 - Exploratory
 
 - [ ] Begin to implement job search results by scraping and searching multiple job pages, starting with LinkedIn and Indeed, etc. and then expanding to a more general multi-site search and alerting capability.
