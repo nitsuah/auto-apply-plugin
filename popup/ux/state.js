@@ -1,10 +1,13 @@
 // state.js
 // Handles state loading, syncing, and badge/status helpers
 
-import { setBadgeState, setStatusRowMeta } from '../../lib/utils.js';
+import { $, setBadgeState, setStatusRowMeta } from '../../lib/utils.js';
+
+const DEFAULT_RESUME_DROP_LABEL = '📄 Drop PDF / DOCX / TXT here or click to browse';
 
 function setStatus(elId, msg, type = '') {
   const el = $(elId);
+  if (!el) return;
   el.textContent = msg;
   el.className = 'status-msg' + (type ? ' ' + type : '');
 }
@@ -23,10 +26,10 @@ function setElementsDisabled(container, disabled) {
 }
 
 export {
+  DEFAULT_RESUME_DROP_LABEL,
   setStatus,
   setResumeDropLabel,
   setElementsDisabled,
   setBadgeState,
   setStatusRowMeta,
-  // ...add more as needed
 };

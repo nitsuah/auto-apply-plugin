@@ -1,6 +1,10 @@
 // tracker-csv.js
 // CSV import/export logic for tracker
 
+import { sendMessage } from '../../lib/utils.js';
+import { renderTracker } from './tracker-ui.js';
+import { showScreen } from '../ux/navigation.js';
+
 function setTrackerScreenStatus(msg, type = '') {
   const el = document.getElementById('tracker-status');
   if (!el) return;
@@ -38,16 +42,16 @@ export function exportCsv(applications) {
   URL.revokeObjectURL(url);
 }
 
-export async function importTrackerCsvFile(event, renderTracker, loadMainScreen, showScreen) {
+export async function importTrackerCsvFile(event) {
   const input = event?.target;
   const file = input?.files?.[0];
   if (!file) return;
 
-  setTrackerScreenStatus('GŦ Importing applications from CSVGǪ');
+  setTrackerScreenStatus('⏳ Importing applications from CSV…');
 
   try {
     const text = await file.text();
-    const resp = await window.trackerSendMessage({
+    const resp = await sendMessage({
       type: 'IMPORT_APPLICATIONS_CSV',
       payload: { text },
     });
@@ -57,18 +61,17 @@ export async function importTrackerCsvFile(event, renderTracker, loadMainScreen,
     }
 
     await renderTracker();
-    await loadMainScreen({ showMain: false });
     showScreen('tracker');
 
     const imported = Number(resp.imported || 0);
     const skipped = Number(resp.skipped || 0);
     const suffix = skipped ? ` (${skipped} skipped)` : '';
     setTrackerScreenStatus(
-      `G�� Imported ${imported} application${imported === 1 ? '' : 's'} from CSV${suffix}.`,
+      `✅ Imported ${imported} application${imported === 1 ? '' : 's'} from CSV${suffix}.`,
       'success'
     );
   } catch (err) {
-    setTrackerScreenStatus('G�� ' + err.message, 'error');
+    setTrackerScreenStatus('❌ ' + err.message, 'error');
   } finally {
     if (input) input.value = '';
   }

@@ -1,6 +1,9 @@
 // consent.js
 // Handles privacy consent and related UI logic
 
+import { $ } from '../../lib/utils.js';
+import { setElementsDisabled } from './state.js';
+
 export function syncConsentGate() {
   const consentAccepted = $('privacy-consent')?.checked === true;
   $('profile-privacy-section')?.classList.toggle('hidden', consentAccepted);

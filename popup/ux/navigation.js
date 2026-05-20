@@ -1,6 +1,9 @@
 // navigation.js
 // Handles navigation, screen switching, and section scrolling
 
+import { $, sendToActiveTab, getReviewItemLabel } from '../../lib/utils.js';
+import { setStatus } from './state.js';
+
 // Show a named screen and hide others
 export function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -11,23 +14,15 @@ export function showScreen(name) {
   document.body.dataset.screen = name;
 }
 
-// Make Apply Bot icon button go home
-if (typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const homeBtn = document.getElementById('header-home-btn');
-    if (homeBtn) homeBtn.onclick = () => showScreen('main');
-  });
-}
-
 export function scrollToSection(sectionId) {
   if (!sectionId) return;
   requestAnimationFrame(() => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
 export function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
-  const list = document.getElementById(listId);
+  const list = $(listId);
   if (!list || list.dataset.jumpBound === 'true') return;
   list.dataset.jumpBound = 'true';
 
@@ -43,13 +38,64 @@ export function bindReviewJumpHandlers(listId, statusId = 'fill-status') {
     }
 
     try {
-      // This requires sendToActiveTab and setStatus to be globally available or imported
-      const resp = await window.sendToActiveTab({ type: 'FOCUS_FIELD', payload });
+      const resp = await sendToActiveTab({ type: 'FOCUS_FIELD', payload });
       if (!resp?.success) throw new Error(resp?.error || 'Could not find that field on the page.');
-      window.setStatus?.(statusId, `✅ Jumped to “${resp.label || payload.label}” on the page.`, 'success');
+      setStatus(statusId, `✅ Jumped to "${resp.label || getReviewItemLabel(payload)}" on the page.`, 'success');
       window.close();
     } catch (err) {
-      window.setStatus?.(statusId, '❌ ' + err.message, 'error');
+      setStatus(statusId, '❌ ' + err.message, 'error');
     }
   });
+}
+
+// Standalone / expanded workspace helpers
+export function isStandaloneView() {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('standalone') === '1';
+}
+
+export function canOpenExpandedWorkspace() {
+  return typeof chrome !== 'undefined' && !!chrome.runtime?.id && typeof window !== 'undefined' && window.location.protocol !== 'file:';
+}
+
+export function buildExpandedWorkspaceUrl(screen, sectionId = '') {
+  const url = new URL(chrome.runtime.getURL('popup/popup.html'));
+  url.searchParams.set('screen', screen);
+  url.searchParams.set('standalone', '1');
+  if (sectionId) {
+    url.searchParams.set('section', sectionId);
+  }
+  return url.toString();
+}
+
+export async function openExpandedWorkspace(screen, sectionId = '') {
+  if (!canOpenExpandedWorkspace()) return false;
+  try {
+    const url = buildExpandedWorkspaceUrl(screen, sectionId);
+    const baseUrl = chrome.runtime.getURL('popup/popup.html');
+    const tabs = await chrome.tabs.query({});
+    const existing = tabs.find((tab) => {
+      if (!tab?.id || !tab.url || !tab.url.startsWith(baseUrl)) return false;
+      try {
+        const tabUrl = new URL(tab.url);
+        return tabUrl.searchParams.get('screen') === screen;
+      } catch {
+        return false;
+      }
+    });
+
+    if (existing?.id) {
+      await chrome.tabs.update(existing.id, { active: true, url });
+      if (typeof existing.windowId === 'number') {
+        await chrome.windows.update(existing.windowId, { focused: true });
+      }
+    } else {
+      await chrome.tabs.create({ url, active: true });
+    }
+
+    if (typeof window !== 'undefined') window.close();
+    return true;
+  } catch {
+    return false;
+  }
 }

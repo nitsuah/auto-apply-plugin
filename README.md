@@ -1,8 +1,7 @@
 # 🤖 Apply Workspace — Local-First AI Job Application Chrome Extension
 
 > Save your profile once. Land on any job page. Review tailored answers. Fill faster.
-
-No Docker. No server. No subscription. Review-first by default.
+> No Docker. No server. No subscription. Review before submitting.
 
 ---
 
@@ -174,4 +173,4 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scor
 
 ## License
 
-MIT — built because filling out the same form 47 times is beneath everyone. 🤙
+MIT — built because filling out the same form 47 times is beneath EVERYONE. 🤙

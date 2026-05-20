@@ -1,14 +1,202 @@
 // profile.js
 // All profile/setup logic, rendering, and state management
 
-// Exported API
+import { $, sendMessage, formatSavedTimestamp, getResumeAttachmentSourceLabel } from '../../lib/utils.js';
+import { setStatus, setResumeDropLabel } from './state.js';
+import { syncConsentGate } from './consent.js';
+import {
+  readSettingsForm,
+  readProfileForm,
+  fillProfileForm,
+  readFileAsText,
+  handleResumeFileDrop,
+  downloadResumeAttachment,
+  renderResumeAttachment,
+} from '../forms/forms.js';
 
-export function readSettingsForm() {
-  // TODO: Implement reading of settings form
+// Re-export for consumers
+export { readSettingsForm };
+
+/**
+ * Apply full state to the setup form — settings, profile, resume, consent.
+ */
+export function applyStateToSetupForm(state = {}) {
+  const set = (id, val) => { const el = $(id); if (el) el.value = val; };
+
+  set('api-key-input', state.apiKey || '');
+
+  const modelSelect = $('gemini-model');
+  if (modelSelect) {
+    const savedModel = state.geminiModel || 'auto';
+    const hasSavedOption = Array.from(modelSelect.options).some((opt) => opt.value === savedModel);
+    modelSelect.value = hasSavedOption ? savedModel : 'auto';
+  }
+
+  const settings = state.settings || {};
+  set('salary-min', settings.preferred_salary_min ?? '');
+  set('salary-max', settings.preferred_salary_max ?? '');
+  set('work-auth', settings.work_authorization || '');
+  const preferRemote = $('prefer-remote');
+  if (preferRemote) preferRemote.checked = settings.preferred_remote !== false;
+  const privacyConsent = $('privacy-consent');
+  if (privacyConsent) privacyConsent.checked = settings.privacy_consent === true;
+
+  syncConsentGate();
+  renderResumeAttachment(state.resumeAttachment || null);
+  fillProfileForm(state.profile || {});
 }
 
-export function handleSaveSetup() {
-  // TODO: Implement save setup logic
+/**
+ * Save the full profile + settings + resume.
+ */
+export async function handleSaveSetup() {
+  const settings = readSettingsForm();
+  const profile = readProfileForm();
+
+  if (!settings.privacy_consent) {
+    throw new Error('You must accept the privacy policy to save your profile.');
+  }
+
+  // Handle resume file if present
+  const fileInput = $('resume-file');
+  let resumeRaw = '';
+  let resumeMeta = null;
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    try {
+      resumeRaw = await readFileAsText(fileInput.files[0]);
+      resumeMeta = { name: fileInput.files[0].name };
+    } catch (err) {
+      throw new Error(err.message || 'Could not read the resume file.');
+    }
+  }
+
+  // Handle resume paste text
+  const resumeText = $('resume-text')?.value?.trim() || '';
+  if (!resumeRaw && resumeText) {
+    resumeRaw = resumeText;
+    resumeMeta = { name: 'pasted-resume.txt', source: 'paste' };
+  }
+
+  const resp = await sendMessage({
+    type: 'SAVE_SETUP',
+    payload: {
+      settings,
+      profile,
+      resumeRaw,
+      resumeMeta,
+    },
+  });
+  if (!resp?.success) throw new Error(resp?.error || 'Failed to save profile.');
+  return resp;
 }
 
-// ...profile/setup logic will be moved here from popup.js...
+/**
+ * Initialize all setup screen event handlers.
+ */
+export async function initSetupHandlers() {
+  // File drop/change
+  const fileInput = $('resume-file');
+  const dropZone = $('file-drop-zone');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      setResumeDropLabel(fileInput.files[0]?.name || '');
+    });
+  }
+
+  if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer?.files[0];
+      if (file && fileInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        setResumeDropLabel(file.name);
+      }
+    });
+  }
+
+  $('privacy-consent')?.addEventListener('change', () => {
+    syncConsentGate();
+    if ($('privacy-consent').checked) {
+      setStatus('setup-status', '✅ Privacy accepted. Profile and AI settings are now unlocked.', 'success');
+    }
+  });
+
+  const sensitiveOptin = $('sensitive-optin');
+  const sensitiveFields = $('sensitive-fields');
+  if (sensitiveOptin && sensitiveFields) {
+    const syncSensitiveVisibility = () => {
+      sensitiveFields.classList.toggle('hidden', !sensitiveOptin.checked);
+    };
+    sensitiveOptin.addEventListener('change', syncSensitiveVisibility);
+    syncSensitiveVisibility();
+  }
+
+  $('download-resume-attachment-btn')?.addEventListener('click', async () => {
+    try {
+      const resp = await sendMessage({ type: 'GET_RESUME_ATTACHMENT' });
+      if (!resp?.success || !resp.attachment) {
+        throw new Error(resp?.error || 'No saved resume attachment is available yet.');
+      }
+      downloadResumeAttachment(resp.attachment);
+      setStatus('setup-status', '✅ Downloaded your saved resume copy.', 'success');
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + err.message, 'error');
+    }
+  });
+
+  $('remove-resume-attachment-btn')?.addEventListener('click', async () => {
+    const confirmed = confirm('Remove the saved local resume attachment preview? Your structured profile details will stay intact.');
+    if (!confirmed) return;
+
+    try {
+      const resp = await sendMessage({ type: 'REMOVE_RESUME_ATTACHMENT' });
+      if (!resp?.success) {
+        throw new Error(resp?.error || 'Could not remove the saved attachment.');
+      }
+      const state = await sendMessage({ type: 'GET_STATE' });
+      applyStateToSetupForm(state || {});
+      setStatus('setup-status', '✅ Saved resume attachment removed.', 'success');
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + err.message, 'error');
+    }
+  });
+
+  $('save-setup-btn')?.addEventListener('click', async () => {
+    try {
+      await handleSaveSetup();
+      setStatus('setup-status', '✅ Profile saved!', 'success');
+      // Reload state into form to show updated resume attachment, etc.
+      const state = await sendMessage({ type: 'GET_STATE' });
+      applyStateToSetupForm(state || {});
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + (err.message || 'Failed to save profile'), 'error');
+    }
+  });
+}
+
+/**
+ * Initialize tab switching (upload vs paste).
+ */
+export async function initTabs() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  for (const btn of tabBtns) {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.tab;
+      tabContents.forEach((tc) => tc.classList.add('hidden'));
+      const targetContent = $('tab-' + target);
+      if (targetContent) targetContent.classList.remove('hidden');
+    });
+  }
+}

@@ -1,7 +1,6 @@
 // job-search.js
 // All job search panel logic, rendering, and state management
 
-
 /**
  * Render job search results into the job search panel.
  * @param {Array} results
@@ -41,12 +40,6 @@ export function initJobSearchHandlers(showScreen) {
       showScreen('job-search');
     };
   }
-  const jobSearchBackBtn = document.getElementById('job-search-back-btn');
-  if (jobSearchBackBtn) {
-    jobSearchBackBtn.onclick = () => {
-      showScreen('main');
-    };
-  }
   const jobSearchInput = document.getElementById('job-search-input');
   const jobSearchSubmitBtn = document.getElementById('job-search-submit-btn');
   if (jobSearchSubmitBtn && jobSearchInput) {
@@ -64,5 +57,11 @@ export function initJobSearchHandlers(showScreen) {
     jobSearchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') jobSearchSubmitBtn.click();
     });
+  }
+  const jobSearchBackBtn = document.getElementById('job-search-back-btn');
+  if (jobSearchBackBtn) {
+    jobSearchBackBtn.onclick = () => {
+      showScreen('main');
+    };
   }
 }
