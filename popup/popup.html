@@ -14,6 +14,7 @@
       <div class="header-top">
         <button id="header-home-btn" class="logo-btn" type="button" title="Return to the workspace home">
           <span class="logo">🤖 Apply Bot</span>
+          <span id="header-screen-label" class="header-screen-label"></span>
         </button>
         <div class="header-actions">
           <button id="header-job-search-btn" class="icon-btn" title="Job Search">
@@ -34,8 +35,11 @@
     <!-- Setup Screen (shown when not configured) -->
     <section id="setup-screen" class="screen hidden">
       <div class="profile-screen-header">
-        <h2 class="section-title">Profile</h2>
-        <p class="helper-text">Your resume, settings, and memory all live here.</p>
+        <div>
+          <h2 class="section-title">Profile</h2>
+          <p class="helper-text">Your resume, settings, and memory all live here.</p>
+        </div>
+        <p id="setup-status" class="status-msg profile-header-status"></p>
       </div>
 
       <div class="profile-workspace">
@@ -228,10 +232,14 @@
             </div>
 
             <div class="profile-save-bar">
-              <button id="save-setup-btn" class="btn btn-primary btn-full">
-                Save Profile / Parse Resume ✨
-              </button>
-              <p id="setup-status" class="status-msg"></p>
+              <div class="profile-save-actions">
+                <button id="save-profile-btn" class="btn btn-secondary btn-full">
+                  Save Profile
+                </button>
+                <button id="parse-resume-btn" class="btn btn-primary btn-full">
+                  Parse / Upload Resume ✨
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -301,13 +309,15 @@
     <section id="tracker-screen" class="screen hidden">
       <div class="tracker-header">
         <div class="tracker-title-group">
-          <h2 class="section-title">Application Pipeline</h2>
           <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to Apply">⚡ Review</button>
+          <div class="tracker-primary-actions">
+            <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
+            <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
+            <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+          </div>
         </div>
         <div class="tracker-actions">
-          <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
-          <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
-          <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
+          <span id="tracker-status-inline" class="tracker-status-inline" role="status" aria-live="polite"></span>
           <input id="import-csv-input" type="file" accept=".csv,text/csv" class="hidden" />
         </div>
       </div>
@@ -377,6 +387,10 @@
         </div>
         <p id="preview-report-summary" class="report-summary"></p>
         <ul id="preview-report-unresolved" class="report-list"></ul>
+      </div>
+      <div class="preview-toolbar">
+        <input id="preview-filter-input" type="search" placeholder="Filter answers by field or value…" aria-label="Filter preview answers" />
+        <span id="preview-answer-count" class="badge badge-info">0 answers</span>
       </div>
       <div id="preview-content" class="preview-content">
         <p class="empty-msg">Generate answers first by clicking "Fill Form".</p>

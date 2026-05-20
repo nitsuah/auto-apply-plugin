@@ -5,9 +5,15 @@ import { $, esc, escAttr, sendMessage, sendToActiveTab } from '../../lib/utils.j
 import { showScreen, bindReviewJumpHandlers } from '../ux/navigation.js';
 import { setStatus } from '../ux/state.js';
 
+let lastPreviewEntries = [];
+
 export function initPreviewHandlers() {
   $('preview-back-btn')?.addEventListener('click', () => showScreen('main'));
   bindReviewJumpHandlers('preview-report-unresolved', 'fill-status');
+
+  $('preview-filter-input')?.addEventListener('input', () => {
+    renderPreviewList($('preview-filter-input')?.value || '');
+  });
 
   $('inject-from-preview-btn')?.addEventListener('click', async () => {
     const resp = await sendMessage({ type: 'GET_LAST_ANSWERS' });
@@ -28,20 +34,95 @@ export function renderPreview(answers, report) {
   if (!content) return;
 
   if (!answers || !Object.keys(answers).length) {
+    lastPreviewEntries = [];
     content.innerHTML = '<p class="empty-msg">Generate answers first by clicking "Fill Form".</p>';
+    if ($('preview-filter-input')) $('preview-filter-input').value = '';
+    if ($('preview-answer-count')) $('preview-answer-count').textContent = '0 answers';
     renderPreviewReport(null);
     return;
   }
 
-  const entries = Object.entries(answers);
-  content.innerHTML = entries.map(([label, value]) => `
-    <div class="preview-item">
-      <div class="preview-label">${esc(label)}</div>
-      <div class="preview-value">${esc(String(value || ''))}</div>
-    </div>
-  `).join('');
+  lastPreviewEntries = Object.entries(answers).map(([label, value]) => ({
+    label,
+    value: String(value || '').trim(),
+  }));
+
+  if ($('preview-filter-input')) $('preview-filter-input').value = '';
+  renderPreviewList('');
 
   renderPreviewReport(report);
+}
+
+function renderPreviewList(query = '') {
+  const content = $('preview-content');
+  if (!content) return;
+
+  const normalizedQuery = String(query || '').toLowerCase().trim();
+  const filtered = normalizedQuery
+    ? lastPreviewEntries.filter((entry) => {
+      return entry.label.toLowerCase().includes(normalizedQuery) || entry.value.toLowerCase().includes(normalizedQuery);
+    })
+    : lastPreviewEntries;
+
+  if ($('preview-answer-count')) {
+    const total = filtered.length;
+    $('preview-answer-count').textContent = `${total} answer${total === 1 ? '' : 's'}`;
+  }
+
+  if (!filtered.length) {
+    content.innerHTML = '<p class="empty-msg">No preview answers match the current filter.</p>';
+    return;
+  }
+
+  const grouped = groupPreviewEntries(filtered);
+  content.innerHTML = grouped.map((group) => {
+    const cards = group.items.map((item) => `
+      <article class="preview-card">
+        <h4 class="preview-card-label">${esc(item.label)}</h4>
+        <p class="preview-card-value">${esc(item.value || '—')}</p>
+      </article>
+    `).join('');
+
+    return `
+      <section class="preview-group">
+        <div class="preview-group-header">
+          <h3 class="preview-group-title">${esc(group.label)}</h3>
+          <span class="badge badge-info">${group.items.length}</span>
+        </div>
+        <div class="preview-grid">${cards}</div>
+      </section>
+    `;
+  }).join('');
+}
+
+function groupPreviewEntries(entries = []) {
+  const groups = [
+    { key: 'core', label: 'Core profile', items: [] },
+    { key: 'preferences', label: 'Preferences', items: [] },
+    { key: 'experience', label: 'Experience and narrative', items: [] },
+    { key: 'sensitive', label: 'Sensitive and demographic', items: [] },
+    { key: 'other', label: 'Other answers', items: [] },
+  ];
+
+  for (const entry of entries) {
+    const key = String(entry.label || '').toLowerCase();
+    let groupKey = 'other';
+
+    if (/name|email|phone|location|address|city|state|zip|postal|linkedin|github|portfolio|website|current company|current job title|pronouns/.test(key)) {
+      groupKey = 'core';
+    } else if (/salary|pay|authorization|sponsorship|remote|start date|availability|employment type/.test(key)) {
+      groupKey = 'preferences';
+    } else if (/experience|why|fit|accommodation|additional information|summary|skills|degree|education/.test(key)) {
+      groupKey = 'experience';
+    } else if (/race|ethnic|gender|veteran|disability|hispanic|latino|asian|white|black|native|military|sexual orientation/.test(key)) {
+      groupKey = 'sensitive';
+    }
+
+    const bucket = groups.find((group) => group.key === groupKey) || groups[groups.length - 1];
+    bucket.items.push(entry);
+  }
+
+  return groups.filter((group) => group.items.length > 0);
 }
 
 function renderPreviewReport(report) {

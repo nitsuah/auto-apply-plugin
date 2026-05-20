@@ -4,7 +4,7 @@
 import { $, sendMessage, sendToActiveTab, renderStatusOptions } from '../../lib/utils.js';
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 import { trackerDragState, trackerViewState, trackerSaveTimers, expandedTrackerIds } from './tracker-state.js';
-import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount } from './tracker-ui.js';
+import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup } from './tracker-ui.js';
 import { getTrackingStatusMeta } from './tracker-meta.js';
 import { exportCsv, importTrackerCsvFile } from './tracker-csv.js';
 import { showScreen } from '../ux/navigation.js';
@@ -15,9 +15,17 @@ import { fillTrackerDraftForm, readTrackerDraftForm, resetTrackerDraftForm } fro
 
 function setTrackerScreenStatus(msg, type = '') {
   const el = $('tracker-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'status-msg' + (type ? ' ' + type : '');
+  const inline = $('tracker-status-inline');
+
+  if (el) {
+    el.textContent = msg;
+    el.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  if (inline) {
+    inline.textContent = msg || '';
+    inline.className = 'tracker-status-inline' + (type ? ' ' + type : '');
+  }
 }
 
 function setTrackerAddStatus(msg, type = '') {
@@ -58,7 +66,7 @@ export function initTrackerHandlers() {
 
   // Populate status options on the add form
   if ($('new-application-status')) {
-    $('new-application-status').innerHTML = renderStatusOptions($('new-application-status').value || 'drafted');
+    $('new-application-status').innerHTML = renderStatusOptions($('new-application-status').value || 'drafted', { verbose: true });
   }
 
   // Search and filter
@@ -95,6 +103,15 @@ export function initTrackerHandlers() {
 
   // Delegated click handlers on tracker body
   $('tracker-body')?.addEventListener('click', async (event) => {
+    const laneToggleBtn = event.target.closest('.tracker-lane-toggle');
+    if (laneToggleBtn) {
+      const status = laneToggleBtn.dataset.finalStatus || '';
+      toggleFinalStageGroup(status);
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
+
     // Don't intercept company title links
     if (event.target.closest('.tracker-summary-title-link')) {
       event.stopPropagation();
@@ -108,6 +125,7 @@ export function initTrackerHandlers() {
       if (card) {
         const expanded = card.classList.toggle('expanded');
         toggleBtn.setAttribute('aria-expanded', String(expanded));
+        card.setAttribute('draggable', expanded ? 'false' : 'true');
         const id = card.dataset.id;
         if (expanded) expandedTrackerIds.add(id);
         else expandedTrackerIds.delete(id);
@@ -139,9 +157,31 @@ export function initTrackerHandlers() {
     if (!field) return;
     const card = field.closest('.tracker-card');
     if (!card) return;
+
+    if (field.dataset.field === 'status') {
+      const tone = normalizeApplicationStatus(field.value || 'drafted');
+      field.dataset.statusTone = tone;
+      card.dataset.status = tone;
+    }
+
+    if (field.dataset.field === 'location_select') {
+      const otherInput = card.querySelector('[data-field="location_other"]');
+      if (otherInput) {
+        otherInput.classList.toggle('hidden', field.value !== 'other');
+        if (field.value !== 'other') {
+          otherInput.value = '';
+        }
+      }
+    }
+
+    if (event.type === 'input' || event.type === 'change') {
+      syncPayInputs(card, field);
+    }
+
     scheduleTrackerSave(card);
   };
 
+  $('tracker-body')?.addEventListener('input', autoSave, true);
   $('tracker-body')?.addEventListener('change', autoSave, true);
   $('tracker-body')?.addEventListener('focusout', autoSave, true);
 }
@@ -174,30 +214,32 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
   const saveBtn = card.querySelector('.tracker-save-btn');
   const saveState = card.querySelector('.tracker-save-state');
 
-  let date = '';
   const dateInput = card.querySelector('input[data-field="date"]');
-  if (dateInput) {
-    date = dateInput.value;
-  } else {
-    const dateSpan = card.querySelector('span.tracker-card-date');
-    if (dateSpan) {
-      date = dateSpan.textContent;
-    }
-  }
 
   const patch = {
     company: card.querySelector('[data-field="company"]')?.value || '',
     title: card.querySelector('[data-field="title"]')?.value || '',
+    url: card.querySelector('[data-field="url"]')?.value || '',
     status: card.querySelector('[data-field="status"]')?.value || 'drafted',
-    location: card.querySelector('[data-field="location"]')?.value || 'Unknown',
+    location: getLocationValueFromCard(card),
     employment_type: card.querySelector('[data-field="employment_type"]')?.value || 'Full-time',
     remote: !!card.querySelector('[data-field="remote"]')?.checked,
-    salary_range: card.querySelector('[data-field="salary_range"]')?.value || '',
+    pay_min: Number(card.querySelector('[data-field="pay_min"]')?.value || 0) || 0,
+    pay_max: Number(card.querySelector('[data-field="pay_max"]')?.value || 0) || 0,
     scorecard: card.querySelector('[data-field="scorecard"]')?.value || '',
     verdict: card.querySelector('[data-field="verdict"]')?.value || '',
     description: card.querySelector('[data-field="description"]')?.value || '',
-    date: date || '',
   };
+
+  if (patch.pay_min > patch.pay_max) {
+    const tmp = patch.pay_min;
+    patch.pay_min = patch.pay_max;
+    patch.pay_max = tmp;
+  }
+
+  if (dateInput) {
+    patch.date = dateInput.value || '';
+  }
 
   if (saveBtn) {
     saveBtn.disabled = true;
@@ -230,7 +272,10 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
     const nextStatus = normalizeApplicationStatus(patch.status);
     card.dataset.status = nextStatus;
     card.dataset.sortOrder = String(resp?.entry?.sort_order ?? card.dataset.sortOrder ?? '');
-    syncTrackerCardSummary(card, patch);
+    syncTrackerCardSummary(card, {
+      ...patch,
+      ...(resp?.entry || {}),
+    });
     await loadMainScreen({ showMain: false });
 
     if (nextStatus !== normalizeApplicationStatus(previousStatus)) {
@@ -388,6 +433,10 @@ async function saveNewApplicationFromForm() {
 export function handleTrackerDragStart(event) {
   const card = event.target.closest('.tracker-card');
   if (!card) return;
+  if (card.classList.contains('expanded') || card.getAttribute('draggable') === 'false') {
+    event.preventDefault();
+    return;
+  }
 
   trackerDragState.id = card.dataset.id || '';
   trackerDragState.status = card.dataset.status || 'drafted';
@@ -397,6 +446,56 @@ export function handleTrackerDragStart(event) {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', trackerDragState.id);
   }
+}
+
+function getLocationValueFromCard(card) {
+  const select = card.querySelector('[data-field="location_select"]');
+  const other = card.querySelector('[data-field="location_other"]');
+  if (!select) return 'Unknown';
+  if (select.value === 'other') {
+    return (other?.value || '').trim() || 'Unknown';
+  }
+  return String(select.value || '').trim() || 'Unknown';
+}
+
+function syncPayInputs(card, changedField) {
+  const minRange = card.querySelector('[data-pay-range="min"]');
+  const maxRange = card.querySelector('[data-pay-range="max"]');
+  const minNumber = card.querySelector('[data-field="pay_min"]');
+  const maxNumber = card.querySelector('[data-field="pay_max"]');
+  if (!minRange || !maxRange || !minNumber || !maxNumber) return;
+
+  const clamp = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return 0;
+    return Math.round(num);
+  };
+
+  let min = clamp(minNumber.value || minRange.value);
+  let max = clamp(maxNumber.value || maxRange.value);
+
+  if (changedField?.matches?.('[data-pay-range="min"]')) {
+    min = clamp(changedField.value);
+  } else if (changedField?.matches?.('[data-pay-range="max"]')) {
+    max = clamp(changedField.value);
+  } else if (changedField?.dataset?.field === 'pay_min') {
+    min = clamp(changedField.value);
+  } else if (changedField?.dataset?.field === 'pay_max') {
+    max = clamp(changedField.value);
+  }
+
+  if (min > max) {
+    if (changedField?.matches?.('[data-pay-range="min"]') || changedField?.dataset?.field === 'pay_min') {
+      max = min;
+    } else {
+      min = max;
+    }
+  }
+
+  minRange.value = String(min);
+  maxRange.value = String(max);
+  minNumber.value = String(min);
+  maxNumber.value = String(max);
 }
 
 function handleTrackerDragOver(event) {

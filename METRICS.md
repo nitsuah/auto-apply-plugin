@@ -4,20 +4,22 @@
 
 | Metric        | Value |
 | ------------- | ----- |
-| Code Coverage | 0%    |
-| Build Time    | 0s    |
-| Bundle Size   | 0KB   |
-| Test Files    | unknown |
-| Test Cases    | unknown |
+| Code Coverage | 63.72% |
+| Build Time    | 3.44s |
+| Bundle Size   | 619.78KB |
+| Test Files    | 2 |
+| Test Cases    | 22 |
 
 ## Health
 
 | Metric        | Value  |
 | ------------- | ------ |
-| Open Issues   | 0      |
-| PR Turnaround | 0 days |
+| Open Issues   | unknown |
+| PR Turnaround | unknown |
 | Skipped Tests | 0      |
-| Health Score  | 0/100  |
+| Lint Status   | pass (latest docker validation) |
+| Latest Validation | docker compose: lint pass, tests 22 pass / 0 fail (2026-05-20) |
+| Health Score  | 78/100 |
 
 <!--
 AGENT INSTRUCTIONS:

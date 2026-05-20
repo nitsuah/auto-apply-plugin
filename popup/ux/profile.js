@@ -90,6 +90,21 @@ export async function handleSaveSetup() {
   return resp;
 }
 
+async function saveSetupFlow({ requireResume = false } = {}) {
+  const fileInput = $('resume-file');
+  const resumeText = $('resume-text')?.value?.trim() || '';
+  const hasResumeInput = !!(resumeText || fileInput?.files?.[0]);
+
+  if (requireResume && !hasResumeInput) {
+    throw new Error('Add a resume file or pasted resume text before parsing.');
+  }
+
+  const result = await handleSaveSetup();
+  const state = await sendMessage({ type: 'GET_STATE' });
+  applyStateToSetupForm(state || {});
+  return result;
+}
+
 /**
  * Initialize all setup screen event handlers.
  */
@@ -170,13 +185,19 @@ export async function initSetupHandlers() {
     }
   });
 
-  $('save-setup-btn')?.addEventListener('click', async () => {
+  $('save-profile-btn')?.addEventListener('click', async () => {
     try {
-      await handleSaveSetup();
+      await saveSetupFlow({ requireResume: false });
       setStatus('setup-status', '✅ Profile saved!', 'success');
-      // Reload state into form to show updated resume attachment, etc.
-      const state = await sendMessage({ type: 'GET_STATE' });
-      applyStateToSetupForm(state || {});
+    } catch (err) {
+      setStatus('setup-status', '❌ ' + (err.message || 'Failed to save profile'), 'error');
+    }
+  });
+
+  $('parse-resume-btn')?.addEventListener('click', async () => {
+    try {
+      await saveSetupFlow({ requireResume: true });
+      setStatus('setup-status', '✅ Resume parsed and profile saved!', 'success');
     } catch (err) {
       setStatus('setup-status', '❌ ' + (err.message || 'Failed to save profile'), 'error');
     }

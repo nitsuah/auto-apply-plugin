@@ -1,5 +1,5 @@
 ---
-updated: 2026-04-05 (tracker-workspace-planning)
+updated: 2026-05-20 (workspace-polish-resync)
 ---
 
 # Roadmap
@@ -11,11 +11,14 @@ updated: 2026-04-05 (tracker-workspace-planning)
 
 ## 2026 Q2 (In Progress)
 
-- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, salary range, verdict, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
+- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, structured pay bands, verdict controls, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
+	- Completed in current pass: tracker lane/header ergonomics, memory/profile workflow refinements, grouped tracker card edit sections, URL placement/styling alignment, submitted plus updated date visibility, and darker status-dropdown readability.
+	- Remaining for closeout: refresh README screenshots from the latest popup UI and finish final fit-and-finish sign-off.
 - [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
 - [x] Make Memory editable from Profile so users can correct bad captures quickly.
 - [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.
 - [x] Add a standalone mock-data preview mode so popup UI review and README screenshot refreshes work without the extension runtime.
+- [x] Add ATS reliability fallback by retrying content-script injection when a page has no receiver.
 
 ## 2026 Q3 (Planned)
 
@@ -35,10 +38,3 @@ updated: 2026-04-05 (tracker-workspace-planning)
 - Local-first and consent-first remain the product guardrails.
 - Scrape from the page or JD before asking the user to type.
 - Detailed execution work stays in `TASKS.md`.
-  
-	- [ ] Ship multi-source job search panel with ATS/job board handoff:
-		- Aggregate jobs from public APIs and/or scraping.
-		- Normalize and index results for search/filter.
-		- Prioritize extracting ATS/job board links for direct handoff.
-		- Enable one-click "Save to Tracker" and scrape job post details.
-		- Lay groundwork for future OAuth/personalized search if needed.

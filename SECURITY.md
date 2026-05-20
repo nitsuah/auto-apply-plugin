@@ -47,6 +47,13 @@ When contributing to this project:
 - Never commit API keys, passwords, or tokens
 - Review code changes for security implications
 
+## Extension-Specific Notes
+
+- Apply Workspace stores profile data and settings in `chrome.storage.local` and does not rely on a backend server.
+- Gemini API requests are the only intended external network calls and use the user-provided API key.
+- Content scripts should be scoped to supported ATS/job domains only and kept as least-privilege as possible.
+- Changes to `manifest.json` permissions, host permissions, and content script matches should be reviewed as security-sensitive.
+
 ## Disclosure Policy
 
 When we receive a security bug report, we will:

@@ -12,6 +12,20 @@ export function showScreen(name) {
   const target = document.getElementById(name + '-screen');
   if (target) target.classList.remove('hidden');
   document.body.dataset.screen = name;
+
+  const label = $('header-screen-label');
+  if (label) {
+    const labels = {
+      setup: '• Profile',
+      tracker: '• Pipeline',
+      ai: '• AI',
+      help: '• Help',
+      preview: '• Preview',
+      'job-search': '• Job Search',
+      main: '',
+    };
+    label.textContent = labels[name] || '';
+  }
 }
 
 export function scrollToSection(sectionId) {

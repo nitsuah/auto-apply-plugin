@@ -1,10 +1,30 @@
 // tracker-ui.js
 // Tracker board rendering: lanes, cards, sorting, filtering
 
-import { $, esc, escAttr, sendMessage, formatDate, formatDateInput, renderStatusOptions, renderEmploymentTypeOptions } from '../../lib/utils.js';
+import { $, esc, escAttr, sendMessage, formatDate, formatDateInput, formatSavedTimestamp, renderStatusOptions, renderEmploymentTypeOptions } from '../../lib/utils.js';
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 import { expandedTrackerIds, trackerViewState } from './tracker-state.js';
 import { getTrackingStatusMeta, TRACKER_STATUS_ORDER } from './tracker-meta.js';
+
+const VERDICT_OPTIONS = [
+  { value: 'strong_yes', label: 'Strong yes' },
+  { value: 'lean_yes', label: 'Lean yes' },
+  { value: 'neutral', label: 'Neutral / maybe' },
+  { value: 'lean_no', label: 'Lean no' },
+  { value: 'no', label: 'No, not a fit' },
+  { value: 'research', label: 'Need more research' },
+];
+
+const USA_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida',
+  'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
+  'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska',
+  'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas',
+  'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'District of Columbia',
+];
+
+const NA_COUNTRIES = ['Canada', 'Mexico', 'Bermuda', 'Greenland', 'Bahamas', 'Costa Rica', 'Panama'];
 
 // Re-export filterTrackerApplications from lib
 export { filterApplicationsForQuery as filterTrackerApplications } from '../../lib/tracker.js';
@@ -13,17 +33,40 @@ export { filterApplicationsForQuery as filterTrackerApplications } from '../../l
 
 export function sortTrackerApplications(applications = []) {
   return [...(applications || [])].sort((a, b) => {
+    const aDate = parseSortableDate(a?.date);
+    const bDate = parseSortableDate(b?.date);
+    if (aDate !== bDate) {
+      return bDate - aDate;
+    }
+
+    const aUpdated = parseSortableDateTime(a?.updated_at);
+    const bUpdated = parseSortableDateTime(b?.updated_at);
+    if (aUpdated !== bUpdated) {
+      return bUpdated - aUpdated;
+    }
+
     const aOrder = Number(a?.sort_order);
     const bOrder = Number(b?.sort_order);
     const hasA = Number.isFinite(aOrder);
     const hasB = Number.isFinite(bOrder);
-
     if (hasA || hasB) {
       return (hasB ? bOrder : Number.NEGATIVE_INFINITY) - (hasA ? aOrder : Number.NEGATIVE_INFINITY);
     }
 
-    return String(b?.updated_at || '').localeCompare(String(a?.updated_at || ''));
+    return String(b?.id || '').localeCompare(String(a?.id || ''));
   });
+}
+
+function parseSortableDate(value) {
+  const text = String(value || '').trim();
+  if (!text) return 0;
+  const ms = Date.parse(`${text}T00:00:00`);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function parseSortableDateTime(value) {
+  const ms = Date.parse(String(value || ''));
+  return Number.isFinite(ms) ? ms : 0;
 }
 
 // ── Filter UI sync ──────────────────────────────────────────────────────────
@@ -57,7 +100,17 @@ export function getTrackerLaneCount(applications, lane) {
 
 // ── Render tracker board ────────────────────────────────────────────────────
 
-let expandedRejected = false;
+const FINAL_STAGE_PREVIEW_COUNT = 4;
+const expandedFinalStages = {
+  rejected: false,
+  retired: false,
+};
+
+export function toggleFinalStageGroup(status) {
+  const normalized = normalizeApplicationStatus(status);
+  if (!Object.prototype.hasOwnProperty.call(expandedFinalStages, normalized)) return;
+  expandedFinalStages[normalized] = !expandedFinalStages[normalized];
+}
 
 export async function renderTracker() {
   const resp = await sendMessage({ type: 'GET_STATE' });
@@ -99,14 +152,8 @@ export async function renderTracker() {
         { key: 'offer', label: '🎉 Offer', statuses: ['offer'] },
       ],
     },
-    {
-      key: 'final',
-      label: '📁 Final stage',
-      groups: [
-        { key: 'rejected', label: '❌ Rejected', statuses: ['rejected'] },
-        { key: 'retired', label: '⬜ Retired', statuses: ['retired'] },
-      ],
-    },
+    { key: 'rejected', label: '❌ Rejected', statuses: ['rejected'], finalStage: true },
+    { key: 'retired', label: '⬜ Retired', statuses: ['retired'], finalStage: true },
   ];
 
   tbody.innerHTML = lanes.map((lane) => renderTrackerLane(filteredApps, lane)).join('');
@@ -170,17 +217,35 @@ export function renderTrackerLane(applications, lane) {
   }
 
   const laneApps = applications.filter((app) => lane.statuses.includes(normalizeApplicationStatus(app.status)));
-  const cards = laneApps.length
-    ? laneApps.map(renderTrackerCard).join('')
+  const isFinalStageLane = lane.finalStage === true;
+  const laneStatus = lane.statuses[0] || lane.key;
+  const canCollapse = isFinalStageLane && laneApps.length > FINAL_STAGE_PREVIEW_COUNT;
+  const isExpanded = canCollapse ? !!expandedFinalStages[laneStatus] : true;
+  const visibleApps = canCollapse && !isExpanded
+    ? laneApps.slice(0, FINAL_STAGE_PREVIEW_COUNT)
+    : laneApps;
+
+  const cards = visibleApps.length
+    ? visibleApps.map(renderTrackerCard).join('')
     : '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
 
+  const remainingCount = Math.max(0, laneApps.length - FINAL_STAGE_PREVIEW_COUNT);
+  const toggleText = isExpanded
+    ? `Show less`
+    : `Show ${visibleApps.length} of ${laneApps.length}${remainingCount ? ` (+${remainingCount})` : ''}`;
+
+  const toggleButton = canCollapse
+    ? `<button class="btn btn-ghost btn-xs tracker-lane-toggle" data-final-status="${escAttr(laneStatus)}" aria-expanded="${isExpanded ? 'true' : 'false'}">${toggleText}</button>`
+    : '';
+
   return `
-    <section class="tracker-lane" data-status-target="${escAttr(lane.statuses[0])}">
+    <section class="tracker-lane${isFinalStageLane ? ` tracker-lane-final tracker-lane-final-${escAttr(laneStatus)}` : ''}" data-status-target="${escAttr(lane.statuses[0])}">
       <div class="tracker-lane-header">
         <span class="tracker-lane-title">${lane.label}</span>
         <span class="tracker-lane-count">${laneApps.length}</span>
       </div>
       <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${cards}</div>
+      ${toggleButton}
     </section>
   `;
 }
@@ -190,25 +255,28 @@ export function renderTrackerLane(applications, lane) {
 export function renderTrackerCard(app) {
   const expanded = expandedTrackerIds.has(app.id);
   const normalizedStatus = normalizeApplicationStatus(app.status);
+  const pay = resolvePayBand(app);
+  const locationUi = getLocationUiState(app.location);
   const summaryMeta = [
     app.location || 'Unknown',
     app.employment_type || 'Full-time',
     app.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' · ');
-  const summaryNote = app.verdict || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
+  const summaryNote = getVerdictLabel(app.verdict) || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
+  const salaryText = formatPayDisplay(pay.min, pay.max, app.salary_range);
   const companyLabel = app.url
     ? `<a class="tracker-summary-title-link" href="${escAttr(app.url)}" target="_blank" rel="noopener">${esc(app.company || 'Unknown company')}</a>`
     : esc(app.company || 'Unknown company');
 
   return `
-    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="${expanded ? 'false' : 'true'}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
       <div class="tracker-card-header">
         <div class="tracker-card-summary tracker-card-toggle" role="button" tabindex="0" aria-expanded="${expanded ? 'true' : 'false'}">
           <div class="tracker-summary-copy">
             <div class="tracker-summary-title">${companyLabel}</div>
             <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
             <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
-            <div class="tracker-summary-salary${app.salary_range ? '' : ' hidden'}">${esc(app.salary_range || 'Pay range not saved yet')}</div>
+            <div class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || 'Pay range not saved yet')}</div>
           </div>
         </div>
         <div class="tracker-card-tools tracker-card-tools-right">
@@ -216,32 +284,76 @@ export function renderTrackerCard(app) {
             ${renderStatusOptions(app.status)}
           </select>
           <div class="tracker-card-note-right">${esc(summaryNote)}</div>
-          <span class='tracker-card-date-label'>Date:</span>
-          <span class='tracker-card-date'>${esc(formatDate(app.date))}</span>
+          <div class="tracker-card-meta-row">
+            <span class="tracker-card-date-label">Submitted:</span>
+            <span class="tracker-card-date tracker-card-submitted">${esc(formatDate(app.date) || '—')}</span>
+          </div>
+          <div class="tracker-card-meta-row">
+            <span class="tracker-card-date-label">Updated:</span>
+            <span class="tracker-card-date tracker-card-updated">${esc(formatSavedTimestamp(app.updated_at) || '—')}</span>
+          </div>
         </div>
       </div>
       <div class="tracker-card-details">
         <div class="tracker-card-fields">
-          <input data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
-          <input data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
-          <input data-field="location" type="text" value="${escAttr(app.location || 'Unknown')}" placeholder="Location" />
-          <div class="inline-fields compact-fields">
-            <select data-field="employment_type">
-              ${renderEmploymentTypeOptions(app.employment_type)}
-            </select>
-            <label class="checkbox-row" style="margin-top:0">
-              <input data-field="remote" type="checkbox" ${app.remote ? 'checked' : ''} />
-              Remote
-            </label>
-            ${expanded ? `<label class="date-row" style="margin-left:10px;font-size:12px;">
-              <span style="margin-right:4px;">Submission date</span>
-              <input class="tracker-card-date-input" data-field="date" type="date" value="${escAttr(app.date ? formatDateInput(app.date) : '')}" aria-label="Edit submission date" />
-            </label>` : ''}
+          <div class="tracker-card-core-grid">
+            <input class="tracker-field-company" data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
+            <input class="tracker-field-title" data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
           </div>
-          <input data-field="salary_range" type="text" value="${escAttr(app.salary_range || '')}" placeholder="Salary range" />
-          <input data-field="scorecard" type="text" value="${escAttr(app.scorecard || '')}" placeholder="Scorecard" />
-          <input data-field="verdict" type="text" value="${escAttr(app.verdict || '')}" placeholder="Verdict / notes" />
-          <textarea data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
+
+          <div class="tracker-card-groups-grid">
+            <div class="tracker-context-box">
+              <div class="location-editor tracker-field-location">
+                <select data-field="location_select" class="tracker-location-select" aria-label="Location">
+                  ${renderLocationOptions(locationUi.selectValue)}
+                </select>
+                <input data-field="location_other" type="text" class="tracker-location-other${locationUi.selectValue === 'other' ? '' : ' hidden'}" value="${escAttr(locationUi.otherText)}" placeholder="Custom location" />
+              </div>
+              <div class="inline-fields compact-fields tracker-field-employment">
+                <select data-field="employment_type">
+                  ${renderEmploymentTypeOptions(app.employment_type)}
+                </select>
+                <label class="checkbox-row" style="margin-top:0">
+                  <input data-field="remote" type="checkbox" ${app.remote ? 'checked' : ''} />
+                  Remote
+                </label>
+              </div>
+            </div>
+
+            <div class="pay-editor tracker-score-pay">
+              <div class="pay-editor-row">
+                <label class="pay-label">Pay min</label>
+                <input type="range" data-pay-range="min" min="0" max="500000" step="5000" value="${escAttr(String(pay.min || 0))}" />
+                <input data-field="pay_min" type="number" min="0" step="1000" value="${escAttr(String(pay.min || ''))}" placeholder="0" />
+              </div>
+              <div class="pay-editor-row">
+                <label class="pay-label">Pay max</label>
+                <input type="range" data-pay-range="max" min="0" max="500000" step="5000" value="${escAttr(String(pay.max || Math.max(pay.min || 0, 0)))}" />
+                <input data-field="pay_max" type="number" min="0" step="1000" value="${escAttr(String(pay.max || ''))}" placeholder="0" />
+              </div>
+            </div>
+
+            <div class="tracker-score-verdict">
+              <select data-field="verdict" aria-label="Interest verdict">
+                ${renderVerdictOptions(app.verdict)}
+              </select>
+              <input data-field="scorecard" type="text" value="${escAttr(app.scorecard || '')}" placeholder="Scorecard" />
+              <input class="tracker-field-url" data-field="url" type="url" value="${escAttr(app.url || '')}" placeholder="Job URL" />
+            </div>
+
+            <div class="tracker-date-box">
+              <label class="tracker-date-editor-label">
+                <span>Submitted date</span>
+                <input class="tracker-card-date-input" data-field="date" type="date" value="${escAttr(app.date ? formatDateInput(app.date) : '')}" aria-label="Edit submission date" />
+              </label>
+              <label class="tracker-date-editor-label">
+                <span>Last updated</span>
+                <input type="text" value="${escAttr(formatSavedTimestamp(app.updated_at) || '—')}" readonly />
+              </label>
+            </div>
+          </div>
+
+          <textarea class="tracker-field-description" data-field="description" rows="6" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
         </div>
         <div class="tracker-card-actions">
           <span class="tracker-save-state">Auto-save on blur</span>
@@ -267,7 +379,7 @@ export function syncTrackerCardSummary(card, patch = {}) {
     patch.employment_type || 'Full-time',
     patch.remote ? 'Remote' : 'On-site',
   ].filter(Boolean).join(' · ');
-  const summaryNote = patch.verdict || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
+  const summaryNote = getVerdictLabel(patch.verdict) || patch.scorecard || (patch.description ? 'Description cached' : 'Click to edit');
 
   const statusSelect = card.querySelector('.tracker-card-header .tracker-status-select');
   if (statusSelect) {
@@ -276,16 +388,119 @@ export function syncTrackerCardSummary(card, patch = {}) {
   }
 
   const titleEl = card.querySelector('.tracker-summary-title');
-  if (titleEl) titleEl.textContent = company;
+  if (titleEl) {
+    if (String(patch.url || '').trim()) {
+      titleEl.innerHTML = `<a class="tracker-summary-title-link" href="${escAttr(String(patch.url || '').trim())}" target="_blank" rel="noopener">${esc(company)}</a>`;
+    } else {
+      titleEl.textContent = company;
+    }
+  }
   const roleEl = card.querySelector('.tracker-summary-role');
   if (roleEl) roleEl.textContent = title;
   const metaEl = card.querySelector('.tracker-summary-meta');
   if (metaEl) metaEl.textContent = summaryMeta;
   const salaryEl = card.querySelector('.tracker-summary-salary');
+  const salaryText = formatPayDisplay(patch.pay_min, patch.pay_max, patch.salary_range);
   if (salaryEl) {
-    salaryEl.textContent = patch.salary_range || 'Pay range not saved yet';
-    salaryEl.classList.toggle('hidden', !String(patch.salary_range || '').trim());
+    salaryEl.textContent = salaryText || 'Pay range not saved yet';
+    salaryEl.classList.toggle('hidden', !String(salaryText || '').trim());
   }
   const noteEl = card.querySelector('.tracker-card-note-right');
   if (noteEl) noteEl.textContent = summaryNote;
+
+  const submittedEl = card.querySelector('.tracker-card-submitted');
+  if (submittedEl) submittedEl.textContent = formatDate(patch.date) || '—';
+
+  const updatedEl = card.querySelector('.tracker-card-updated');
+  if (updatedEl) updatedEl.textContent = formatSavedTimestamp(patch.updated_at) || '—';
+}
+
+function getVerdictLabel(value = '') {
+  const normalized = String(value || '').trim();
+  const match = VERDICT_OPTIONS.find((option) => option.value === normalized);
+  return match ? match.label : normalized;
+}
+
+function renderVerdictOptions(current = '') {
+  const normalized = String(current || '').trim();
+  const hasKnown = VERDICT_OPTIONS.some((option) => option.value === normalized);
+  return VERDICT_OPTIONS.map((option) => {
+    const selected = option.value === (hasKnown ? normalized : 'neutral') ? ' selected' : '';
+    return `<option value="${escAttr(option.value)}"${selected}>${esc(option.label)}</option>`;
+  }).join('');
+}
+
+function resolvePayBand(app = {}) {
+  const min = parsePayValue(app.pay_min);
+  const max = parsePayValue(app.pay_max);
+  if (min || max) {
+    return {
+      min: min || 0,
+      max: max || Math.max(min || 0, 0),
+    };
+  }
+
+  const parsed = parsePayBandFromText(app.salary_range);
+  return {
+    min: parsed.min || 0,
+    max: parsed.max || 0,
+  };
+}
+
+function parsePayValue(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? Math.round(num) : 0;
+}
+
+function parsePayBandFromText(text = '') {
+  const numbers = String(text || '').match(/\d[\d,]*/g) || [];
+  if (!numbers.length) return { min: 0, max: 0 };
+  const parsed = numbers.map((value) => Number(String(value).replace(/,/g, ''))).filter((n) => Number.isFinite(n));
+  if (!parsed.length) return { min: 0, max: 0 };
+  if (parsed.length === 1) return { min: parsed[0], max: parsed[0] };
+  return { min: Math.min(parsed[0], parsed[1]), max: Math.max(parsed[0], parsed[1]) };
+}
+
+function formatPayDisplay(min, max, fallback = '') {
+  const safeMin = parsePayValue(min);
+  const safeMax = parsePayValue(max);
+  if (safeMin && safeMax) return `$${safeMin.toLocaleString()} - $${safeMax.toLocaleString()}`;
+  if (safeMin) return `$${safeMin.toLocaleString()}`;
+  if (safeMax) return `$${safeMax.toLocaleString()}`;
+  const fallbackText = String(fallback || '').trim();
+  return fallbackText;
+}
+
+function getLocationUiState(location = '') {
+  const normalized = String(location || '').trim();
+  if (!normalized) {
+    return { selectValue: 'United States', otherText: '' };
+  }
+
+  if (normalized === 'United States' || USA_STATES.includes(normalized) || NA_COUNTRIES.includes(normalized)) {
+    return { selectValue: normalized, otherText: '' };
+  }
+
+  return {
+    selectValue: 'other',
+    otherText: normalized,
+  };
+}
+
+function renderLocationOptions(selectedValue = '') {
+  const current = String(selectedValue || 'United States');
+  const renderOption = (value, label = value) => {
+    const selected = value === current ? ' selected' : '';
+    return `<option value="${escAttr(value)}"${selected}>${esc(label)}</option>`;
+  };
+
+  const usOptions = USA_STATES.map((state) => renderOption(state)).join('');
+  const naOptions = NA_COUNTRIES.map((country) => renderOption(country)).join('');
+
+  return `
+    ${renderOption('United States')}
+    <optgroup label="USA states">${usOptions}</optgroup>
+    <optgroup label="North America">${naOptions}</optgroup>
+    ${renderOption('other', 'Other (custom)')}
+  `;
 }

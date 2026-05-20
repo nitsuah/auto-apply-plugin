@@ -15,7 +15,10 @@
     "https://*.lever.co/*",
     "https://www.linkedin.com/*",
     "https://*.workday.com/*",
-    "https://*.icims.com/*"
+    "https://*.icims.com/*",
+    "https://*.jobvite.com/*",
+    "https://*.circle.com/*",
+    "https://*.phenompeople.com/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
@@ -45,7 +48,10 @@
         "https://*.lever.co/*",
         "https://www.linkedin.com/jobs/*",
         "https://*.workday.com/*",
-        "https://*.icims.com/*"
+        "https://*.icims.com/*",
+        "https://*.jobvite.com/*",
+        "https://*.circle.com/*",
+        "https://*.phenompeople.com/*"
       ],
       "js": ["content/content.js"],
       "run_at": "document_idle"
