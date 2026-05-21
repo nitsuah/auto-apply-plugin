@@ -8,6 +8,12 @@ export const TRACKER_STATUS_META = {
     optionHint: 'saved lead / not sent',
     cardHint: 'Saved lead — tailor before sending',
   },
+  filled: {
+    label: 'Filled',
+    emoji: '📝',
+    optionHint: 'answers drafted / review before submitting',
+    cardHint: 'Ready for final review before submit',
+  },
   retired: {
     label: 'Retired',
     emoji: '⬜',
@@ -47,7 +53,7 @@ export const TRACKER_STATUS_META = {
   },
 };
 
-export const TRACKER_STATUS_ORDER = ['drafted', 'submitted', 'pending', 'interview', 'offer', 'rejected', 'retired'];
+export const TRACKER_STATUS_ORDER = ['drafted', 'filled', 'submitted', 'pending', 'interview', 'offer', 'rejected', 'retired'];
 
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 

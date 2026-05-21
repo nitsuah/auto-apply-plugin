@@ -1,6 +1,8 @@
 // job-search.js
 // All job search panel logic, rendering, and state management
 
+import { esc, escAttr } from '../../lib/utils.js';
+
 /**
  * Render job search results into the job search panel.
  * @param {Array} results
@@ -14,9 +16,9 @@ export function renderJobSearchResults(results) {
   }
   resultsDiv.innerHTML = results.map(j => `
     <div class="job-search-result">
-      <div class="job-title">${j.title}</div>
-      <div class="job-meta">${j.company} • ${j.location}</div>
-      <a href="${j.url}" target="_blank" rel="noopener" class="job-link">View job</a>
+      <div class="job-title">${esc(j.title)}</div>
+      <div class="job-meta">${esc(j.company)} • ${esc(j.location)}</div>
+      <a href="${escAttr(j.url)}" target="_blank" rel="noopener" class="job-link">View job</a>
     </div>
   `).join('');
 }
@@ -48,11 +50,14 @@ export function initJobSearchHandlers(showScreen) {
       if (!query) return;
       jobSearchSubmitBtn.disabled = true;
       jobSearchSubmitBtn.textContent = 'Searching...';
-      const { searchJobs } = await import('../../lib/job-search.js');
-      const results = await searchJobs(query);
-      renderJobSearchResults(results);
-      jobSearchSubmitBtn.disabled = false;
-      jobSearchSubmitBtn.textContent = 'Search';
+      try {
+        const { searchJobs } = await import('../../lib/job-search.js');
+        const results = await searchJobs(query);
+        renderJobSearchResults(results);
+      } finally {
+        jobSearchSubmitBtn.disabled = false;
+        jobSearchSubmitBtn.textContent = 'Search';
+      }
     };
     jobSearchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') jobSearchSubmitBtn.click();

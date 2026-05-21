@@ -6,9 +6,6 @@ import { showScreen } from './navigation.js';
 import { setStatus } from './state.js';
 
 export function initHelpHandlers() {
-  // Show Help panel when Help button clicked
-  const helpBtn = $('header-help-btn');
-  if (helpBtn) helpBtn.onclick = () => showScreen('help');
   // Back button
   const helpBackBtn = $('help-back-btn');
   if (helpBackBtn) helpBackBtn.onclick = () => showScreen('main');
@@ -21,7 +18,7 @@ export function initHelpHandlers() {
   // Clear temp cache
   $('clear-cache-btn')?.addEventListener('click', async () => {
     try {
-      const resp = await sendMessage({ type: 'CLEAR_CACHE' });
+      const resp = await sendMessage({ type: 'CLEAR_TEMP_DATA' });
       if (resp?.success) {
         setStatus('help-status', '✅ Temporary cache cleared.', 'success');
       } else {
