@@ -4,7 +4,7 @@
 import { $, sendMessage, sendToActiveTab, renderStatusOptions } from '../../lib/utils.js';
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 import { trackerDragState, trackerViewState, trackerSaveTimers, expandedTrackerIds } from './tracker-state.js';
-import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup } from './tracker-ui.js';
+import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup, toggleFinalStageBubbleSelection, clearFinalStageBubbleSelections, toggleFinalDockLane } from './tracker-ui.js';
 import { getTrackingStatusMeta } from './tracker-meta.js';
 import { exportCsv, importTrackerCsvFile } from './tracker-csv.js';
 import { showScreen } from '../ux/navigation.js';
@@ -24,7 +24,8 @@ function setTrackerScreenStatus(msg, type = '') {
 
   if (inline) {
     inline.textContent = msg || '';
-    inline.className = 'tracker-status-inline' + (type ? ' ' + type : '');
+    const docked = inline.classList.contains('tracker-status-inline-docked') ? ' tracker-status-inline-docked' : '';
+    inline.className = 'tracker-status-inline' + docked + (type ? ' ' + type : '');
   }
 }
 
@@ -112,6 +113,33 @@ export function initTrackerHandlers() {
       return;
     }
 
+    const finalDockToggleBtn = event.target.closest('.tracker-final-dock-toggle');
+    if (finalDockToggleBtn) {
+      const status = finalDockToggleBtn.dataset.finalDockToggle || '';
+      toggleFinalDockLane(status);
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
+
+    const finalBubbleBtn = event.target.closest('.tracker-final-bubble');
+    if (finalBubbleBtn) {
+      if (finalBubbleBtn.dataset.clearFinalBubbles === 'true') {
+        clearFinalStageBubbleSelections();
+        await renderTracker();
+        showScreen('tracker');
+        return;
+      }
+
+      const id = finalBubbleBtn.dataset.expandCardId || '';
+      if (id) {
+        toggleFinalStageBubbleSelection(id);
+        await renderTracker();
+        showScreen('tracker');
+      }
+      return;
+    }
+
     // Don't intercept company title links
     if (event.target.closest('.tracker-summary-title-link')) {
       event.stopPropagation();
@@ -153,7 +181,7 @@ export function initTrackerHandlers() {
 
   // Auto-save on field change/blur
   const autoSave = (event) => {
-    const field = event.target.closest?.('[data-field]');
+    const field = event.target.closest?.('[data-field], [data-pay-range]');
     if (!field) return;
     const card = field.closest('.tracker-card');
     if (!card) return;
@@ -166,6 +194,16 @@ export function initTrackerHandlers() {
 
     if (field.dataset.field === 'location_select') {
       const otherInput = card.querySelector('[data-field="location_other"]');
+      if (otherInput) {
+        otherInput.classList.toggle('hidden', field.value !== 'other');
+        if (field.value !== 'other') {
+          otherInput.value = '';
+        }
+      }
+    }
+
+    if (field.dataset.field === 'scorecard_select') {
+      const otherInput = card.querySelector('[data-field="scorecard_other"]');
       if (otherInput) {
         otherInput.classList.toggle('hidden', field.value !== 'other');
         if (field.value !== 'other') {
@@ -216,6 +254,16 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
 
   const dateInput = card.querySelector('input[data-field="date"]');
 
+  const scorecardSelect = card.querySelector('[data-field="scorecard_select"]')?.value || '';
+  const scorecardOther = card.querySelector('[data-field="scorecard_other"]')?.value || '';
+
+  let scorecardValue = '';
+  if (scorecardSelect === 'other') {
+    scorecardValue = scorecardOther;
+  } else if (scorecardSelect !== '') {
+    scorecardValue = `${Number(scorecardSelect)}/5`;
+  }
+
   const patch = {
     company: card.querySelector('[data-field="company"]')?.value || '',
     title: card.querySelector('[data-field="title"]')?.value || '',
@@ -226,7 +274,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
     remote: !!card.querySelector('[data-field="remote"]')?.checked,
     pay_min: Number(card.querySelector('[data-field="pay_min"]')?.value || 0) || 0,
     pay_max: Number(card.querySelector('[data-field="pay_max"]')?.value || 0) || 0,
-    scorecard: card.querySelector('[data-field="scorecard"]')?.value || '',
+    scorecard: scorecardValue,
     verdict: card.querySelector('[data-field="verdict"]')?.value || '',
     description: card.querySelector('[data-field="description"]')?.value || '',
   };
@@ -465,10 +513,12 @@ function syncPayInputs(card, changedField) {
   const maxNumber = card.querySelector('[data-field="pay_max"]');
   if (!minRange || !maxRange || !minNumber || !maxNumber) return;
 
+  const PAY_STEP = 5000;
+
   const clamp = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num < 0) return 0;
-    return Math.round(num);
+    return Math.round(num / PAY_STEP) * PAY_STEP;
   };
 
   let min = clamp(minNumber.value || minRange.value);
@@ -501,10 +551,18 @@ function syncPayInputs(card, changedField) {
 function handleTrackerDragOver(event) {
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
-  if (!dragging || !container) return;
+  const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
+  if (!dragging || (!container && !finalLane)) return;
 
   event.preventDefault();
   document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((el) => el.classList.remove('drag-target'));
+  document.querySelectorAll('.tracker-lane-final.drag-target').forEach((el) => el.classList.remove('drag-target'));
+
+  if (finalLane && !container) {
+    finalLane.classList.add('drag-target');
+    return;
+  }
+
   container.classList.add('drag-target');
 
   const afterElement = getTrackerDragAfterElement(container, event.clientY);
@@ -518,13 +576,33 @@ function handleTrackerDragOver(event) {
 export async function handleTrackerDrop(event) {
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
-  if (!dragging || !container) return;
+  const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
+  if (!dragging || (!container && !finalLane)) return;
 
   event.preventDefault();
   const movedId = trackerDragState.id;
-  const destinationStatus = container.dataset.statusTarget || dragging.dataset.status || 'drafted';
+  const destinationStatus = (container?.dataset?.statusTarget || finalLane?.dataset?.statusTarget || dragging.dataset.status || 'drafted');
 
   try {
+    if (finalLane && !container) {
+      const resp = await sendMessage({
+        type: 'UPDATE_APPLICATION',
+        payload: {
+          id: movedId,
+          patch: { status: destinationStatus },
+        },
+      });
+      if (!resp?.success) {
+        throw new Error(resp?.error || 'Could not move card to that lane.');
+      }
+      await renderTracker();
+      await loadMainScreen({ showMain: false });
+      showScreen('tracker');
+      const movedStatusMeta = getTrackingStatusMeta(destinationStatus);
+      setTrackerScreenStatus(`✅ Moved card to ${movedStatusMeta.label} — ${movedStatusMeta.optionHint}.`, 'success');
+      return;
+    }
+
     await persistTrackerBoardOrder(movedId, destinationStatus);
   } catch (err) {
     setTrackerScreenStatus('❌ ' + err.message, 'error');
@@ -542,6 +620,7 @@ function clearTrackerDragState() {
   trackerDragState.status = '';
   document.querySelectorAll('.tracker-card.dragging').forEach((card) => card.classList.remove('dragging'));
   document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
+  document.querySelectorAll('.tracker-lane-final.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
 }
 
 function getTrackerDragAfterElement(container, y) {

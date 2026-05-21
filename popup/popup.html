@@ -307,27 +307,20 @@
 
     <!-- Tracker Screen -->
     <section id="tracker-screen" class="screen hidden">
-      <div class="tracker-header">
-        <div class="tracker-title-group">
-          <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to Apply">⚡ Review</button>
-          <div class="tracker-primary-actions">
-            <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
-            <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
-            <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
-          </div>
+      <div class="tracker-toolbar">
+        <button id="tracker-home-btn" class="btn btn-primary btn-sm tracker-home-btn" type="button" title="Return to Apply">⚡ Back to Apply</button>
+        <input id="tracker-search-input" type="search" placeholder="Search company, role, notes…" aria-label="Search tracked applications" />
+        <div class="tracker-toolbar-filters">
+          <button id="tracker-scope-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-pressed="false">All</button>
+          <button id="tracker-clear-filters-btn" class="btn btn-ghost btn-sm" type="button">Clear filters</button>
         </div>
-        <div class="tracker-actions">
-          <span id="tracker-status-inline" class="tracker-status-inline" role="status" aria-live="polite"></span>
+        <div class="tracker-toolbar-actions">
+          <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
+          <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
+          <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
           <input id="import-csv-input" type="file" accept=".csv,text/csv" class="hidden" />
         </div>
       </div>
-      <div class="tracker-toolbar">
-        <input id="tracker-search-input" type="search" placeholder="Search company, role, notes…" aria-label="Search tracked applications" />
-        <button id="tracker-scope-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-pressed="false">All</button>
-        <button id="tracker-clear-filters-btn" class="btn btn-ghost btn-sm" type="button">Clear filters</button>
-      </div>
-      <p id="tracker-status" class="status-msg"></p>
-
       <div id="tracker-add-card" class="help-card hidden">
         <div class="report-header">
           <span class="report-title">Quick add</span>
