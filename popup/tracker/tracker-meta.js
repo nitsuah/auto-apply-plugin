@@ -11,7 +11,7 @@ export const TRACKER_STATUS_META = {
   filled: {
     label: 'Filled',
     emoji: '📝',
-    optionHint: 'answers drafted / review before submit',
+    optionHint: 'answers drafted / review before submitting',
     cardHint: 'Ready for final review before submit',
   },
   retired: {

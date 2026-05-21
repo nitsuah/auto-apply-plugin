@@ -1,4 +1,4 @@
-// test/runtime-errors.test.mjs
+// tests/runtime-errors.test.mjs
 import { execSync } from 'child_process';
 import assert from 'assert';
 
