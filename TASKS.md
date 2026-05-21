@@ -1,25 +1,26 @@
 # TASKS
 ---
-updated: 2026-05-20 (docs-sync)
+updated: 2026-05-21 (qa-docs-sync)
 ---
 
 ## In Progress
 
 - [ ] Process note: after any significant popup / tracker / profile UI update, refresh the README gallery images in `screenshots/` before wrapping the stopping point.
-  - Progress: pending refresh after the latest tracker/profile UI passes (memory cards, tracker lane controls, profile action buttons, status placement updates, and tracker card editor redesign).
+  - Progress: still pending refresh after the latest tracker/profile UI passes (memory cards, tracker lane controls, profile action buttons, status placement updates, and tracker card editor redesign).
 
 - [/] Polish the popup into a true job-workspace view.
   - Priority: P1
   - Context: the tracker is now useful, but the remaining work is mostly fit-and-finish: wider workspace sizing, tighter review loops, and lower-scroll editing.
   - Acceptance Criteria: tracker/profile views feel roomy, the user can manage job context without fighting the popup, and the workspace stays aligned with the local-first/review-first product promise.
   - Progress: landed wider workspace behavior, responsive lane/grid cleanup, final-stage (Rejected/Retired) collapse controls, tracker status placement near header actions, status-select dark-mode polish, split Profile actions (Save Profile vs Parse/Upload Resume), editable card URL, grouped card editor boxes, restored submitted/updated date editing block, structured pay controls, verdict dropdown, location selector, drag-lock while editing, and larger description editing area.
-  - Remaining: screenshot refresh and final visual pass sign-off after real popup/runtime capture.
+  - Remaining: screenshot refresh and final visual pass sign-off after current manual QA runtime capture.
 
 - [/] Keep local-first autofill and privacy controls trustworthy.
   - Priority: P1
   - Context: privacy consent, help/reset flows, and profile-adjacent Memory now exist; the next work is tightening clarity and keeping the controls easy to trust.
   - Acceptance Criteria: the privacy story remains explicit, Memory stays easy to review/correct, and reset/delete flows remain one click away.
   - Progress: memory rendering/edit/ignore/restore flows now reliably display and persist; sensitive memory grouping remains visible; status messaging and profile workflows were clarified without weakening consent-first/local-first behavior.
+  - Remaining: close out QA pass and confirm no wording regressions in privacy/help flows.
 
 - [/] Start a practical `apply-bot` rebrand pass.
   - Priority: P2
