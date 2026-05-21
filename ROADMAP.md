@@ -1,5 +1,5 @@
 ---
-updated: 2026-05-21 (qa-pass-in-flight)
+updated: 2026-05-21 (qa-closeout)
 ---
 
 # Roadmap
@@ -13,7 +13,7 @@ updated: 2026-05-21 (qa-pass-in-flight)
 
 - [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, structured pay bands, verdict controls, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
 	- Completed in current pass: tracker lane/header ergonomics, memory/profile workflow refinements, grouped tracker card edit sections, URL placement/styling alignment, submitted plus updated date visibility, and darker status-dropdown readability.
-	- Remaining for closeout: refresh README screenshots from the latest popup UI and finish final fit-and-finish sign-off after the current manual QA run.
+	- Closeout update: README screenshots refreshed and final fit-and-finish sign-off completed during manual QA (2026-05-21).
 - [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
 - [x] Make Memory editable from Profile so users can correct bad captures quickly.
 - [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.

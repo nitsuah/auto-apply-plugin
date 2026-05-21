@@ -82,6 +82,7 @@ apply-workspace/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
+> Last refreshed: 2026-05-21 (manual QA closeout)
 
 ### Main dashboard
 
