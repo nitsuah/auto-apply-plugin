@@ -1,8 +1,7 @@
 # 🤖 Apply Workspace — Local-First AI Job Application Chrome Extension
 
 > Save your profile once. Land on any job page. Review tailored answers. Fill faster.
-
-No Docker. No server. No subscription. Review-first by default.
+> No Docker. No server. No subscription. Review before submitting.
 
 ---
 
@@ -33,7 +32,7 @@ A Chrome extension that:
 3. Click **Load unpacked** → select the repo folder
 4. Click the 🤖 icon → paste your [free Gemini API key](https://aistudio.google.com/app/apikey) and leave the model on **Auto**
 5. Upload your resume (PDF, DOCX, or paste text)
-6. Navigate to a job page → click the icon → **Fill This Application**
+6. Navigate to a job page → click the icon → **Fill Form**
 
 ---
 
@@ -72,6 +71,8 @@ apply-workspace/
 | Ashby | ✅ | ✅ | Phase 1 |
 | Lever | ✅ | ✅ | Phase 1 |
 | LinkedIn Easy Apply | ✅ | ✅ | Phase 1 |
+| Jobvite | ✅ | 🔄 | Phase 2 |
+| Circle Careers / Phenom | ✅ | 🔄 | Phase 2 |
 | Workday | ✅ | 🔄 | Phase 2 |
 | iCIMS | ✅ | 🔄 | Phase 2 |
 | Generic (any form) | ✅ | 🔄 | Phase 2 |
@@ -81,6 +82,7 @@ apply-workspace/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
+> Last refreshed: 2026-05-21 (manual QA closeout)
 
 ### Main dashboard
 
@@ -109,6 +111,8 @@ Accepted headers are case-insensitive and can include:
 - `Remote`
 - `Location`
 - `Salary Range`
+- `Pay Min`
+- `Pay Max`
 - `Scorecard`
 - `Verdict`
 - `URL`
@@ -117,7 +121,7 @@ Accepted headers are case-insensitive and can include:
 Example header row:
 
 ```csv
-Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL,Notes
+Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,Scorecard,Verdict,URL,Notes
 ```
 
 ---
@@ -155,6 +159,8 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scor
       "url": "...",
       "status": "submitted",
       "date": "2026-04-04",
+      "pay_min": 150000,
+      "pay_max": 230000,
       "jd_snippet": "...",
       "answers_generated": true
     }
@@ -174,4 +180,4 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scor
 
 ## License
 
-MIT — built because filling out the same form 47 times is beneath everyone. 🤙
+MIT — built because filling out the same form 47 times is beneath EVERYONE. 🤙

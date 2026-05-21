@@ -8,6 +8,7 @@ Learns from your resume and saved profile data so future applications can be com
 
 - **Resume Learning**: Extracts and reuses experience, education, skills, and personal details from your resume
 - **Profile Reuse**: Applies previously captured candidate information across multiple job applications
+- **Memory Review Controls**: Lets you edit, ignore, restore, and remove remembered answers directly from Profile
 
 ### 🎯 Job Matching and Response Generation
 
@@ -22,6 +23,7 @@ Focuses on reducing manual effort during the application process.
 
 - **Form Fill Automation**: Automatically fills supported application forms with candidate and job-specific data
 - **Supported ATS Platforms**: Works with supported applicant tracking systems used by common job portals and employer sites
+- **Receiver Auto-Recovery**: Retries content-script injection automatically when a supported page initially has no active receiver
 
 ### 📌 Tracking and Workflow
 
@@ -29,6 +31,8 @@ Helps organize and monitor applications after submission.
 
 - **Application Tracker**: Keeps a record of applications, statuses, and related job details in one place
 - **Workflow Support**: Streamlines repeated application steps to make high-volume applying easier to manage
+- **Structured Pay and Verdict Editing**: Captures pay as min/max values and keeps verdict as controlled sentiment options
+- **Advanced Card Editing**: Supports editable URL, location presets with custom fallback, and drag-lock while cards are in expanded edit mode
 
 <!--
 AGENT INSTRUCTIONS:

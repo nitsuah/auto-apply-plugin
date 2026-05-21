@@ -620,6 +620,8 @@ function detectAtsFromUrl(url) {
     if (matchesDomain(hostname, 'linkedin.com') && /\/jobs\/view\//.test(path)) return 'LinkedIn Easy Apply';
     if (matchesDomain(hostname, 'workday.com') && /\/job\/|requisition|\/apply/.test(path)) return 'Workday';
     if (matchesDomain(hostname, 'icims.com') && /\/jobs\/|\/job\//.test(path)) return 'iCIMS';
+      if (matchesDomain(hostname, 'jobvite.com') && /\/job\/|\/apply/.test(path)) return 'Jobvite';
+      if ((matchesDomain(hostname, 'circle.com') || matchesDomain(hostname, 'phenompeople.com')) && /\/apply|step=|\/en\//.test(path)) return 'Phenom';
   } catch {
     // Invalid URL — ignore
   }

@@ -179,6 +179,8 @@ function extractJobInfo() {
   else if (matchesDomain(hostname, 'linkedin.com')) info = extractLinkedIn();
   else if (matchesDomain(hostname, 'workday.com')) info = extractWorkday();
   else if (matchesDomain(hostname, 'icims.com')) info = extractICIMS();
+  else if (matchesDomain(hostname, 'jobvite.com')) info = extractJobvite();
+  else if (matchesDomain(hostname, 'circle.com') || matchesDomain(hostname, 'phenompeople.com')) info = extractPhenom();
   else info = extractGenericJobInfo();
 
   return enrichJobInfo(info);
@@ -229,6 +231,22 @@ function extractICIMS() {
     title: qs('.iCIMS_JobHeaderTitle, #iCIMS_MainColumn h1')?.textContent?.trim() || '',
     company: qs('.iCIMS_CompanyLogo img')?.alt || document.title,
     jd: qs('#iCIMS_JobContent, .iCIMS_JobContent')?.innerText?.trim() || extractGenericText(),
+  };
+}
+
+function extractJobvite() {
+  return {
+    title: qs('[data-qa="job-title"], h1, .job-title')?.textContent?.trim() || '',
+    company: qs('[data-qa="company-name"], .company-name')?.textContent?.trim() || document.title,
+    jd: qs('[data-qa="job-description"], .job-description, main')?.innerText?.trim() || extractGenericText(),
+  };
+}
+
+function extractPhenom() {
+  return {
+    title: qs('[data-ph-id="ph-page-element-page16-j5r8i0"], h1, [class*="job-title"]')?.textContent?.trim() || '',
+    company: qs('[class*="company"], [data-qa="company-name"]')?.textContent?.trim() || document.title,
+    jd: qs('[class*="job-description"], [data-qa="job-description"], main')?.innerText?.trim() || extractGenericText(),
   };
 }
 

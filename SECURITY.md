@@ -13,7 +13,11 @@ We release patches for security vulnerabilities in the following versions:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-If you discover a security vulnerability, please report it by emailing the maintainers directly. You can expect:
+If you discover a security vulnerability, please report it through a private GitHub Security Advisory draft:
+
+- https://github.com/nitsuah/auto-apply-plugin/security/advisories/new
+
+You can expect:
 
 1. **Acknowledgment**: We'll acknowledge receipt of your vulnerability report within 48 hours
 2. **Updates**: We'll send you regular updates about our progress
@@ -47,6 +51,13 @@ When contributing to this project:
 - Never commit API keys, passwords, or tokens
 - Review code changes for security implications
 
+## Extension-Specific Notes
+
+- Apply Workspace stores profile data and settings in `chrome.storage.local` and does not rely on a backend server.
+- Gemini API requests are the only intended external network calls and use the user-provided API key.
+- Content scripts should be scoped to supported ATS/job domains only and kept as least-privilege as possible.
+- Changes to `manifest.json` permissions, host permissions, and content script matches should be reviewed as security-sensitive.
+
 ## Disclosure Policy
 
 When we receive a security bug report, we will:
@@ -55,10 +66,3 @@ When we receive a security bug report, we will:
 2. Audit code to find any similar problems
 3. Prepare fixes for all supported versions
 4. Release new versions as soon as possible
-
-<!--
-AGENT INSTRUCTIONS:
-This is a standard SECURITY.md template.
-Update contact information, supported versions, and response timelines to match your project's needs.
-Consider adding specific security requirements or guidelines relevant to your technology stack.
--->

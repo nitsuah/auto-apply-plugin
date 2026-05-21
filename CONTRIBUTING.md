@@ -1,6 +1,6 @@
-# Contributing to [Project Name]
+# Contributing to Apply Workspace
 
-Thank you for your interest in contributing! We welcome contributions from everyone.
+Thank you for helping improve Apply Workspace. This guide keeps contributions consistent with the project's local-first and review-first goals.
 
 ## 📋 Table of Contents
 
@@ -15,19 +15,19 @@ Thank you for your interest in contributing! We welcome contributions from every
 
 ## 🤝 Code of Conduct
 
-This project adheres to a Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to [maintainer@email.com].
+This project adheres to [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). By participating, you agree to uphold those standards.
 
 ## 🚀 Getting Started
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/PROJECT_NAME.git
-   cd PROJECT_NAME
+   git clone https://github.com/YOUR_USERNAME/auto-apply-plugin.git
+   cd auto-apply-plugin
    ```
 3. **Add the upstream repository**:
    ```bash
-   git remote add upstream https://github.com/ORIGINAL_OWNER/PROJECT_NAME.git
+   git remote add upstream https://github.com/nitsuah/auto-apply-plugin.git
    ```
 4. **Create a new branch** for your changes:
    ```bash
@@ -55,46 +55,40 @@ This project adheres to a Code of Conduct. By participating, you are expected to
 
 ### Prerequisites
 
-- [List required software, tools, and versions]
-- Example: Node.js 18+, npm/yarn, etc.
+- Node.js 20+ and npm for local validation
+- Google Chrome (for manual extension QA)
+- Docker Desktop (recommended for clean-room validation)
 
 ### Installation
 
 ```bash
 # Install dependencies
 npm install
-
-# Copy environment variables
-cp .env.example .env
-
-# Run development server
-npm run dev
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run main test suite (logic coverage)
 npm test
 
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+# Run all test files (includes runtime/lint guard test)
+node --test tests/*.mjs
 ```
 
-### Code Formatting
+### Linting
 
 ```bash
-# Format code
-npm run format
-
 # Lint code
 npm run lint
+```
 
-# Fix linting issues
-npm run lint:fix
+### Docker Validation (Recommended)
+
+```bash
+docker run --rm -v "${PWD}:/app" -w /app node:20-alpine sh -lc "node --check popup/popup.js; node --check background/service-worker.js; node --check content/content.js; npm test"
+
+docker run --rm -v "${PWD}:/app" -w /app node:20-alpine sh -lc "npm install; npm run lint"
 ```
 
 ## 🔄 Pull Request Process
@@ -154,22 +148,17 @@ npm run lint:fix
 
 ### Language-Specific Standards
 
-- **JavaScript/TypeScript**:
-  - Use TypeScript for type safety
+- **JavaScript (ES Modules)**:
+   - Use `const` by default, `let` only when reassignment is required
   - Follow ESLint rules
   - Use async/await over promises when possible
-  - Prefer functional programming patterns
-
-- **Python**:
-  - Follow PEP 8 style guide
-  - Use type hints
-  - Write docstrings for functions and classes
+   - Keep modules focused and avoid hidden side effects
 
 ### Testing
 
 - Write unit tests for new functions
-- Write integration tests for new features
-- Aim for >80% code coverage
+- Add runtime safety checks where UI wiring or exports are touched
+- Keep or improve current coverage when modifying core flows
 - Test edge cases and error conditions
 
 ### Documentation
@@ -210,7 +199,6 @@ Contributors will be recognized in:
 
 - The project README
 - Release notes for significant contributions
-- The [CONTRIBUTORS](CONTRIBUTORS.md) file (if applicable)
 
 ## 📄 License
 
@@ -221,7 +209,6 @@ By contributing, you agree that your contributions will be licensed under the sa
 If you have questions, feel free to:
 
 - Open an issue with the `question` label
-- Join our [community chat/forum]
-- Contact the maintainers at [contact@email.com]
+- Open a draft pull request for early feedback
 
 Thank you for contributing! 🎉

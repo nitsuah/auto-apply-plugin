@@ -5,9 +5,18 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm install --omit=dev || true
 
+# Copy package files and install ALL dependencies (including dev)
+COPY package.json package-lock.json* ./
+RUN npm install
+
+
+# Copy the rest of the code
 COPY . .
 
-CMD ["npm", "test"]
+
+# Run lint at build time so build fails on lint errors
+RUN npm run lint
+
+# Default command runs tests (or app)
+CMD npm test

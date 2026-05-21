@@ -32,14 +32,8 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers through a private issue with the `conduct` label: https://github.com/nitsuah/auto-apply-plugin/issues/new. All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.0.
-
-<!--
-AGENT INSTRUCTIONS:
-This is a standard Code of Conduct template based on the Contributor Covenant.
-Customize the enforcement contact information and adjust policies as needed for your community.
--->
