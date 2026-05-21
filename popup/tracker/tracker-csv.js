@@ -13,7 +13,7 @@ function setTrackerScreenStatus(msg, type = '') {
 }
 
 export function exportCsv(applications) {
-  const header = 'Company,Role Title,Status,Date,Employment Type,Remote,Location,Salary Range,Scorecard,Verdict,URL,Notes';
+  const header = 'Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,Salary Range,Scorecard,Verdict,URL,Notes';
   const rows = applications.map((a) =>
     [
       a.company,
@@ -23,6 +23,8 @@ export function exportCsv(applications) {
       a.employment_type,
       a.remote ? 'Yes' : 'No',
       a.location,
+      a.pay_min,
+      a.pay_max,
       a.salary_range,
       a.scorecard,
       a.verdict,

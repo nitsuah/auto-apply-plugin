@@ -181,7 +181,7 @@ export async function renderTracker() {
       key: 'early',
       label: '🟡 Drafts',
       groups: [
-        { key: 'drafted', label: '🟡 Drafted', statuses: ['drafted'] },
+        { key: 'drafted', label: '🟡 Drafted', statuses: ['drafted', 'filled'] },
         { key: 'pending', label: '⏳ Pending', statuses: ['pending'] },
       ],
     },

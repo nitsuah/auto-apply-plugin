@@ -27,9 +27,6 @@ export async function handleSaveAiSettings() {
  * Initialize all AI panel event handlers and UI logic.
  */
 export function initAiHandlers() {
-  // Show AI panel when AI button clicked
-  const aiBtn = $('header-ai-btn');
-  if (aiBtn) aiBtn.onclick = () => showScreen('ai');
   // Back button
   const aiBackBtn = $('ai-back-btn');
   if (aiBackBtn) aiBackBtn.onclick = () => showScreen('main');
