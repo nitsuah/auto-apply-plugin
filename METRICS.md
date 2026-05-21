@@ -18,8 +18,8 @@
 | PR Turnaround | unknown |
 | Skipped Tests | 0      |
 | Lint Status   | pass (Docker Node 20 Alpine: `npm install` + `npm run lint`, 2026-05-21) |
-| Latest Validation | Docker Node 20 Alpine: syntax checks pass + `npm test` 22 pass / 0 fail; `node --test tests/*.mjs` 23 pass / 0 fail (2026-05-21) |
-| Lockfile Sync | warning (`npm ci` fails in clean container; package-lock out of sync with package.json) |
+| Latest Validation | Docker Node 20 Alpine: `npm ci` pass, lint pass, `npm test` 22 pass / 0 fail, `node --test tests/*.mjs` 23 pass / 0 fail (2026-05-21) |
+| Lockfile Sync | pass (`npm ci` succeeds in clean container, 2026-05-21) |
 | Health Score  | 78/100 |
 
 <!--
