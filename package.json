@@ -4,9 +4,15 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "lint": "eslint popup/popup.js --max-warnings=0"
+    "test:coverage": "node --experimental-test-coverage --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "lint": "eslint popup/popup.js lib/*.js --max-warnings=0"
   },
   "dependencies": {
     "eslint": "^8.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "jsdom": "^25.0.1"
   }
 }

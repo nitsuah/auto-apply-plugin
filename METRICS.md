@@ -4,11 +4,11 @@
 
 | Metric        | Value |
 | ------------- | ----- |
-| Code Coverage | 63.72% |
+| Code Coverage | 93.98% |
 | Build Time    | 3.44s |
 | Bundle Size   | 619.78KB |
-| Test Files    | 2 |
-| Test Cases    | 22 |
+| Test Files    | 6 (5 unit + 1 Playwright e2e) |
+| Test Cases    | 32 (30 unit + 2 Playwright e2e) |
 
 ## Health
 
@@ -17,35 +17,45 @@
 | Open Issues   | unknown |
 | PR Turnaround | unknown |
 | Skipped Tests | 0      |
-| Lint Status   | pass (Docker Node 20 Alpine: `npm install` + `npm run lint`, 2026-05-21) |
-| Latest Validation | Docker Node 20 Alpine: `npm ci` pass, lint pass, `npm test` 22 pass / 0 fail, `node --test tests/*.mjs` 23 pass / 0 fail (2026-05-21) |
-| Lockfile Sync | pass (`npm ci` succeeds in clean container, 2026-05-21) |
-| Health Score  | 78/100 |
+| Lint Status   | pass (Docker Node 20 Alpine, `npm run lint`, 2026-05-24) |
+| Latest Validation | Docker Node 20 Alpine + Playwright Noble image: lint pass, `npm test` 30 pass / 0 fail, Playwright 2 pass / 0 fail (2026-05-24) |
+| Lockfile Sync | pass (`npm ci` succeeds in clean container, 2026-05-24) |
+| Health Score  | 92/100 |
 
-<!--
-AGENT INSTRUCTIONS:
-This file tracks project health metrics using a structured table format.
+## How to Update
 
-CRITICAL FORMAT REQUIREMENTS:
-1. Use EXACTLY these section names: "## Core Metrics", "## Health"
-2. Metrics MUST be in markdown table format with "| Metric | Value |" headers
-3. Keep metric names and values on single lines
-4. Common metric names for parsing: "Code Coverage", "Build Time", "Bundle Size"
-5. Health metrics: "Open Issues", "PR Turnaround", "Skipped Tests", "Health Score"
+All commands run inside Docker — no local Node required.
 
-PARSEABLE METRIC NAMES (case-insensitive):
-- "Code Coverage" or "Coverage" → Extracted for health score calculation
-- "Test Files", "Test Cases" → Testing metrics
-- "Build Time" → Performance metric
-- "Bundle Size" → Performance metric
-- "Open Issues" → Health indicator
-- "Health Score" → Overall health
+### Build test image
+```bash
+docker build --target test -t auto-apply-plugin:test .
+```
 
-When updating:
-1. Update values based on latest code analysis or CI/CD outputs
-2. "Code Coverage": Percentage of code covered by tests (e.g., "87.5%")
-3. "Build Time": Time taken for build process (e.g., "6.2s")
-4. "Bundle Size": Size of production assets (e.g., "245KB")
-5. Ensure values are accurate and reflect current codebase state
-6. Add custom metrics as new table rows in appropriate sections
--->
+### Lint
+```bash
+docker run --rm auto-apply-plugin:test npm run lint
+```
+
+### Tests
+```bash
+docker run --rm auto-apply-plugin:test npm test
+```
+
+### Coverage
+```bash
+docker run --rm auto-apply-plugin:test npm run test:coverage
+```
+
+### Playwright e2e
+```bash
+docker build --target e2e -t auto-apply-plugin:e2e .
+docker run --rm auto-apply-plugin:e2e npm run test:e2e
+```
+
+### docker-compose shortcuts
+```bash
+docker compose run --rm lint
+docker compose run --rm test
+docker compose run --rm coverage
+docker compose run --rm e2e
+```

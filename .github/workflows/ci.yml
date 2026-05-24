@@ -2,24 +2,31 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '18'
+      - name: Build test image
+        run: docker build --target test -t auto-apply-plugin:test .
 
-      - name: Install dependencies
-        run: npm install
+      - name: Lint
+        run: docker run --rm auto-apply-plugin:test npm run lint
 
-      - name: Run tests
-        run: npm test
+      - name: Test
+        run: docker run --rm auto-apply-plugin:test npm test
+
+      - name: Coverage
+        run: docker run --rm auto-apply-plugin:test npm run test:coverage
+
+      - name: Build e2e image
+        run: docker build --target e2e -t auto-apply-plugin:e2e .
+
+      - name: Playwright E2E
+        run: docker run --rm auto-apply-plugin:e2e npm run test:e2e
