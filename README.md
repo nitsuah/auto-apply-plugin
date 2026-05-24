@@ -3,6 +3,8 @@
 > Save your profile once. Land on any job page. Review tailored answers. Fill faster.
 > No Docker. No server. No subscription. Review before submitting.
 
+[![CI](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml)
+
 ---
 
 ## The Problem
