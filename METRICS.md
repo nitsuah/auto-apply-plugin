@@ -22,6 +22,37 @@
 | Lockfile Sync | pass (`npm ci` succeeds in clean container, 2026-05-21) |
 | Health Score  | 78/100 |
 
+## How to Update
+
+All commands run inside Docker — no local Node required.
+
+### Build test image
+```bash
+docker build --target test -t auto-apply-plugin:test .
+```
+
+### Lint
+```bash
+docker run --rm auto-apply-plugin:test npm run lint
+```
+
+### Tests
+```bash
+docker run --rm auto-apply-plugin:test npm test
+```
+
+### Coverage
+```bash
+docker run --rm auto-apply-plugin:test npm run test:coverage
+```
+
+### docker-compose shortcuts
+```bash
+docker compose run --rm lint
+docker compose run --rm test
+docker compose run --rm coverage
+```
+
 <!--
 AGENT INSTRUCTIONS:
 This file tracks project health metrics using a structured table format.

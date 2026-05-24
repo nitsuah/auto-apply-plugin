@@ -1,22 +1,10 @@
 # Dockerfile
 
-# Use Node.js base image
-FROM node:20-slim
-
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-
-# Copy package files and install ALL dependencies (including dev)
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
-
-# Copy the rest of the code
+FROM deps AS test
 COPY . .
-
-
-# Run lint at build time so build fails on lint errors
-RUN npm run lint
-
-# Default command runs tests (or app)
-CMD npm test
+CMD ["npm", "test"]
