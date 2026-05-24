@@ -19,3 +19,9 @@ services:
       context: .
       target: test
     command: npm run test:coverage
+
+  e2e:
+    build:
+      context: .
+      target: e2e
+    command: npm run test:e2e

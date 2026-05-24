@@ -24,3 +24,9 @@ jobs:
 
       - name: Coverage
         run: docker run --rm auto-apply-plugin:test npm run test:coverage
+
+      - name: Build e2e image
+        run: docker build --target e2e -t auto-apply-plugin:e2e .
+
+      - name: Playwright E2E
+        run: docker run --rm auto-apply-plugin:e2e npm run test:e2e
