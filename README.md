@@ -1,7 +1,9 @@
-# 🤖 Apply Workspace — Local-First AI Job Application Chrome Extension [![CI](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml)
+# 🤖 Apply Workspace — Local-First AI Job Application Chrome Extension
 
 > Save your profile once. Land on any job page. Review tailored answers. Fill faster.
 > No Docker. No server. No subscription. Review before submitting.
+
+[![CI](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/nitsuah/auto-apply-plugin/actions/workflows/ci.yml)
 
 ---
 
