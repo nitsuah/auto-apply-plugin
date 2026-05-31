@@ -79,6 +79,9 @@ export async function loadMainScreen(options = {}) {
   // the URL alone can't reveal the embedded ATS), fall back to URL heuristic.
   const detectedAts = (await detectAtsFromActiveTab()) || currentAts;
   const atsMeta = getAtsMeta(detectedAts);
+
+  // Surface a one-click capture button only when we're on a recognizable job page.
+  $('save-job-btn')?.classList.toggle('hidden', !detectedAts);
   const atsRow = $('ats-row');
   if (atsRow) atsRow.style.display = 'flex';
   setBadgeState('ats-status', atsMeta.label, atsMeta.tone, atsMeta.tip);
@@ -262,6 +265,44 @@ export async function initMainHandlers() {
     const resp = await sendMessage({ type: 'GET_LAST_ANSWERS' });
     renderPreview(resp?.answers, resp?.report);
     showScreen('preview');
+  });
+
+  $('save-job-btn')?.addEventListener('click', async () => {
+    const btn = $('save-job-btn');
+    if (btn) btn.disabled = true;
+    setStatus('fill-status', '⏳ Capturing this job…');
+    try {
+      const resp = await sendToActiveTab({ type: 'GET_JOB_INFO' });
+      if (!resp?.success || !resp.job) {
+        throw new Error(resp?.error || 'Could not read job details from this page.');
+      }
+      const job = resp.job;
+      const saveResp = await sendMessage({
+        type: 'LOG_APPLICATION',
+        payload: {
+          company: job.company || '',
+          title: job.title || '',
+          url: job.url || '',
+          status: 'drafted',
+          location: job.location || 'Unknown',
+          employment_type: job.employment_type || 'Full-time',
+          remote: !!job.remote,
+          salary_range: job.salary_range || '',
+          description: job.jd || '',
+          jd_snippet: String(job.jd || '').slice(0, 300),
+          answers_generated: false,
+          fill_report: null,
+        },
+      });
+      if (!saveResp?.success) throw new Error(saveResp?.error || 'Could not save to tracker.');
+      const label = [job.company, job.title].filter(Boolean).join(' — ') || 'This job';
+      setStatus('fill-status', `✅ Saved "${label}" to the tracker as a draft.`, 'success');
+      await loadMainScreen();
+    } catch (err) {
+      setStatus('fill-status', '❌ ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
 
   $('edit-resume-btn')?.addEventListener('click', async () => {

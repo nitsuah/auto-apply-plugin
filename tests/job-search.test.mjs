@@ -5,10 +5,13 @@ import {
   normalizeRemotiveJob,
   normalizeArbeitnowJob,
   normalizeAdzunaJob,
+  normalizeUsaJobsJob,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
   searchJobs,
+  listJobSources,
+  resolveActiveSources,
 } from '../lib/job-search.js';
 
 test('normalizeRemotiveJob maps the common schema and strips HTML', () => {
@@ -77,6 +80,39 @@ test('normalizeAdzunaJob maps schema, salary range, and employment type', () => 
   assert.equal(job.salary, '$110,000 - $140,000');
   assert.equal(job.employment_type, 'Full-time');
   assert.equal(job.remote, true);
+});
+
+test('normalizeUsaJobsJob maps the nested federal-job descriptor', () => {
+  const job = normalizeUsaJobsJob({
+    MatchedObjectId: 'ABC123',
+    MatchedObjectDescriptor: {
+      PositionTitle: 'IT Specialist',
+      OrganizationName: 'Department of Commerce',
+      PositionURI: 'https://www.usajobs.gov/job/123',
+      PositionLocationDisplay: 'Washington, DC',
+      PositionRemuneration: [{ MinimumRange: '90000', MaximumRange: '120000', RateIntervalCode: 'PA' }],
+      PositionSchedule: [{ Name: 'Full-Time' }],
+      PublicationStartDate: '2026-05-15',
+      UserArea: { Details: { JobSummary: 'Serve the public.' } },
+    },
+  });
+
+  assert.equal(job.id, 'usajobs:ABC123');
+  assert.equal(job.title, 'IT Specialist');
+  assert.equal(job.company, 'Department of Commerce');
+  assert.equal(job.source, 'USAJOBS');
+  assert.equal(job.salary, '$90,000 - $120,000');
+  assert.equal(job.employment_type, 'Full-time');
+  assert.equal(job.atsLabel, 'USAJOBS');
+});
+
+test('USAJOBS source is registered and gated on email + key', () => {
+  const sources = listJobSources({});
+  assert.ok(sources.find((s) => s.id === 'usajobs'));
+  assert.equal(sources.find((s) => s.id === 'usajobs').available, false);
+
+  const withCreds = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k' } });
+  assert.equal(withCreds.find((s) => s.id === 'usajobs').available, true);
 });
 
 test('detectAtsLabelFromUrl recognizes known applicant tracking systems', () => {
@@ -154,11 +190,45 @@ test('searchJobs includes Adzuna only when credentials are supplied', async () =
 
   const withCreds = await searchJobs('engineer', {
     fetchImpl,
-    adzuna: { appId: 'id', appKey: 'key', country: 'us' },
+    config: { adzuna: { appId: 'id', appKey: 'key', country: 'us' } },
   });
   assert.equal(adzunaCalled, true);
   assert.equal(withCreds.sources.find((s) => s.name === 'Adzuna').ok, true);
   assert.ok(withCreds.jobs.some((j) => j.source === 'Adzuna'));
+});
+
+test('listJobSources reports availability based on supplied credentials', () => {
+  const noKeys = listJobSources({});
+  assert.equal(noKeys.find((s) => s.id === 'remotive').available, true);
+  assert.equal(noKeys.find((s) => s.id === 'adzuna').available, false);
+
+  const withKeys = listJobSources({ adzuna: { appId: 'a', appKey: 'b' } });
+  assert.equal(withKeys.find((s) => s.id === 'adzuna').available, true);
+});
+
+test('resolveActiveSources honors the sources allow-list and availability', () => {
+  // Allow-list narrows to one source.
+  const only = resolveActiveSources({}, ['remotive']).map((s) => s.id);
+  assert.deepEqual(only, ['remotive']);
+
+  // Unavailable sources are dropped even if explicitly listed.
+  const dropped = resolveActiveSources({}, ['adzuna', 'arbeitnow']).map((s) => s.id);
+  assert.deepEqual(dropped, ['arbeitnow']);
+
+  // No allow-list → every available source.
+  const all = resolveActiveSources({}).map((s) => s.id);
+  assert.deepEqual(all, ['remotive', 'arbeitnow']);
+});
+
+test('searchJobs only queries the selected sources', async () => {
+  const hits = [];
+  const fetchImpl = async (url) => {
+    if (url.includes('remotive.com')) { hits.push('remotive'); return { ok: true, json: async () => ({ jobs: [] }) }; }
+    if (url.includes('arbeitnow.com')) { hits.push('arbeitnow'); return { ok: true, json: async () => ({ data: [] }) }; }
+    return { ok: true, json: async () => ({}) };
+  };
+  await searchJobs('dev', { fetchImpl, sources: ['arbeitnow'] });
+  assert.deepEqual(hits, ['arbeitnow']);
 });
 
 test('searchJobs throws only when every source fails', async () => {

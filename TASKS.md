@@ -35,14 +35,17 @@ updated: 2026-05-21 (qa-closeout)
 
 - [/] Implement multi-source job search aggregation:
   - Progress (2026-05-31): shipped a keyless MVP — `lib/job-search.js` aggregates Remotive + Arbeitnow, normalizes to a common schema (title, company, location, salary, remote, url, ATS label, source, posted, tags, description), dedupes across sources, and sorts by recency. Fetch runs in the service worker via a new `SEARCH_JOBS` message (host perms added). Results panel now shows remote/salary/type/source badges, a "Go to job post" CTA that upgrades to "Apply on <ATS>" when a known ATS link is detected, and a one-click "Save to Tracker". Covered by `tests/job-search.test.mjs`.
-  - Remaining: add keyed/broader sources (Adzuna, USAJobs, RapidAPI), LinkedIn/Indeed handling, on-ATS-page detail parsing, and fast tracker-side indexing.
+  - Progress (2026-05-31, cont.): added Adzuna as an optional keyed source (BYOK app id/key + country in the AI panel, stored locally; folded into `searchJobs` only when creds are present, graceful when absent).
+  - Progress (2026-05-31, registry): refactored sources into a plug-and-play registry (`JOB_SOURCES` in `lib/job-search.js`) — add a board by appending one entry (`id/label/keyless/requires/available(config)/run(query,ctx)`). New `listJobSources`/`resolveActiveSources` + `GET_JOB_SOURCES` message power per-source filter chips in the search panel: every available source is on by default, the user can pick/choose, and keyed/OAuth sources appear locked (🔒) until credentials make them `available`. Config object (`{ adzuna: {...} }`) is the seam for future OAuth tokens. Covered by `tests/job-search.test.mjs` (42 tests total).
+  - Progress (2026-05-31, USAJOBS): added USAJOBS (US federal jobs) as a new registry entry — demonstrates the pattern end-to-end: normalizer + `fetchUsaJobs` (Authorization-Key + User-Agent=email headers) + AI-panel email/key fields + config wiring + host permission, no other plumbing touched. Gated on email+key; appears as a locked chip until provided. Caveat to verify live: browsers may strip the `User-Agent` header on fetch, which USAJOBS uses for auth — confirm it returns results once keys are entered (otherwise we'd route it through declarativeNetRequest header rules).
+  - Remaining: RapidAPI + an OAuth example source, LinkedIn/Indeed handling, on-ATS-page detail parsing, fast tracker-side indexing, and optional persistence of the user's source selection.
   - Integrate with public job APIs (e.g. Adzuna, USAJobs, or RapidAPI job endpoints) and/or scrape LinkedIn, Indeed, etc. via URL endpoint with generic app for auth initially or lazy 3l0 scraping after.
   - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link. [done]
   - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred). [done]
   - Add logic to extract and highlight ATS/job board links from job listings (when available). [done — known-ATS detection on result URLs]
   - If only a generic job board link is available, surface that as the main action. [done]
   - Add a "Save to Tracker" button for each result to capture the job into the user's board. [done]
-  - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page.
+  - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page. [done — main-screen "💾 Save Job to Tracker" button appears on detected job pages and captures parsed title/company/location/salary/remote/JD into a drafted tracker entry in one click]
   - Index all captured jobs for fast search/filter in the tracker.
   - (Optional) Add basic deduplication for jobs appearing on multiple boards. [done]
 

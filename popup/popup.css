@@ -83,6 +83,54 @@
   margin-bottom: 4px;
 }
 
+.job-source-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.job-source-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.job-source-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.job-source-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.job-source-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.job-source-chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.job-source-chip.is-unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .job-badges {
   display: flex;
   flex-wrap: wrap;
@@ -409,6 +457,7 @@ input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="url"],
+input[type="email"],
 input[type="search"],
 textarea,
 select {
@@ -423,6 +472,7 @@ select {
   transition: border-color 0.15s;
 }
 
+input[type="email"]:focus,
 input[type="text"]:focus,
 input[type="password"]:focus,
 input[type="number"]:focus,

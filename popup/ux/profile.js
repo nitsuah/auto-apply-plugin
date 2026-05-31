@@ -41,6 +41,8 @@ export function applyStateToSetupForm(state = {}) {
   set('adzuna-app-id', settings.adzuna_app_id || '');
   set('adzuna-app-key', settings.adzuna_app_key || '');
   if ($('adzuna-country')) $('adzuna-country').value = settings.adzuna_country || 'us';
+  set('usajobs-email', settings.usajobs_email || '');
+  set('usajobs-api-key', settings.usajobs_api_key || '');
   const privacyConsent = $('privacy-consent');
   if (privacyConsent) privacyConsent.checked = settings.privacy_consent === true;
 

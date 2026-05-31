@@ -11,7 +11,7 @@ import {
   shouldPersistLearnedValue,
 } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
-import { searchJobs } from '../lib/job-search.js';
+import { searchJobs, listJobSources } from '../lib/job-search.js';
 import {
   addApplication,
   deleteApplication,
@@ -47,6 +47,8 @@ async function handleMessage(msg) {
       return getLastAnswers();
     case 'SEARCH_JOBS':
       return handleSearchJobs(msg.payload);
+    case 'GET_JOB_SOURCES':
+      return handleGetJobSources();
     case 'SUMMARIZE_JD':
       return handleSummarizeJd(msg.payload);
     case 'LOG_APPLICATION':
@@ -348,18 +350,35 @@ async function handleRemoveResumeAttachment() {
   return { success: true };
 }
 
-async function handleSearchJobs({ query } = {}) {
+function buildJobSearchConfig(settings = {}) {
+  const config = {};
+  if (settings.adzuna_app_id && settings.adzuna_app_key) {
+    config.adzuna = {
+      appId: settings.adzuna_app_id,
+      appKey: settings.adzuna_app_key,
+      country: settings.adzuna_country || 'us',
+    };
+  }
+  if (settings.usajobs_email && settings.usajobs_api_key) {
+    config.usajobs = {
+      email: settings.usajobs_email,
+      apiKey: settings.usajobs_api_key,
+    };
+  }
+  return config;
+}
+
+async function handleSearchJobs({ query, sources } = {}) {
   const data = await chrome.storage.local.get('settings');
-  const settings = data.settings || {};
-  const adzuna = (settings.adzuna_app_id && settings.adzuna_app_key)
-    ? {
-        appId: settings.adzuna_app_id,
-        appKey: settings.adzuna_app_key,
-        country: settings.adzuna_country || 'us',
-      }
-    : null;
-  const { jobs, sources } = await searchJobs(query, { adzuna });
-  return { success: true, jobs, sources };
+  const config = buildJobSearchConfig(data.settings || {});
+  const result = await searchJobs(query, { config, sources });
+  return { success: true, jobs: result.jobs, sources: result.sources };
+}
+
+async function handleGetJobSources() {
+  const data = await chrome.storage.local.get('settings');
+  const config = buildJobSearchConfig(data.settings || {});
+  return { success: true, sources: listJobSources(config) };
 }
 
 async function handleSummarizeJd({ text, mode } = {}) {

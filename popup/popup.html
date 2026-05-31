@@ -39,7 +39,7 @@
           <h2 class="section-title">Profile</h2>
           <p class="helper-text">Your resume, settings, and memory all live here.</p>
         </div>
-        <p id="setup-status" class="status-msg profile-header-status"></p>
+        <p id="setup-status" class="status-msg profile-header-status" role="status" aria-live="polite"></p>
       </div>
 
       <div class="profile-workspace">
@@ -267,11 +267,14 @@
             <button id="preview-btn" class="btn btn-secondary btn-full">
               👁 Preview Answers
             </button>
+            <button id="save-job-btn" class="btn btn-secondary btn-full hidden">
+              💾 Save Job to Tracker
+            </button>
             <button id="edit-resume-btn" class="btn btn-ghost btn-full">
               ✏️ Edit Profile
             </button>
           </div>
-          <p id="fill-status" class="status-msg"></p>
+          <p id="fill-status" class="status-msg" role="status" aria-live="polite"></p>
         </div>
 
         <div class="main-status-panel">
@@ -372,7 +375,7 @@
         </div>
         <textarea id="new-application-description" rows="5" placeholder="Paste the JD or quick notes (optional)"></textarea>
         <div class="tracker-card-actions" style="margin-top:10px">
-          <span id="tracker-add-status" class="status-msg">Paste a JD or import the current page, then save.</span>
+          <span id="tracker-add-status" class="status-msg" role="status" aria-live="polite">Paste a JD or import the current page, then save.</span>
           <button id="save-new-application-btn" class="btn btn-primary btn-sm">Save to tracker</button>
         </div>
       </div>
@@ -419,7 +422,11 @@
           <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
           <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
         </div>
-        <div id="job-search-results" class="job-search-results">
+        <div class="job-source-filter-row">
+          <span class="job-source-filter-label">Sources:</span>
+          <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
+        </div>
+        <div id="job-search-results" class="job-search-results" aria-live="polite">
           <p class="empty-msg">No search yet. Enter a query above.</p>
         </div>
       </div>
@@ -482,11 +489,14 @@
               <option value="nl">Netherlands</option>
               <option value="in">India</option>
             </select>
+            <p class="helper-text" style="margin-top:10px">Add free <a class="hint-link" href="https://developer.usajobs.gov/" target="_blank" rel="noopener">USAJOBS API access</a> (US federal jobs) — uses your registered email + API key.</p>
+            <input type="email" id="usajobs-email" placeholder="USAJOBS account email" autocomplete="off" />
+            <input type="password" id="usajobs-api-key" placeholder="USAJOBS API Key" autocomplete="off" style="margin-top:8px" />
           </div>
 
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
-            <p id="ai-status" class="status-msg"></p>
+            <p id="ai-status" class="status-msg" role="status" aria-live="polite"></p>
           </div>
         </div>
       </div>
@@ -562,7 +572,7 @@
         <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
         <button id="reset-data-btn" class="btn btn-ghost btn-full btn-danger">🗑 Delete all local data</button>
       </div>
-      <p id="help-status" class="status-msg"></p>
+      <p id="help-status" class="status-msg" role="status" aria-live="polite"></p>
     </section>
 
   </div>
