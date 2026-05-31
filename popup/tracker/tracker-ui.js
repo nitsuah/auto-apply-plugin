@@ -102,7 +102,6 @@ export function getTrackerLaneCount(applications, lane) {
 
 // ── Render tracker board ────────────────────────────────────────────────────
 
-const SECTION_VISIBLE_CARD_COUNT = 4;
 const expandedFinalStages = {
   rejected: false,
   retired: false,
@@ -314,22 +313,22 @@ function renderSectionCardsWithOverflow(apps = [], statusTone = '') {
     return '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
   }
 
-  const visible = apps.slice(0, SECTION_VISIBLE_CARD_COUNT);
-  const overflow = apps.slice(SECTION_VISIBLE_CARD_COUNT);
-  const cards = visible.map(renderTrackerCard).join('');
-
-  if (!overflow.length) {
-    return cards;
-  }
-
-  const bubbles = overflow.map((app) => renderOverflowBubble(app, statusTone)).join('');
-  return `${cards}<div class="tracker-overflow-bubbles">${bubbles}</div>`;
+  // Every item is a contracted, draggable bubble by default. Clicking a bubble
+  // expands its full card inline below the bubble row.
+  const bubbles = apps.map((app) => renderOverflowBubble(app, statusTone)).join('');
+  const expandedCards = apps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
+  const expandedMarkup = expandedCards.length
+    ? `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app, { forceCollapsed: true })).join('')}</div>`
+    : '';
+  return `<div class="tracker-overflow-bubbles">${bubbles}</div>${expandedMarkup}`;
 }
 
 function renderOverflowBubble(app, statusTone = '') {
   const initial = getCompanyInitial(app.company);
+  const isExpanded = selectedFinalStageBubbleIds.has(String(app.id || ''));
+  const normalizedStatus = normalizeApplicationStatus(app.status);
   const title = `${String(app.company || 'Unknown company')} — ${String(app.title || 'Untitled role')}`;
-  return `<span class="tracker-overflow-bubble" data-status-tone="${escAttr(statusTone)}" title="${escAttr(title)}" aria-label="Overflow card ${escAttr(title)}">${esc(initial)}</span>`;
+  return `<button class="tracker-overflow-bubble${isExpanded ? ' is-expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-expand-card-id="${escAttr(app.id)}" data-status-tone="${escAttr(statusTone)}" title="${escAttr(title)}" aria-label="Toggle preview for ${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
 }
 
 // ── Render card ─────────────────────────────────────────────────────────────
@@ -356,7 +355,7 @@ export function renderTrackerCard(app, options = {}) {
     : esc(app.company || 'Unknown company');
 
   return `
-    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="${expanded ? 'false' : 'true'}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="${(expanded || forceCollapsed) ? 'false' : 'true'}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
       <div class="tracker-card-header">
         <div class="tracker-card-summary${summaryToggleClass}"${summaryRole} aria-expanded="${expanded ? 'true' : 'false'}">
           <div class="tracker-summary-copy">
@@ -426,15 +425,20 @@ export function renderTrackerCard(app, options = {}) {
 
             <div class="pay-editor tracker-score-pay">
               <div class="pay-editor-row">
-                <label class="pay-label">Pay min</label>
-                <input type="range" data-pay-range="min" min="0" max="500000" step="5000" value="${escAttr(String(pay.min || 0))}" />
-                <input data-field="pay_min" type="number" min="0" step="5000" value="${escAttr(String(pay.min || ''))}" placeholder="0" />
+                <div class="pay-editor-top">
+                  <label class="pay-label">Pay min</label>
+                  <input data-field="pay_min" type="number" min="0" step="1000" inputmode="numeric" value="${escAttr(String(pay.min || ''))}" placeholder="0" />
+                </div>
+                <input type="range" class="pay-slider" data-pay-range="min" min="0" max="500000" step="5000" value="${escAttr(String(Math.min(500000, pay.min || 0)))}" aria-label="Pay min slider" />
               </div>
               <div class="pay-editor-row">
-                <label class="pay-label">Pay max</label>
-                <input type="range" data-pay-range="max" min="0" max="500000" step="5000" value="${escAttr(String(pay.max || Math.max(pay.min || 0, 0)))}" />
-                <input data-field="pay_max" type="number" min="0" step="5000" value="${escAttr(String(pay.max || ''))}" placeholder="0" />
+                <div class="pay-editor-top">
+                  <label class="pay-label">Pay max</label>
+                  <input data-field="pay_max" type="number" min="0" step="1000" inputmode="numeric" value="${escAttr(String(pay.max || ''))}" placeholder="0" />
+                </div>
+                <input type="range" class="pay-slider" data-pay-range="max" min="0" max="500000" step="5000" value="${escAttr(String(Math.min(500000, pay.max || Math.max(pay.min || 0, 0))))}" aria-label="Pay max slider" />
               </div>
+              <p class="pay-warning hidden" role="alert"></p>
             </div>
 
             <div class="tracker-score-verdict">
@@ -591,8 +595,9 @@ function getScoreDisplay(value = '') {
 function renderFinalStageBubble(app) {
   const initial = getCompanyInitial(app.company);
   const isExpanded = selectedFinalStageBubbleIds.has(String(app.id || ''));
+  const normalizedStatus = normalizeApplicationStatus(app.status);
   const title = `${String(app.company || 'Unknown company')} — ${String(app.title || 'Untitled role')}`;
-  return `<button class="tracker-final-bubble${isExpanded ? ' is-expanded' : ''}" data-expand-card-id="${escAttr(app.id)}" title="${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
+  return `<button class="tracker-final-bubble${isExpanded ? ' is-expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-expand-card-id="${escAttr(app.id)}" title="${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
 }
 
 function renderFinalStageClearBubble() {

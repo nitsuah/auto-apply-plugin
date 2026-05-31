@@ -28,6 +28,7 @@ export async function loadMainScreen(options = {}) {
 
   applyStateToSetupForm(resp || {});
   await renderLearnedDefaults();
+  renderConsentSignedDate(resp?.settings || {}, privacyConsent);
 
   // If no privacy consent or no profile/resume, redirect to setup
   if (!privacyConsent || (!hasApiKey && !hasResume)) {
@@ -74,8 +75,10 @@ export async function loadMainScreen(options = {}) {
   setBadgeState('learned-status', memoryCount ? `${memoryCount} saved` : 'Empty', 'memory', memoryTooltip);
   setStatusRowMeta('learned-row', memoryTooltip);
 
-  // ATS row
-  const atsMeta = getAtsMeta(currentAts);
+  // ATS row — prefer live page detection (covers custom career domains where
+  // the URL alone can't reveal the embedded ATS), fall back to URL heuristic.
+  const detectedAts = (await detectAtsFromActiveTab()) || currentAts;
+  const atsMeta = getAtsMeta(detectedAts);
   const atsRow = $('ats-row');
   if (atsRow) atsRow.style.display = 'flex';
   setBadgeState('ats-status', atsMeta.label, atsMeta.tone, atsMeta.tip);
@@ -92,6 +95,56 @@ export async function loadMainScreen(options = {}) {
 
   // Fill report
   renderFillReport(resp?.lastFillReport);
+}
+
+// ── Consent "signed on" date ─────────────────────────────────────────────────
+
+function renderConsentSignedDate(settings = {}, privacyConsent = false) {
+  const el = $('consent-signed-date');
+  if (!el) return;
+
+  const signedAt = settings.privacy_consent_at;
+  if (privacyConsent && signedAt) {
+    const parsed = new Date(signedAt);
+    const when = Number.isNaN(parsed.getTime())
+      ? String(signedAt)
+      : parsed.toLocaleString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+    el.textContent = `✓ Consent signed on ${when}`;
+    el.classList.add('is-signed');
+  } else if (privacyConsent) {
+    el.textContent = '✓ Consent accepted (date not recorded).';
+    el.classList.add('is-signed');
+  } else {
+    el.textContent = 'Consent not recorded yet.';
+    el.classList.remove('is-signed');
+  }
+}
+
+// ── ATS detection from the live page ────────────────────────────────────────
+
+/**
+ * Ask the active tab's content script what ATS it sees on the page. Unlike
+ * sendToActiveTab, this never force-injects the script — if the page has no
+ * content script (not a job page) it simply resolves to null.
+ */
+async function detectAtsFromActiveTab() {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.sendMessage) return null;
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return null;
+    const resp = await new Promise((resolve) => {
+      chrome.tabs.sendMessage(tab.id, { type: 'DETECT_ATS' }, (r) => {
+        void chrome.runtime.lastError; // swallow "no receiving end" on non-job pages
+        resolve(r);
+      });
+    });
+    return resp?.ats && resp.ats !== 'Generic' ? resp.ats : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Tracker summary ─────────────────────────────────────────────────────────

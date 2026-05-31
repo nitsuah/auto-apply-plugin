@@ -42,7 +42,40 @@ function matchesDomain(hostname, domain) {
 
 // ── Message listener ──────────────────────────────────────────────────────────
 
+const IS_TOP_FRAME = (() => {
+  try { return window.top === window; } catch { return false; }
+})();
+
+/**
+ * With `all_frames: true`, the same content script runs in the top document and
+ * in every (same- or cross-origin) iframe — e.g. the iCIMS application form,
+ * which lives inside an iframe. `chrome.tabs.sendMessage` delivers to all of
+ * them but only the first `sendResponse` wins, so each frame must decide whether
+ * it owns a given message. Frames that don't own it return `false` (decline the
+ * channel) and stay silent, letting the right frame answer.
+ *
+ * @param {object} msg
+ * @returns {boolean}
+ */
+function frameOwnsMessage(msg) {
+  switch (msg?.type) {
+    case 'FILL_FORM':
+    case 'INJECT_ANSWERS':
+      // The frame that actually contains the application fields fills them.
+      return getFillableInputs().length > 0;
+    case 'FOCUS_FIELD':
+      return !!findFieldForReviewTarget(msg.payload || {});
+    case 'GET_JOB_INFO':
+    case 'DETECT_ATS':
+      // JD/meta extraction belongs to the host page, not embedded form iframes.
+      return IS_TOP_FRAME;
+    default:
+      return IS_TOP_FRAME;
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (!frameOwnsMessage(msg)) return false;
   handleMessage(msg).then(sendResponse).catch((err) => {
     sendResponse({ success: false, error: err.message });
   });
@@ -380,14 +413,18 @@ function collectCustomQuestions() {
 
 // ── Form filler (inlined from lib/form-filler.js) ────────────────────────────
 
-function fillForm(answers, fieldMap) {
-  const inputs = Array.from(document.querySelectorAll(
+function getFillableInputs() {
+  return Array.from(document.querySelectorAll(
     'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]), textarea, select'
   )).filter((el) => {
     if (el.disabled || el.readOnly) return false;
     const style = getComputedStyle(el);
     return style.display !== 'none' && style.visibility !== 'hidden';
   });
+}
+
+function fillForm(answers, fieldMap) {
+  const inputs = getFillableInputs();
 
   let filled = 0;
   let preserved = 0;
@@ -725,7 +762,35 @@ function detectAts() {
   if (matchesDomain(host, 'linkedin.com') && /\/jobs\/view\//.test(path)) return 'LinkedIn Easy Apply';
   if (matchesDomain(host, 'workday.com') && (/\/job\/|requisition|\/apply/.test(path) || qs('[data-automation-id="jobPostingHeader"]'))) return 'Workday';
   if (matchesDomain(host, 'icims.com') && (/\/jobs\/|\/job\//.test(path) || qs('#iCIMS_JobContent'))) return 'iCIMS';
+
+  // Custom career domains (e.g. samsara.com/company/careers, abnormal.ai/careers)
+  // commonly render a third-party ATS natively or embed its form/links. Sniff
+  // the page for the ATS's fingerprints so detection still works off-domain.
+  const embedded = detectEmbeddedAts();
+  if (embedded) return embedded;
+
   return 'Generic';
+}
+
+function detectEmbeddedAts() {
+  const urlAttrs = [];
+  for (const el of document.querySelectorAll('iframe[src], a[href], form[action], script[src], link[href]')) {
+    const value = el.getAttribute('src') || el.getAttribute('href') || el.getAttribute('action') || '';
+    if (value) urlAttrs.push(value.toLowerCase());
+  }
+
+  let markup = '';
+  try { markup = (document.documentElement.innerHTML || '').slice(0, 60000).toLowerCase(); } catch { /* ignore */ }
+  const hay = `${urlAttrs.join(' ')} ${markup}`;
+
+  if (/greenhouse\.io|grnhse|us-greenhouse-mail|job-boards\.greenhouse/.test(hay)) return 'Greenhouse';
+  if (/ashbyhq\.com|jobs\.ashby|ashby\.io/.test(hay)) return 'Ashby';
+  if (/(?:jobs\.)?lever\.co|lever-client/.test(hay)) return 'Lever';
+  if (/myworkdayjobs|\.workday\.com/.test(hay)) return 'Workday';
+  if (/icims\.com/.test(hay)) return 'iCIMS';
+  if (/jobvite\.com/.test(hay)) return 'Jobvite';
+  if (/phenompeople|phenom\.com/.test(hay)) return 'Phenom';
+  return null;
 }
 
 // ── Draft caching / restoration ──────────────────────────────────────────────
@@ -1010,6 +1075,10 @@ async function restoreDraftValues() {
 
 (function init() {
   initDraftPersistence();
+
+  // Only the host page announces the detected ATS; embedded form iframes skip
+  // the (innerHTML-scanning) detection to avoid redundant work in every frame.
+  if (!IS_TOP_FRAME) return;
 
   const ats = detectAts();
   if (ats !== 'Generic') {

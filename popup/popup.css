@@ -1353,6 +1353,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .tracker-overflow-bubble {
   width: 24px;
   height: 24px;
+  padding: 0;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
@@ -1362,6 +1363,25 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   border: 1px solid rgba(148, 163, 184, 0.35);
   color: #d8deed;
   background: rgba(15, 23, 42, 0.88);
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.tracker-overflow-bubble:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #bfdbfe;
+}
+
+.tracker-overflow-bubble.is-expanded {
+  border-color: rgba(96, 165, 250, 0.85);
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.55);
+  transform: translateY(-1px);
+}
+
+.tracker-overflow-expanded {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .tracker-overflow-bubble[data-status-tone="drafted"] {
@@ -1911,7 +1931,12 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 
 .pay-editor-row {
   display: grid;
-  grid-template-columns: 56px 1fr 92px;
+  gap: 6px;
+}
+
+.pay-editor-top {
+  display: grid;
+  grid-template-columns: 1fr 116px;
   align-items: center;
   gap: 8px;
 }
@@ -1923,8 +1948,45 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--text-muted);
 }
 
-.pay-editor input[type="range"] {
+/* Keep the native up/down spinners on the pay number boxes so values can be
+   nudged by hand even when the slider snaps to coarse steps. */
+.pay-editor input[type="number"] {
+  text-align: right;
+}
+
+.pay-editor input[type="range"],
+.pay-editor .pay-slider {
+  width: 100%;
   accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Invalid pay box — neon red border + a quick attention nudge. */
+.pay-editor input.pay-invalid {
+  border-color: #f87171;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.5), 0 0 8px rgba(248, 113, 113, 0.45);
+  animation: pay-nudge 0.3s ease;
+}
+
+@keyframes pay-nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.pay-warning {
+  font-size: 10px;
+  color: #fca5a5;
+  margin: 0;
+}
+
+.pay-warning.hidden {
+  display: none;
+}
+
+.tracker-save-btn.is-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {
@@ -2087,6 +2149,68 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .help-section p {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.help-section code {
+  font-size: 10px;
+  background: rgba(148, 163, 184, 0.14);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal-version {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.legal-signed {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.legal-signed.is-signed {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.legal-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 4px;
+}
+
+.legal-list li strong {
+  color: var(--text);
+}
+
+.data-control-explainer + .data-control-explainer {
+  margin-top: 8px;
+}
+
+.data-control-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text) !important;
+  margin-bottom: 2px;
 }
 
 .memory-card-shell {

@@ -468,29 +468,67 @@
       </div>
 
       <div class="help-card" id="help-legal-section">
+        <div class="legal-meta">
+          <span class="legal-version">Apply Workspace · Terms &amp; Privacy v1.0</span>
+          <span class="legal-updated">Last updated May 31, 2026</span>
+          <span id="consent-signed-date" class="legal-signed">Consent not recorded yet.</span>
+        </div>
+
         <div class="help-section" id="help-eula-section">
-          <h3>EULA / Terms</h3>
-          <p>`apply-bot` is a review-first helper. You control what gets filled and whether anything is submitted.</p>
+          <h3>Terms of Use (EULA)</h3>
+          <p>Apply Workspace ("the extension") is a local-first, review-first assistant that helps you draft and fill job-application forms. By accepting consent you agree to these terms.</p>
+          <ul class="legal-list">
+            <li><strong>Review before you submit.</strong> The extension only drafts and fills fields. It never submits an application for you — you review every field and click submit yourself.</li>
+            <li><strong>You are responsible for accuracy.</strong> Auto-filled and AI-drafted answers are suggestions. You are solely responsible for the truthfulness and content of anything you submit to an employer.</li>
+            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key. Your use of Gemini is governed by Google's terms, not ours.</li>
+            <li><strong>No warranty.</strong> The extension is provided "as is", without warranty of any kind. To the maximum extent permitted by law, the authors are not liable for any damages, lost opportunities, or rejected applications arising from its use.</li>
+            <li><strong>Acceptable use.</strong> Don't use the extension to submit fraudulent applications or to violate the terms of any job board or ATS.</li>
+            <li><strong>Open source.</strong> The extension is distributed under its repository license; that license governs the software itself.</li>
+          </ul>
         </div>
+
         <div class="help-section" id="help-privacy-section">
-          <h3>Privacy</h3>
-          <p>Your profile, tracker, and memory stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
-          <p>Once you accept consent in Profile, that gate stays out of the way hereafter and this Help panel remains the place to review the privacy note.</p>
+          <h3>Privacy Policy</h3>
+          <p><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
+          <p><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</p>
+          <p><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, the extension still works using deterministic, on-device autofill and sends nothing anywhere.</p>
+          <p><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</p>
+          <p><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key. There is no analytics, advertising, tracking, or telemetry of any kind.</p>
         </div>
+
+        <div class="help-section" id="help-gdpr-section">
+          <h3>GDPR &amp; CCPA / your rights</h3>
+          <p>Because all data lives locally on your device and we never receive it, you remain the sole controller of your information and can exercise every right directly from this panel:</p>
+          <ul class="legal-list">
+            <li><strong>Access &amp; portability:</strong> Export your tracker to CSV from the Pipeline screen; your profile and memory are visible and editable in the Profile screen.</li>
+            <li><strong>Rectification:</strong> Edit any saved field at any time in Profile.</li>
+            <li><strong>Erasure ("right to be forgotten"):</strong> Use <em>Delete all local data</em> below to wipe everything instantly. No request to us is needed because we hold nothing.</li>
+            <li><strong>Withdraw consent:</strong> Re-open privacy settings to review or revoke. Deleting local data clears your recorded consent.</li>
+          </ul>
+        </div>
+
         <div class="help-section" id="help-ats-section">
           <h3>What is an ATS?</h3>
-          <p>An applicant tracking system is the hiring software behind many job forms. `apply-bot` uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
+          <p>An applicant tracking system is the hiring software behind many job forms. Apply Workspace uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
         </div>
-        <div class="help-section">
-          <h3>GDPR / data control</h3>
-          <p>Use the actions below to clear temporary cache or fully delete your local extension data.</p>
+
+        <div class="help-section" id="help-data-controls-section">
+          <h3>Data controls — what each action removes</h3>
+          <div class="data-control-explainer">
+            <p class="data-control-title">🧹 Clear temp cache</p>
+            <p class="helper-text">Removes only short-lived working data and keeps everything you set up. Specifically it deletes: cached page drafts (in-progress form values), the last generated answer set, the last fill report, and the "recently filled" pointer. <strong>Your profile, resume, saved memory, tracker, settings, and Gemini key are kept.</strong></p>
+          </div>
+          <div class="data-control-explainer">
+            <p class="data-control-title">🗑 Delete all local data</p>
+            <p class="helper-text">Wipes <strong>everything</strong> this extension stores on your device — profile and resume, saved answer defaults &amp; ignore list, the entire application tracker, all settings <strong>including your Gemini API key and your recorded consent</strong>, plus everything the temp cache covers. This cannot be undone.</p>
+          </div>
         </div>
       </div>
 
       <div class="action-btns">
         <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
         <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
-        <button id="reset-data-btn" class="btn btn-ghost btn-full">🗑 Delete all local data</button>
+        <button id="reset-data-btn" class="btn btn-ghost btn-full btn-danger">🗑 Delete all local data</button>
       </div>
       <p id="help-status" class="status-msg"></p>
     </section>

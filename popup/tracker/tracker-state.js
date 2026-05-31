@@ -4,7 +4,9 @@
 let expandedTrackerIds = new Set();
 let trackerViewState = {
   query: '',
-  activeOnly: false,
+  // Default to the Active view (everything except rejected/retired). Users can
+  // toggle to "All" to surface the final-stage buckets.
+  activeOnly: true,
 };
 let trackerDragState = {
   id: '',

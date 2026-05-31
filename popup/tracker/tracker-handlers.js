@@ -83,7 +83,8 @@ export function initTrackerHandlers() {
   });
   $('tracker-clear-filters-btn')?.addEventListener('click', async () => {
     trackerViewState.query = '';
-    trackerViewState.activeOnly = false;
+    // Clearing returns to the default Active view, not an unfiltered "All".
+    trackerViewState.activeOnly = true;
     if ($('tracker-search-input')) $('tracker-search-input').value = '';
     await renderTracker();
     showScreen('tracker');
@@ -122,16 +123,19 @@ export function initTrackerHandlers() {
       return;
     }
 
-    const finalBubbleBtn = event.target.closest('.tracker-final-bubble');
-    if (finalBubbleBtn) {
-      if (finalBubbleBtn.dataset.clearFinalBubbles === 'true') {
-        clearFinalStageBubbleSelections();
-        await renderTracker();
-        showScreen('tracker');
-        return;
-      }
+    const clearBubblesBtn = event.target.closest('[data-clear-final-bubbles="true"]');
+    if (clearBubblesBtn) {
+      clearFinalStageBubbleSelections();
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
 
-      const id = finalBubbleBtn.dataset.expandCardId || '';
+    // Both final-stage bubbles and primary-lane overflow bubbles expand to a
+    // read-only preview card via the same selection set.
+    const expandBubbleBtn = event.target.closest('[data-expand-card-id]');
+    if (expandBubbleBtn) {
+      const id = expandBubbleBtn.dataset.expandCardId || '';
       if (id) {
         toggleFinalStageBubbleSelection(id);
         await renderTracker();
@@ -212,9 +216,20 @@ export function initTrackerHandlers() {
       }
     }
 
-    if (event.type === 'input' || event.type === 'change') {
-      syncPayInputs(card, field);
+    const isPayField = field.matches?.('[data-pay-range]')
+      || field.dataset.field === 'pay_min'
+      || field.dataset.field === 'pay_max';
+
+    if (isPayField && (event.type === 'input' || event.type === 'change')) {
+      syncPayInputs(card, field, event.type);
     }
+
+    // Re-validate pay on any interaction so the Save button reflects validity.
+    const payValid = validatePayInputs(card);
+
+    // Don't quietly persist a bad pay range — keep the highlight up and let the
+    // user fix it (or hit Save, which stays blocked while invalid).
+    if (isPayField && !payValid) return;
 
     scheduleTrackerSave(card);
   };
@@ -348,6 +363,8 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save';
     }
+    // Re-assert the blocked state if the pay range is still invalid.
+    validatePayInputs(card);
   }
 }
 
@@ -506,46 +523,88 @@ function getLocationValueFromCard(card) {
   return String(select.value || '').trim() || 'Unknown';
 }
 
-function syncPayInputs(card, changedField) {
+const PAY_SLIDER_MAX = 500000;
+const PAY_SLIDER_STEP = 5000;
+
+// Map an arbitrary number onto the slider's stepped 0–500k track for display.
+// The number box keeps the user's exact value; the slider just visualizes it.
+function payToSlider(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return Math.min(PAY_SLIDER_MAX, Math.round(num / PAY_SLIDER_STEP) * PAY_SLIDER_STEP);
+}
+
+// Gentle correction applied only on blur/change: clamp negatives to 0, drop
+// junk, but otherwise preserve the exact figure the user typed.
+function normalizePayOnBlur(raw) {
+  const text = String(raw ?? '').trim();
+  if (text === '') return '';
+  const num = Number(text);
+  if (!Number.isFinite(num) || num < 0) return '0';
+  return String(Math.round(num));
+}
+
+function syncPayInputs(card, changedField, eventType) {
   const minRange = card.querySelector('[data-pay-range="min"]');
   const maxRange = card.querySelector('[data-pay-range="max"]');
   const minNumber = card.querySelector('[data-field="pay_min"]');
   const maxNumber = card.querySelector('[data-field="pay_max"]');
   if (!minRange || !maxRange || !minNumber || !maxNumber) return;
 
-  const PAY_STEP = 5000;
-
-  const clamp = (value) => {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) return 0;
-    return Math.round(num / PAY_STEP) * PAY_STEP;
-  };
-
-  let min = clamp(minNumber.value || minRange.value);
-  let max = clamp(maxNumber.value || maxRange.value);
-
-  if (changedField?.matches?.('[data-pay-range="min"]')) {
-    min = clamp(changedField.value);
-  } else if (changedField?.matches?.('[data-pay-range="max"]')) {
-    max = clamp(changedField.value);
-  } else if (changedField?.dataset?.field === 'pay_min') {
-    min = clamp(changedField.value);
-  } else if (changedField?.dataset?.field === 'pay_max') {
-    max = clamp(changedField.value);
+  if (changedField === minRange) {
+    // Dragging a slider writes its (already stepped) value into the number box.
+    minNumber.value = String(Number(minRange.value));
+  } else if (changedField === maxRange) {
+    maxNumber.value = String(Number(maxRange.value));
+  } else if (changedField?.dataset?.field === 'pay_min' && eventType === 'change') {
+    minNumber.value = normalizePayOnBlur(minNumber.value);
+  } else if (changedField?.dataset?.field === 'pay_max' && eventType === 'change') {
+    maxNumber.value = normalizePayOnBlur(maxNumber.value);
   }
 
-  if (min > max) {
-    if (changedField?.matches?.('[data-pay-range="min"]') || changedField?.dataset?.field === 'pay_min') {
-      max = min;
-    } else {
-      min = max;
-    }
+  // Keep the slider thumbs mirrored to the current numbers without ever
+  // rewriting what the user typed (so manual fine-tuning still works).
+  minRange.value = String(payToSlider(minNumber.value));
+  maxRange.value = String(payToSlider(maxNumber.value));
+}
+
+// Flag a bad pay range (negative, non-numeric, or min > max), highlight the
+// offending boxes, surface a nudge, and block Save until it's resolved.
+function validatePayInputs(card) {
+  const minNumber = card.querySelector('[data-field="pay_min"]');
+  const maxNumber = card.querySelector('[data-field="pay_max"]');
+  const warning = card.querySelector('.pay-warning');
+  const saveBtn = card.querySelector('.tracker-save-btn');
+  if (!minNumber || !maxNumber) return true;
+
+  const minText = minNumber.value.trim();
+  const maxText = maxNumber.value.trim();
+  const min = Number(minText);
+  const max = Number(maxText);
+
+  const minBad = minText !== '' && (!Number.isFinite(min) || min < 0);
+  const maxBad = maxText !== '' && (!Number.isFinite(max) || max < 0);
+  const orderBad = minText !== '' && maxText !== ''
+    && Number.isFinite(min) && Number.isFinite(max) && min > max;
+
+  minNumber.classList.toggle('pay-invalid', minBad || orderBad);
+  maxNumber.classList.toggle('pay-invalid', maxBad || orderBad);
+
+  const valid = !minBad && !maxBad && !orderBad;
+  if (warning) {
+    warning.textContent = valid
+      ? ''
+      : orderBad
+        ? 'Min pay is higher than max — fix the range before saving.'
+        : 'Pay must be a positive number.';
+    warning.classList.toggle('hidden', valid);
+  }
+  if (saveBtn) {
+    saveBtn.disabled = !valid;
+    saveBtn.classList.toggle('is-blocked', !valid);
   }
 
-  minRange.value = String(min);
-  maxRange.value = String(max);
-  minNumber.value = String(min);
-  maxNumber.value = String(max);
+  return valid;
 }
 
 function handleTrackerDragOver(event) {
