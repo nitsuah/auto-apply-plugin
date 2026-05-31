@@ -111,6 +111,31 @@ const finalDockExpanded = {
   retired: false,
 };
 
+// On first open this session, the first few items of each active section are
+// expanded into cards by default. After that we respect whatever the user has
+// since collapsed/expanded.
+let bubbleDefaultsSeeded = false;
+const DEFAULT_EXPANDED_PER_SECTION = 3;
+const PRIMARY_SECTION_STATUS_GROUPS = [
+  ['drafted', 'filled'],
+  ['pending'],
+  ['submitted'],
+  ['interview'],
+  ['offer'],
+];
+
+function seedDefaultExpandedBubbles(apps = []) {
+  for (const statuses of PRIMARY_SECTION_STATUS_GROUPS) {
+    apps
+      .filter((app) => statuses.includes(normalizeApplicationStatus(app.status)))
+      .slice(0, DEFAULT_EXPANDED_PER_SECTION)
+      .forEach((app) => {
+        const id = String(app.id || '');
+        if (id) selectedFinalStageBubbleIds.add(id);
+      });
+  }
+}
+
 export function toggleFinalStageGroup(status) {
   const normalized = normalizeApplicationStatus(status);
   if (!Object.prototype.hasOwnProperty.call(expandedFinalStages, normalized)) return;
@@ -153,6 +178,12 @@ export async function renderTracker() {
 
   const { filterApplicationsForQuery } = await import('../../lib/tracker.js');
   const filteredApps = filterApplicationsForQuery(apps, trackerViewState.query, { activeOnly: trackerViewState.activeOnly });
+
+  if (!bubbleDefaultsSeeded) {
+    seedDefaultExpandedBubbles(filteredApps);
+    bubbleDefaultsSeeded = true;
+  }
+
   const tbody = $('tracker-body');
   if (!tbody) return;
   tbody.innerHTML = '';
@@ -272,7 +303,7 @@ export function renderTrackerLane(applications, lane) {
 
     const expandedCards = laneApps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
     const expandedMarkup = expandedCards.length
-      ? `<div class="tracker-final-expanded">${expandedCards.map((app) => renderTrackerCard(app, { forceCollapsed: true })).join('')}</div>`
+      ? `<div class="tracker-final-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`
       : '';
 
     const hint = laneApps.length && isExpandedDock
@@ -318,7 +349,7 @@ function renderSectionCardsWithOverflow(apps = [], statusTone = '') {
   const bubbles = apps.map((app) => renderOverflowBubble(app, statusTone)).join('');
   const expandedCards = apps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
   const expandedMarkup = expandedCards.length
-    ? `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app, { forceCollapsed: true })).join('')}</div>`
+    ? `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`
     : '';
   return `<div class="tracker-overflow-bubbles">${bubbles}</div>${expandedMarkup}`;
 }
@@ -333,11 +364,10 @@ function renderOverflowBubble(app, statusTone = '') {
 
 // ── Render card ─────────────────────────────────────────────────────────────
 
-export function renderTrackerCard(app, options = {}) {
-  const forceCollapsed = options.forceCollapsed === true;
-  const expanded = forceCollapsed ? false : expandedTrackerIds.has(app.id);
-  const summaryToggleClass = forceCollapsed ? '' : ' tracker-card-toggle';
-  const summaryRole = forceCollapsed ? '' : ' role="button" tabindex="0"';
+export function renderTrackerCard(app) {
+  const expanded = expandedTrackerIds.has(app.id);
+  const summaryToggleClass = ' tracker-card-toggle';
+  const summaryRole = ' role="button" tabindex="0"';
   const normalizedStatus = normalizeApplicationStatus(app.status);
   const pay = resolvePayBand(app);
   const locationUi = getLocationUiState(app.location);
@@ -355,7 +385,8 @@ export function renderTrackerCard(app, options = {}) {
     : esc(app.company || 'Unknown company');
 
   return `
-    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="${(expanded || forceCollapsed) ? 'false' : 'true'}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="false" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+      <div class="tracker-card-grabber" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" title="Drag to move between lanes" aria-label="Drag to move this card">⠿</div>
       <div class="tracker-card-header">
         <div class="tracker-card-summary${summaryToggleClass}"${summaryRole} aria-expanded="${expanded ? 'true' : 'false'}">
           <div class="tracker-summary-copy">

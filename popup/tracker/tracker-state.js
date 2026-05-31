@@ -11,6 +11,7 @@ let trackerViewState = {
 let trackerDragState = {
   id: '',
   status: '',
+  kind: '',
 };
 let trackerSaveTimers = new Map();
 

@@ -157,7 +157,6 @@ export function initTrackerHandlers() {
       if (card) {
         const expanded = card.classList.toggle('expanded');
         toggleBtn.setAttribute('aria-expanded', String(expanded));
-        card.setAttribute('draggable', expanded ? 'false' : 'true');
         const id = card.dataset.id;
         if (expanded) expandedTrackerIds.add(id);
         else expandedTrackerIds.delete(id);
@@ -339,6 +338,15 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
       ...patch,
       ...(resp?.entry || {}),
     });
+
+    // An explicit Save collapses the card one level — hide the edit details and
+    // fall back to the summary view. Auto-saves (on blur) leave it open.
+    if (showMessage && id && expandedTrackerIds.has(id)) {
+      expandedTrackerIds.delete(id);
+      card.classList.remove('expanded');
+      card.querySelector('.tracker-card-toggle')?.setAttribute('aria-expanded', 'false');
+    }
+
     await loadMainScreen({ showMain: false });
 
     if (nextStatus !== normalizeApplicationStatus(previousStatus)) {
@@ -496,6 +504,21 @@ async function saveNewApplicationFromForm() {
 // ── Drag & drop ─────────────────────────────────────────────────────────────
 
 export function handleTrackerDragStart(event) {
+  // Bubbles and the card grabber handle both move an application between lanes.
+  const handle = event.target.closest('.tracker-overflow-bubble[draggable="true"], .tracker-final-bubble[draggable="true"], .tracker-card-grabber[draggable="true"]');
+  if (handle) {
+    trackerDragState.id = handle.dataset.id || '';
+    trackerDragState.status = normalizeApplicationStatus(handle.dataset.status || 'drafted');
+    trackerDragState.kind = 'bubble';
+    handle.classList.add('dragging');
+    handle.closest('.tracker-card')?.classList.add('dragging');
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', trackerDragState.id);
+    }
+    return;
+  }
+
   const card = event.target.closest('.tracker-card');
   if (!card) return;
   if (card.classList.contains('expanded') || card.getAttribute('draggable') === 'false') {
@@ -505,6 +528,7 @@ export function handleTrackerDragStart(event) {
 
   trackerDragState.id = card.dataset.id || '';
   trackerDragState.status = card.dataset.status || 'drafted';
+  trackerDragState.kind = 'card';
   card.classList.add('dragging');
 
   if (event.dataTransfer) {
@@ -608,6 +632,16 @@ function validatePayInputs(card) {
 }
 
 function handleTrackerDragOver(event) {
+  // Bubble / card-grabber moves: highlight the destination lane.
+  if (trackerDragState.kind === 'bubble') {
+    const dropZone = event.target.closest('[data-status-target]');
+    if (!dropZone) return;
+    event.preventDefault();
+    document.querySelectorAll('.drag-target').forEach((el) => el.classList.remove('drag-target'));
+    dropZone.classList.add('drag-target');
+    return;
+  }
+
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
   const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
@@ -633,6 +667,40 @@ function handleTrackerDragOver(event) {
 }
 
 export async function handleTrackerDrop(event) {
+  // Bubble / card-grabber drop → change the application's status to the lane.
+  if (trackerDragState.kind === 'bubble') {
+    const dropZone = event.target.closest('[data-status-target]');
+    if (!dropZone) {
+      clearTrackerDragState();
+      return;
+    }
+    event.preventDefault();
+    const movedId = trackerDragState.id;
+    const destinationStatus = normalizeApplicationStatus(dropZone.dataset.statusTarget || trackerDragState.status || 'drafted');
+
+    try {
+      if (movedId && destinationStatus !== trackerDragState.status) {
+        const resp = await sendMessage({
+          type: 'UPDATE_APPLICATION',
+          payload: { id: movedId, patch: { status: destinationStatus } },
+        });
+        if (!resp?.success) {
+          throw new Error(resp?.error || 'Could not move that card.');
+        }
+        await renderTracker();
+        await loadMainScreen({ showMain: false });
+        showScreen('tracker');
+        const movedStatusMeta = getTrackingStatusMeta(destinationStatus);
+        setTrackerScreenStatus(`✅ Moved card to ${movedStatusMeta.label} — ${movedStatusMeta.optionHint}.`, 'success');
+      }
+    } catch (err) {
+      setTrackerScreenStatus('❌ ' + err.message, 'error');
+    } finally {
+      clearTrackerDragState();
+    }
+    return;
+  }
+
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
   const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
@@ -677,9 +745,9 @@ export function handleTrackerDragEnd() {
 function clearTrackerDragState() {
   trackerDragState.id = '';
   trackerDragState.status = '';
-  document.querySelectorAll('.tracker-card.dragging').forEach((card) => card.classList.remove('dragging'));
-  document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
-  document.querySelectorAll('.tracker-lane-final.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
+  trackerDragState.kind = '';
+  document.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-target').forEach((el) => el.classList.remove('drag-target'));
 }
 
 function getTrackerDragAfterElement(container, y) {

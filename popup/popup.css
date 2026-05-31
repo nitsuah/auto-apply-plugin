@@ -493,6 +493,71 @@ textarea {
   padding: 12px;
 }
 
+/* Two-up rows on wide layouts; stacks on the narrow popup. */
+.profile-row-2col {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (min-width: 760px) {
+  .profile-row-2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.profile-row-2col > * {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* Collapsible <details> sections (click summary to expand). */
+.profile-collapsible {
+  border-radius: var(--radius-sm);
+}
+
+.collapsible-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary .badge {
+  margin-left: auto;
+}
+
+.collapsible-summary::after {
+  content: '▸';
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+details[open] > .collapsible-summary::after {
+  transform: rotate(90deg);
+}
+
+.collapsible-body {
+  padding-top: 10px;
+}
+
+.ignored-collapsible,
+.sensitive-collapsible {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
 .profile-panel .helper-text:last-child {
   margin-bottom: 0;
 }
@@ -661,12 +726,27 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   margin-top: 2px;
 }
 
+/* Demographic / sensitive data — flagged red as the most protected category. */
 .sensitive-group {
   padding: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(248, 113, 113, 0.45);
   border-radius: var(--radius);
-  background: rgba(251, 191, 36, 0.06);
+  background: rgba(248, 113, 113, 0.07);
   margin-bottom: 12px;
+}
+.sensitive-section-label {
+  color: #fca5a5 !important;
+}
+.sensitive-group .memory-title {
+  color: #fca5a5;
+}
+.sensitive-group .memory-bubble {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
+}
+.sensitive-group .memory-bubble:hover {
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #fecaca;
 }
 .sensitive-check {
   align-items: flex-start;
@@ -1241,7 +1321,8 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-lane {
 }
 
 body[data-standalone="true"][data-screen="tracker"] .tracker-card {
-  padding: 7px;
+  /* Keep the reserved left gutter so the drag rail never overlaps content. */
+  padding: 7px 7px 7px 24px;
 }
 
 body[data-standalone="true"][data-screen="tracker"] .tracker-card-header {
@@ -1540,6 +1621,24 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.32);
 }
 
+.tracker-lane-group.drag-target {
+  background: rgba(74, 222, 128, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.28);
+  border-radius: var(--radius-sm);
+}
+
+/* Draggable bubbles */
+.tracker-overflow-bubble,
+.tracker-final-bubble {
+  cursor: grab;
+}
+
+.tracker-overflow-bubble.dragging,
+.tracker-final-bubble.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
 .tracker-lane-group + .tracker-lane-group {
   margin-top: 10px;
   padding-top: 10px;
@@ -1565,13 +1664,55 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-card {
+  position: relative;
   min-width: 0;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px;
+  /* Reserved left gutter so the corner grip never sits on top of content. */
+  padding: 8px 8px 8px 24px;
+  cursor: default;
+}
+
+/* Full-height drag rail on the left, living entirely inside the reserved
+   gutter so it never covers the card text. Revealed on hover; the card body
+   itself isn't draggable, so a plain click still expands the card. */
+.tracker-card-grabber {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -1px;
   cursor: grab;
+  border-right: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: var(--radius) 0 0 var(--radius);
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.tracker-card:hover .tracker-card-grabber,
+.tracker-card-grabber.dragging {
+  opacity: 1;
+}
+
+.tracker-card-grabber:hover {
+  color: var(--text);
+  background: rgba(96, 165, 250, 0.16);
+}
+
+.tracker-card-grabber:active,
+.tracker-card-grabber.dragging {
+  cursor: grabbing;
 }
 
 .tracker-card.expanded {
@@ -1581,7 +1722,6 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .tracker-card.dragging {
   opacity: 0.6;
   border-style: dashed;
-  cursor: grabbing;
 }
 
 .tracker-card-summary {
@@ -2221,17 +2361,42 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--purple);
 }
 
+/* Bubble layout: contracted chips flow inline; expanded cards take a full row. */
 .memory-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .compact-memory-list {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.memory-bubble {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  background: rgba(192, 132, 252, 0.08);
+  color: #d8deed;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.memory-bubble:hover {
+  border-color: rgba(192, 132, 252, 0.65);
+  color: #e9d5ff;
 }
 
 .memory-item {
+  flex: 1 1 100%;
   border: 1px solid rgba(192, 132, 252, 0.28);
   border-radius: var(--radius-sm);
   background: rgba(192, 132, 252, 0.05);

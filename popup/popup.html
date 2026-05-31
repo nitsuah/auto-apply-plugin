@@ -93,98 +93,105 @@
               </div>
             </div>
 
-            <div class="form-group profile-panel">
-              <label>Saved answer defaults</label>
-              <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
-              <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
-              <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
-              <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
-              <div class="inline-fields" style="margin-top:8px">
-                <input type="text" id="default-start-date" placeholder="Start date / availability" />
-                <select id="default-sponsorship">
-                  <option value="">Sponsorship need…</option>
-                  <option value="No">No sponsorship required</option>
-                  <option value="Yes">Will require sponsorship</option>
+            <!-- Row: Core profile (left) · Preferences & answer defaults (right) -->
+            <div class="profile-row-2col">
+              <div class="form-group profile-panel" id="core-profile-section">
+                <label>Core profile details</label>
+                <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
+                <div class="profile-grid">
+                  <input type="text" id="profile-full-name" placeholder="Full name" />
+                  <input type="text" id="profile-email" placeholder="Email" />
+                  <input type="text" id="profile-phone" placeholder="Phone" />
+                  <input type="text" id="profile-location" placeholder="Current location" />
+                  <input type="text" id="profile-address-line1" placeholder="Street address" />
+                  <div class="inline-fields compact-fields">
+                    <input type="text" id="profile-city" placeholder="City" />
+                    <input type="text" id="profile-state-region" placeholder="State" />
+                    <input type="text" id="profile-postal-code" placeholder="ZIP" />
+                  </div>
+                  <input type="text" id="profile-linkedin" placeholder="LinkedIn URL" />
+                  <input type="text" id="profile-github" placeholder="GitHub URL" />
+                  <input type="text" id="profile-portfolio" placeholder="Portfolio / website" />
+                  <input type="text" id="profile-current-company" placeholder="Current company" />
+                  <input type="text" id="profile-current-title" placeholder="Current job title" />
+                  <input type="number" id="profile-years-of-experience" placeholder="Years of experience" min="0" step="1" />
+                  <input type="text" id="profile-pronouns" placeholder="Pronouns (optional)" />
+                </div>
+              </div>
+
+              <div class="form-group settings-group profile-panel" id="preferences-section">
+                <label>Preferences &amp; answer defaults (optional)</label>
+                <div class="inline-fields">
+                  <input type="number" id="salary-min" placeholder="Min salary" />
+                  <span class="sep">–</span>
+                  <input type="number" id="salary-max" placeholder="Max salary" />
+                </div>
+                <select id="work-auth">
+                  <option value="">Work authorization…</option>
+                  <option value="US Citizen">US Citizen</option>
+                  <option value="Green Card">Green Card</option>
+                  <option value="H-1B">H-1B</option>
+                  <option value="OPT">OPT</option>
+                  <option value="TN Visa">TN Visa</option>
+                  <option value="Other">Other</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="form-group profile-panel" id="core-profile-section">
-              <label>Core profile details</label>
-              <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
-              <div class="profile-grid">
-                <input type="text" id="profile-full-name" placeholder="Full name" />
-                <input type="text" id="profile-email" placeholder="Email" />
-                <input type="text" id="profile-phone" placeholder="Phone" />
-                <input type="text" id="profile-location" placeholder="Current location" />
-                <input type="text" id="profile-address-line1" placeholder="Street address" />
-                <div class="inline-fields compact-fields">
-                  <input type="text" id="profile-city" placeholder="City" />
-                  <input type="text" id="profile-state-region" placeholder="State" />
-                  <input type="text" id="profile-postal-code" placeholder="ZIP" />
-                </div>
-                <input type="text" id="profile-linkedin" placeholder="LinkedIn URL" />
-                <input type="text" id="profile-github" placeholder="GitHub URL" />
-                <input type="text" id="profile-portfolio" placeholder="Portfolio / website" />
-                <input type="text" id="profile-current-company" placeholder="Current company" />
-                <input type="text" id="profile-current-title" placeholder="Current job title" />
-                <input type="number" id="profile-years-of-experience" placeholder="Years of experience" min="0" step="1" />
-                <input type="text" id="profile-pronouns" placeholder="Pronouns (optional)" />
-              </div>
-            </div>
-
-            <div class="form-group settings-group profile-panel">
-              <label>Preferences (optional)</label>
-              <div class="inline-fields">
-                <input type="number" id="salary-min" placeholder="Min salary" />
-                <span class="sep">–</span>
-                <input type="number" id="salary-max" placeholder="Max salary" />
-              </div>
-              <select id="work-auth">
-                <option value="">Work authorization…</option>
-                <option value="US Citizen">US Citizen</option>
-                <option value="Green Card">Green Card</option>
-                <option value="H-1B">H-1B</option>
-                <option value="OPT">OPT</option>
-                <option value="TN Visa">TN Visa</option>
-                <option value="Other">Other</option>
-              </select>
-              <label class="checkbox-row">
-                <input type="checkbox" id="prefer-remote" checked />
-                Prefer remote roles
-              </label>
-            </div>
-
-            <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
-              <div class="report-header">
-                <span class="report-title memory-title">Memory</span>
-                <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
-              </div>
-              <p class="helper-text">Only non-sensitive reusable answers live here. Click a card to expand and edit it, or ignore outliers so they stop autofilling.</p>
-              <div id="learned-defaults-list" class="memory-list">
-                <p class="empty-msg">No memory saved yet.</p>
-              </div>
-
-              <div class="ignored-memory-block">
-                <div class="report-header">
-                  <span class="report-title memory-title">Ignore list</span>
-                  <span id="ignored-memory-count" class="badge badge-memory">0 ignored</span>
-                </div>
-                <p class="helper-text">Ignored answers are archived here and will not autofill again until you delete them from this list.</p>
-                <div id="ignored-memory-list" class="memory-list compact-memory-list">
-                  <p class="empty-msg">No ignored memory right now.</p>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="prefer-remote" checked />
+                  Prefer remote roles
+                </label>
+                <p class="helper-text" style="margin-top:10px">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
+                <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
+                <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
+                <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
+                <div class="inline-fields" style="margin-top:8px">
+                  <input type="text" id="default-start-date" placeholder="Start date / availability" />
+                  <select id="default-sponsorship">
+                    <option value="">Sponsorship need…</option>
+                    <option value="No">No sponsorship required</option>
+                    <option value="Yes">Will require sponsorship</option>
+                  </select>
                 </div>
               </div>
             </div>
 
-            <div class="form-group sensitive-group profile-panel">
-              <label>Sensitive / Demographic (optional)</label>
-              <label class="checkbox-row sensitive-check">
-                <input type="checkbox" id="sensitive-optin" />
-                Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
-              </label>
-              <div id="sensitive-fields" class="sensitive-fields hidden">
-                <select id="profile-gender">
+            <!-- Row: Memory (col A) · Demographic + sensitive memory (col B, protected) -->
+            <div class="profile-row-2col">
+              <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
+                <details class="profile-collapsible memory-collapsible">
+                  <summary class="collapsible-summary">
+                    <span class="report-title memory-title">Memory</span>
+                    <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
+                  </summary>
+                  <div class="collapsible-body">
+                    <p class="helper-text">Only non-sensitive reusable answers live here. Click a bubble to expand and edit it, or ignore outliers so they stop autofilling.</p>
+                    <div id="learned-defaults-list" class="memory-list">
+                      <p class="empty-msg">No memory saved yet.</p>
+                    </div>
+
+                    <details class="profile-collapsible ignored-collapsible">
+                      <summary class="collapsible-summary">
+                        <span class="report-title memory-title">Ignore list</span>
+                        <span id="ignored-memory-count" class="badge badge-memory">0 ignored</span>
+                      </summary>
+                      <div class="collapsible-body">
+                        <p class="helper-text">Ignored answers are archived here and will not autofill again until you delete them from this list.</p>
+                        <div id="ignored-memory-list" class="memory-list compact-memory-list">
+                          <p class="empty-msg">No ignored memory right now.</p>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                </details>
+              </div>
+
+              <div class="form-group sensitive-group profile-panel">
+                <label class="sensitive-section-label">🔒 Sensitive / Demographic — protected data</label>
+                <label class="checkbox-row sensitive-check">
+                  <input type="checkbox" id="sensitive-optin" />
+                  Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
+                </label>
+                <div id="sensitive-fields" class="sensitive-fields hidden">
+                  <select id="profile-gender">
                   <option value="">Gender…</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -218,17 +225,20 @@
                 </select>
                 <input type="text" id="profile-pronouns-sensitive" placeholder="Pronouns (optional)" />
               </div>
-              <div class="sensitive-memory-block">
-                <div class="report-header">
-                  <span class="report-title memory-title">Sensitive memory</span>
-                  <span id="sensitive-memory-count" class="badge badge-memory">0 guarded</span>
-                </div>
-                <p class="helper-text">Higher-sensitivity remembers stay grouped here for review. Legal acknowledgements are ignored by default.</p>
-                <div id="sensitive-memory-list" class="memory-list compact-memory-list">
-                  <p class="empty-msg">No sensitive memory saved.</p>
-                </div>
+                <details class="profile-collapsible sensitive-collapsible">
+                  <summary class="collapsible-summary">
+                    <span class="report-title memory-title">Sensitive memory</span>
+                    <span id="sensitive-memory-count" class="badge badge-memory">0 guarded</span>
+                  </summary>
+                  <div class="collapsible-body">
+                    <p class="helper-text">Higher-sensitivity remembers stay grouped here for review. Legal acknowledgements are ignored by default.</p>
+                    <div id="sensitive-memory-list" class="memory-list compact-memory-list">
+                      <p class="empty-msg">No sensitive memory saved.</p>
+                    </div>
+                  </div>
+                </details>
+                <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
               </div>
-              <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
             </div>
 
             <div class="profile-save-bar">

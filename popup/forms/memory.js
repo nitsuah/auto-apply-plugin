@@ -41,7 +41,19 @@ export async function renderLearnedDefaults() {
 }
 
 /**
- * Render a group of memory items with edit/ignore/delete actions.
+ * Compact "bubble" (chip) shown for a contracted memory item. Clicking expands
+ * it into the full editable card via the shared expand handler.
+ */
+function renderMemoryChip(item, { label = 'Prompt' } = {}) {
+  const question = String(item.question || '').trim();
+  const display = question.length > 24 ? `${question.slice(0, 22)}…` : (question || label);
+  const tooltip = question + (item.answer ? ` → ${item.answer}` : '');
+  return `<button type="button" class="memory-bubble memory-expand-btn" data-question="${escAttr(question)}" aria-expanded="false" title="${escAttr(tooltip)}">${esc(display)}</button>`;
+}
+
+/**
+ * Render a group of memory items as contracted bubbles; expanded items become
+ * full edit cards inline.
  */
 export function renderMemoryGroup(container, items, emptyMessage) {
   if (!items.length) {
@@ -49,9 +61,13 @@ export function renderMemoryGroup(container, items, emptyMessage) {
     return;
   }
 
-  container.innerHTML = items.map(item => `
-    <div class="memory-item ${expandedMemoryQuestions.has(item.question) ? 'expanded' : ''}" data-question="${escAttr(item.question)}">
-      <button type="button" class="memory-card-summary memory-expand-btn" aria-expanded="${expandedMemoryQuestions.has(item.question) ? 'true' : 'false'}">
+  container.innerHTML = items.map(item => {
+    if (!expandedMemoryQuestions.has(item.question)) {
+      return renderMemoryChip(item);
+    }
+    return `
+    <div class="memory-item expanded" data-question="${escAttr(item.question)}">
+      <button type="button" class="memory-card-summary memory-expand-btn" aria-expanded="true">
         <div class="memory-card-copy">
           <div class="memory-item-label">Prompt</div>
           <div class="memory-item-question">${esc(item.question)}</div>
@@ -67,12 +83,13 @@ export function renderMemoryGroup(container, items, emptyMessage) {
           <button class="btn btn-ghost btn-xs memory-delete-btn" data-question="${escAttr(item.question)}">Delete</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 /**
- * Render a group of ignored memory items with restore/delete actions.
+ * Render a group of ignored memory items as contracted bubbles; expanded items
+ * become full restore/delete cards inline.
  */
 export function renderIgnoredMemoryGroup(container, items, emptyMessage) {
   if (!items.length) {
@@ -80,9 +97,13 @@ export function renderIgnoredMemoryGroup(container, items, emptyMessage) {
     return;
   }
 
-  container.innerHTML = items.map(item => `
-    <div class="memory-item ignored-memory-item" data-question="${escAttr(item.question)}">
-      <button type="button" class="memory-card-summary memory-expand-btn" aria-expanded="${expandedMemoryQuestions.has(item.question) ? 'true' : 'false'}">
+  container.innerHTML = items.map(item => {
+    if (!expandedMemoryQuestions.has(item.question)) {
+      return renderMemoryChip(item, { label: 'Ignored prompt' });
+    }
+    return `
+    <div class="memory-item ignored-memory-item expanded" data-question="${escAttr(item.question)}">
+      <button type="button" class="memory-card-summary memory-expand-btn" aria-expanded="true">
         <div class="memory-card-copy">
           <div class="memory-item-label">Ignored prompt</div>
           <div class="memory-item-question">${esc(item.question)}</div>
@@ -97,8 +118,8 @@ export function renderIgnoredMemoryGroup(container, items, emptyMessage) {
           <button class="btn btn-ghost btn-xs memory-delete-btn" data-question="${escAttr(item.question)}">Delete</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 /**
@@ -115,16 +136,17 @@ export function initMemoryHandlers() {
 
     try {
       if (expandBtn) {
-        const item = expandBtn.closest('.memory-item');
-        const question = item?.dataset.question || '';
+        // The button is either a contracted chip (data-question on itself) or
+        // the summary of an expanded card (data-question on the parent item).
+        const question = expandBtn.dataset.question || expandBtn.closest('.memory-item')?.dataset.question || '';
         if (question) {
           if (expandedMemoryQuestions.has(question)) {
             expandedMemoryQuestions.delete(question);
           } else {
             expandedMemoryQuestions.add(question);
           }
-          item.classList.toggle('expanded', expandedMemoryQuestions.has(question));
-          expandBtn.setAttribute('aria-expanded', String(expandedMemoryQuestions.has(question)));
+          // Re-render so the chip ⇄ card swap takes effect.
+          await renderLearnedDefaults();
         }
         return;
       }
