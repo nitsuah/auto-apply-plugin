@@ -11,6 +11,7 @@ import {
   shouldPersistLearnedValue,
 } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
+import { searchJobs } from '../lib/job-search.js';
 import {
   addApplication,
   deleteApplication,
@@ -44,6 +45,8 @@ async function handleMessage(msg) {
       return handleGenerateAnswers(msg.payload);
     case 'GET_LAST_ANSWERS':
       return getLastAnswers();
+    case 'SEARCH_JOBS':
+      return handleSearchJobs(msg.payload);
     case 'LOG_APPLICATION':
       return handleLogApplication(msg.payload);
     case 'PARSE_APPLICATION_DRAFT':
@@ -341,6 +344,11 @@ async function handleRemoveResumeAttachment() {
   });
 
   return { success: true };
+}
+
+async function handleSearchJobs({ query } = {}) {
+  const { jobs, sources } = await searchJobs(query);
+  return { success: true, jobs, sources };
 }
 
 async function handleLogApplication(app) {

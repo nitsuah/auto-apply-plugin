@@ -77,8 +77,60 @@
 }
 .job-link {
   font-size: 13px;
-  color: var(--blue);
-  text-decoration: underline;
+}
+
+.job-source-note {
+  margin-bottom: 4px;
+}
+
+.job-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.job-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.job-badge-remote {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.job-badge-salary {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.job-badge-source {
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.4);
+  background: rgba(167, 139, 250, 0.1);
+}
+
+.job-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.job-result-actions .job-link {
+  text-decoration: none;
+}
+
+.job-save-btn.is-saved {
+  opacity: 0.7;
 }
 /* ============================================================
    apply-bot — popup styles
