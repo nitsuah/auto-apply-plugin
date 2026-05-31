@@ -3,7 +3,7 @@
  * Handles storage, Gemini API calls, and message routing.
  */
 
-import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
+import { parseResumeWithGemini, generateAnswers, transformJobText } from '../lib/gemini.js';
 import {
   findLearnedAnswer,
   getLearnedMemoryKey,
@@ -47,6 +47,8 @@ async function handleMessage(msg) {
       return getLastAnswers();
     case 'SEARCH_JOBS':
       return handleSearchJobs(msg.payload);
+    case 'SUMMARIZE_JD':
+      return handleSummarizeJd(msg.payload);
     case 'LOG_APPLICATION':
       return handleLogApplication(msg.payload);
     case 'PARSE_APPLICATION_DRAFT':
@@ -349,6 +351,22 @@ async function handleRemoveResumeAttachment() {
 async function handleSearchJobs({ query } = {}) {
   const { jobs, sources } = await searchJobs(query);
   return { success: true, jobs, sources };
+}
+
+async function handleSummarizeJd({ text, mode } = {}) {
+  const data = await chrome.storage.local.get('settings');
+  const settings = data.settings || {};
+  if (!settings.gemini_api_key) {
+    throw new Error('Add a Gemini API key in the AI panel to use AI summarize / clean-up.');
+  }
+  const result = await transformJobText({
+    text,
+    mode: mode === 'cleanup' ? 'cleanup' : 'summary',
+    apiKey: settings.gemini_api_key,
+    model: settings.gemini_model,
+  });
+  if (!result) throw new Error('The AI returned an empty result.');
+  return { success: true, text: result };
 }
 
 async function handleLogApplication(app) {

@@ -132,6 +132,27 @@
 .job-save-btn.is-saved {
   opacity: 0.7;
 }
+
+/* AI summarize / clean-up toolbar (quick-add + tracker card descriptions) */
+.jd-ai-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.jd-ai-btn {
+  white-space: nowrap;
+}
+
+.jd-ai-status {
+  font-size: 10px;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* ============================================================
    apply-bot — popup styles
    ============================================================ */
@@ -2680,5 +2701,17 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   .tracker-toolbar .btn {
     font-size: 11px;
     padding: 5px 8px;
+  }
+}
+
+/* Respect users who prefer reduced motion — disable non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

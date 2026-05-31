@@ -13,7 +13,8 @@ updated: 2026-05-21 (qa-closeout)
   - Context: the tracker is now useful, but the remaining work is mostly fit-and-finish: wider workspace sizing, tighter review loops, and lower-scroll editing.
   - Acceptance Criteria: tracker/profile views feel roomy, the user can manage job context without fighting the popup, and the workspace stays aligned with the local-first/review-first product promise.
   - Progress: landed wider workspace behavior, responsive lane/grid cleanup, final-stage (Rejected/Retired) collapse controls, tracker status placement near header actions, status-select dark-mode polish, split Profile actions (Save Profile vs Parse/Upload Resume), editable card URL, grouped card editor boxes, restored submitted/updated date editing block, structured pay controls, verdict dropdown, location selector, drag-lock while editing, and larger description editing area.
-  - Remaining: monitor follow-up feedback during the next feature cycle; current fit-and-finish and visual sign-off completed in QA closeout (2026-05-21).
+  - Progress (2026-05-31): tracker lanes now render every item as a contracted, draggable bubble (first 3 per active section auto-expand on open); cards moved via a hover-reveal left-rail grab handle (kept clear of content via a reserved gutter, incl. the standalone view); clicking a card body expands it and Save drops it back one level. Profile reorg: Core profile / Preferences (incl. merged answer defaults) two-up row; Memory (col A) vs red protected Demographic (col B); Memory, Ignore list, and Sensitive memory are collapsible sections whose items render as expandable bubble chips, fully contracted by default. iframe (iCIMS) fill, path-scoped custom-domain ATS detection, pay-slider rework, and expanded legal/privacy + consent date also landed.
+  - Remaining: refresh `screenshots/` gallery for the new tracker/profile UI; monitor follow-up FE feedback during the current review pass.
 
 - [/] Keep local-first autofill and privacy controls trustworthy.
   - Priority: P1
@@ -32,16 +33,18 @@ updated: 2026-05-21 (qa-closeout)
 
 ### P1 - Job Search & ATS Handoff
 
-- [ ] Implement multi-source job search aggregation:
+- [/] Implement multi-source job search aggregation:
+  - Progress (2026-05-31): shipped a keyless MVP — `lib/job-search.js` aggregates Remotive + Arbeitnow, normalizes to a common schema (title, company, location, salary, remote, url, ATS label, source, posted, tags, description), dedupes across sources, and sorts by recency. Fetch runs in the service worker via a new `SEARCH_JOBS` message (host perms added). Results panel now shows remote/salary/type/source badges, a "Go to job post" CTA that upgrades to "Apply on <ATS>" when a known ATS link is detected, and a one-click "Save to Tracker". Covered by `tests/job-search.test.mjs`.
+  - Remaining: add keyed/broader sources (Adzuna, USAJobs, RapidAPI), LinkedIn/Indeed handling, on-ATS-page detail parsing, and fast tracker-side indexing.
   - Integrate with public job APIs (e.g. Adzuna, USAJobs, or RapidAPI job endpoints) and/or scrape LinkedIn, Indeed, etc. via URL endpoint with generic app for auth initially or lazy 3l0 scraping after.
-  - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link.
-  - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred).
-  - Add logic to extract and highlight ATS/job board links from job listings (when available).
-  - If only a generic job board link is available, surface that as the main action.
-  - Add a "Save to Tracker" button for each result to capture the job into the user's board.
+  - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link. [done]
+  - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred). [done]
+  - Add logic to extract and highlight ATS/job board links from job listings (when available). [done — known-ATS detection on result URLs]
+  - If only a generic job board link is available, surface that as the main action. [done]
+  - Add a "Save to Tracker" button for each result to capture the job into the user's board. [done]
   - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page.
   - Index all captured jobs for fast search/filter in the tracker.
-  - (Optional) Add basic deduplication for jobs appearing on multiple boards.
+  - (Optional) Add basic deduplication for jobs appearing on multiple boards. [done]
 
 - [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
 - [ ] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
@@ -62,11 +65,14 @@ updated: 2026-05-21 (qa-closeout)
 
 ### P4 - Nice to have
 
-- [ ] Run an `axe` / a11y audit on the popup and key application-review flows.
+- [/] Run an `axe` / a11y audit on the popup and key application-review flows.
   - Priority: P4
   - Context: the UI is becoming more workspace-like, so keyboard support, labels, alt text, and contrast should get a structured pass.
   - Acceptance Criteria: document the biggest accessibility gaps and land the highest-value fixes without bloating the MVP.
-- [ ] Identify visual overload segments and have AI buttons to make detailed information more concise for consumption. For example, job descriptions can be very long and detailed, so having an option to summarize or highlight key points could be helpful. The scraping results may also have some noise that could be reduced with a "clean up" button in most circumstances.
+  - Progress (2026-05-31): structured manual audit written to `docs/a11y-audit.md`. Landed fixes: `popup/ux/a11y.js` derives accessible names from placeholders/titles for all unlabeled controls (run at init); icon-only Help button labeled; Enter/Space now toggles tracker card expand (the `role=button` summary); `prefers-reduced-motion` block disables non-essential animation. Remaining (documented): keyboard DnD alternative, color-contrast verification, focus-ring audit, live-region sweep, and wiring `axe-core` into Playwright e2e.
+- [/] Identify visual overload segments and have AI buttons to make detailed information more concise for consumption. For example, job descriptions can be very long and detailed, so having an option to summarize or highlight key points could be helpful. The scraping results may also have some noise that could be reduced with a "clean up" button in most circumstances.
+  - Progress (2026-05-31): added BYOK Gemini "✨ Summarize" and "🧹 Clean up" buttons on both the Quick-add JD field and each tracker card's description (`transformJobText` in `lib/gemini.js`, `SUMMARIZE_JD` SW message). Summarize returns a scannable labeled-bullet brief; Clean up strips nav/cookie/boilerplate noise. On a card the result fills the textarea without auto-saving, so the original is preserved until the user clicks Save. Requires a Gemini key (clear error otherwise).
+  - Remaining: optional summarize/clean-up on long preview answers and on captured search-result descriptions.
 
 ## Done
 

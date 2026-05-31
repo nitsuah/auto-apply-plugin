@@ -27,7 +27,7 @@
           <button id="header-ai-btn" class="icon-btn" title="Open the AI settings panel">
             🧠 <span class="tracker-btn-label">AI</span>
           </button>
-          <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options">?</button>
+          <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options" aria-label="Help, privacy, and reset options">?</button>
         </div>
       </div>
     </header>
@@ -364,6 +364,11 @@
             Remote / hybrid
           </label>
           <input id="new-application-salary-range" type="text" placeholder="Salary range" />
+        </div>
+        <div class="jd-ai-toolbar">
+          <button id="quickadd-summarize-btn" class="btn btn-ghost btn-xs jd-ai-btn" type="button" data-mode="summary" title="Summarize the pasted JD into key points">✨ Summarize</button>
+          <button id="quickadd-cleanup-btn" class="btn btn-ghost btn-xs jd-ai-btn" type="button" data-mode="cleanup" title="Strip boilerplate / noise from the pasted text">🧹 Clean up</button>
+          <span id="quickadd-ai-status" class="jd-ai-status helper-text"></span>
         </div>
         <textarea id="new-application-description" rows="5" placeholder="Paste the JD or quick notes (optional)"></textarea>
         <div class="tracker-card-actions" style="margin-top:10px">

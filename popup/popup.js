@@ -10,6 +10,7 @@ import { initHelpHandlers } from './ux/help.js';
 import { initPreviewHandlers } from './forms/preview.js';
 import { initMemoryHandlers } from './forms/memory.js';
 import { initJobSearchHandlers } from './search/job-search.js';
+import { applyAccessibleNames } from './ux/a11y.js';
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initStatusNavHandlers();
   initMemoryHandlers();
   initJobSearchHandlers(showScreen);
+
+  // Give every placeholder-only control an accessible name for screen readers.
+  applyAccessibleNames(document);
 
   // Apply initial screen from URL params (for standalone workspace tabs)
   await applyInitialRequestedScreen();

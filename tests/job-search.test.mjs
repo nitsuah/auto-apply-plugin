@@ -32,7 +32,7 @@ test('normalizeRemotiveJob maps the common schema and strips HTML', () => {
   assert.equal(job.remote, true);
   assert.equal(job.source, 'Remotive');
   assert.deepEqual(job.tags, ['react', 'node']);
-  assert.equal(job.description, 'Build things& ship');
+  assert.equal(job.description, 'Build things & ship');
 });
 
 test('normalizeArbeitnowJob infers remote and reads unix timestamps', () => {
@@ -97,7 +97,7 @@ test('searchJobs merges sources, dedupes, sorts by recency, and reports source s
       ok: true,
       json: async () => ({ data: [
         { slug: 'acme-plat', url: 'https://x.com/2', title: 'Platform Engineer', company_name: 'Acme', remote: true, created_at: 1700000000, location: 'Remote' },
-        { slug: 'glx-fe', url: 'https://x.com/3', title: 'Frontend Engineer', company_name: 'Globex', remote: true, created_at: 1748000000, location: 'Remote' },
+        { slug: 'glx-fe', url: 'https://x.com/3', title: 'Frontend Engineer', company_name: 'Globex', remote: true, created_at: 1780272000, location: 'Remote' },
       ] }),
     };
   };

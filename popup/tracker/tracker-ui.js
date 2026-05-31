@@ -506,6 +506,11 @@ export function renderTrackerCard(app) {
             </div>
           </div>
 
+          <div class="jd-ai-toolbar">
+            <button class="btn btn-ghost btn-xs jd-ai-btn tracker-jd-ai-btn" type="button" data-mode="summary" title="Summarize this description into key points">✨ Summarize</button>
+            <button class="btn btn-ghost btn-xs jd-ai-btn tracker-jd-ai-btn" type="button" data-mode="cleanup" title="Strip boilerplate / noise from this description">🧹 Clean up</button>
+            <span class="jd-ai-status helper-text tracker-jd-ai-status"></span>
+          </div>
           <textarea class="tracker-field-description" data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
         </div>
         <div class="tracker-card-actions">

@@ -36,6 +36,31 @@ function setTrackerAddStatus(msg, type = '') {
   el.className = 'status-msg' + (type ? ' ' + type : '');
 }
 
+// ── AI summarize / clean-up for long descriptions ───────────────────────────
+
+/**
+ * Run an AI summarize/clean-up pass over description text via the service
+ * worker. Returns the transformed text, or null on empty input / failure
+ * (status is reflected in statusEl).
+ */
+async function runJdTransform(text, mode, statusEl) {
+  const value = String(text || '').trim();
+  if (!value) {
+    if (statusEl) statusEl.textContent = 'Paste a description first.';
+    return null;
+  }
+  if (statusEl) statusEl.textContent = mode === 'cleanup' ? '🧹 Cleaning up…' : '✨ Summarizing…';
+  try {
+    const resp = await sendMessage({ type: 'SUMMARIZE_JD', payload: { text: value, mode } });
+    if (!resp?.success) throw new Error(resp?.error || 'AI request failed.');
+    if (statusEl) statusEl.textContent = '✅ Done — review and Save.';
+    return resp.text;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '❌ ' + (err?.message || 'AI request failed.');
+    return null;
+  }
+}
+
 // ── Lazy reference to loadMainScreen (avoids circular imports) ──────────────
 
 let _loadMainScreen = null;
@@ -61,6 +86,22 @@ export function initTrackerHandlers() {
   $('add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm());
   $('cancel-add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm(false));
   $('import-current-job-btn')?.addEventListener('click', importCurrentPageIntoTrackerForm);
+
+  // Quick-add AI summarize / clean-up
+  const wireQuickAddAi = (btnId) => {
+    $(btnId)?.addEventListener('click', async (event) => {
+      const btn = event.currentTarget;
+      const mode = btn.dataset.mode || 'summary';
+      const textarea = $('new-application-description');
+      if (!textarea) return;
+      btn.disabled = true;
+      const result = await runJdTransform(textarea.value, mode, $('quickadd-ai-status'));
+      btn.disabled = false;
+      if (result) textarea.value = result;
+    });
+  };
+  wireQuickAddAi('quickadd-summarize-btn');
+  wireQuickAddAi('quickadd-cleanup-btn');
   $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
   $('import-csv-btn')?.addEventListener('click', () => $('import-csv-input')?.click());
   $('import-csv-input')?.addEventListener('change', (e) => importTrackerCsvFile(e));
@@ -105,6 +146,21 @@ export function initTrackerHandlers() {
 
   // Delegated click handlers on tracker body
   $('tracker-body')?.addEventListener('click', async (event) => {
+    // AI summarize / clean-up on a card's description (sets the textarea without
+    // auto-saving, so the original is preserved until the user clicks Save).
+    const jdAiBtn = event.target.closest('.tracker-jd-ai-btn');
+    if (jdAiBtn) {
+      const card = jdAiBtn.closest('.tracker-card');
+      const textarea = card?.querySelector('.tracker-field-description');
+      if (!textarea) return;
+      const mode = jdAiBtn.dataset.mode || 'summary';
+      jdAiBtn.disabled = true;
+      const result = await runJdTransform(textarea.value, mode, card.querySelector('.tracker-jd-ai-status'));
+      jdAiBtn.disabled = false;
+      if (result) textarea.value = result;
+      return;
+    }
+
     const laneToggleBtn = event.target.closest('.tracker-lane-toggle');
     if (laneToggleBtn) {
       const status = laneToggleBtn.dataset.finalStatus || '';
@@ -180,6 +236,15 @@ export function initTrackerHandlers() {
     const card = saveBtn.closest('.tracker-card');
     if (!card) return;
     await saveTrackerCard(card, { showMessage: true });
+  });
+
+  // Keyboard support for the expand/collapse card summary (role="button").
+  $('tracker-body')?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+    const toggle = event.target.closest('.tracker-card-toggle');
+    if (!toggle) return;
+    event.preventDefault();
+    toggle.click();
   });
 
   // Auto-save on field change/blur
