@@ -267,14 +267,16 @@ export function renderTrackerLane(applications, lane) {
     const sections = lane.groups.map((group) => {
       const laneApps = applications.filter((app) => group.statuses.includes(normalizeApplicationStatus(app.status)));
       const statusTone = group.statuses[0] || group.key;
-      const cards = renderSectionCardsWithOverflow(laneApps, statusTone);
+      const bubbles = renderSectionBubbles(laneApps, statusTone);
+      const expanded = renderSectionExpandedCards(laneApps);
       return `
         <div class="tracker-lane-group" data-status-target="${escAttr(group.statuses[0])}">
           <div class="tracker-lane-subheader">
             <span class="tracker-lane-subtitle">${group.label}</span>
+            <div class="tracker-lane-inline-bubbles">${bubbles}</div>
             <span class="tracker-lane-count">${laneApps.length}</span>
           </div>
-          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${cards}</div>
+          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${expanded}</div>
         </div>
       `;
     }).join('');
@@ -326,32 +328,32 @@ export function renderTrackerLane(applications, lane) {
     `;
   }
   const statusTone = lane.statuses[0] || lane.key;
-  const cards = renderSectionCardsWithOverflow(laneApps, statusTone);
+  const bubbles = renderSectionBubbles(laneApps, statusTone);
+  const expanded = renderSectionExpandedCards(laneApps);
 
   return `
     <section class="tracker-lane${isFinalStageLane ? ` tracker-lane-final tracker-lane-final-${escAttr(statusTone)}` : ''}" data-status-target="${escAttr(lane.statuses[0])}">
       <div class="tracker-lane-header">
         <span class="tracker-lane-title">${lane.label}</span>
+        <div class="tracker-lane-inline-bubbles">${bubbles}</div>
         <span class="tracker-lane-count">${laneApps.length}</span>
       </div>
-      <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${cards}</div>
+      <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${expanded}</div>
     </section>
   `;
 }
 
-function renderSectionCardsWithOverflow(apps = [], statusTone = '') {
-  if (!apps.length) {
-    return '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
-  }
+// Contracted, draggable bubbles for a section (shown inline with the subtitle).
+function renderSectionBubbles(apps = [], statusTone = '') {
+  if (!apps.length) return '';
+  return apps.map((app) => renderOverflowBubble(app, statusTone)).join('');
+}
 
-  // Every item is a contracted, draggable bubble by default. Clicking a bubble
-  // expands its full card inline below the bubble row.
-  const bubbles = apps.map((app) => renderOverflowBubble(app, statusTone)).join('');
+// Expanded preview cards for whichever bubbles in this section are selected.
+function renderSectionExpandedCards(apps = []) {
   const expandedCards = apps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
-  const expandedMarkup = expandedCards.length
-    ? `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`
-    : '';
-  return `<div class="tracker-overflow-bubbles">${bubbles}</div>${expandedMarkup}`;
+  if (!expandedCards.length) return '';
+  return `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`;
 }
 
 function renderOverflowBubble(app, statusTone = '') {
@@ -372,14 +374,6 @@ export function renderTrackerCard(app) {
   const pay = resolvePayBand(app);
   const locationUi = getLocationUiState(app.location);
   const scoreUi = getScorecardUiState(app.scorecard);
-  const summaryMeta = [
-    app.location || 'Unknown',
-    app.employment_type || 'Full-time',
-    app.remote ? 'Remote' : 'On-site',
-  ].filter(Boolean).join(' · ');
-  const summaryNote = getVerdictLabel(app.verdict) || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
-  const salaryText = formatPayDisplay(pay.min, pay.max, app.salary_range);
-  const scoreDisplay = getScoreDisplay(app.scorecard);
   const companyLabel = app.url
     ? `<a class="tracker-summary-title-link" href="${escAttr(app.url)}" target="_blank" rel="noopener">${esc(app.company || 'Unknown company')}</a>`
     : esc(app.company || 'Unknown company');
@@ -392,20 +386,7 @@ export function renderTrackerCard(app) {
           <div class="tracker-summary-copy">
             <div class="tracker-summary-title">${companyLabel}</div>
             <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
-            <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
-            <div class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || 'Pay range not saved yet')}</div>
-            <div class="tracker-summary-insights">
-              <div class="tracker-summary-insight">
-                <span class="tracker-summary-label">Sentiment</span>
-                <span class="tracker-summary-value">${esc(getVerdictLabel(app.verdict) || 'Neutral / maybe')}</span>
-              </div>
-              <div class="tracker-summary-insight">
-                <span class="tracker-summary-label">Score</span>
-                ${scoreDisplay
-                  ? `<span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" aria-label="Score ${escAttr(scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span><span class="tracker-score-raw${scoreDisplay.isZero ? ' is-zero' : ''}">${esc(scoreDisplay.raw)}</span>`
-                  : `<span class="tracker-summary-value">${esc(app.scorecard || 'Not scored')}</span>`}
-              </div>
-            </div>
+            <div class="tracker-summary-details">${renderCardSummaryDetailsInner(app)}</div>
           </div>
         </div>
         <div class="tracker-card-tools tracker-card-tools-right">
@@ -555,29 +536,9 @@ export function syncTrackerCardSummary(card, patch = {}) {
   }
   const roleEl = card.querySelector('.tracker-summary-role');
   if (roleEl) roleEl.textContent = title;
-  const metaEl = card.querySelector('.tracker-summary-meta');
-  if (metaEl) metaEl.textContent = summaryMeta;
-  const salaryEl = card.querySelector('.tracker-summary-salary');
-  const salaryText = formatPayDisplay(patch.pay_min, patch.pay_max, patch.salary_range);
-  if (salaryEl) {
-    salaryEl.textContent = salaryText || 'Pay range not saved yet';
-    salaryEl.classList.toggle('hidden', !String(salaryText || '').trim());
-  }
-  const noteEl = card.querySelector('.tracker-card-note-right');
-  if (noteEl) noteEl.textContent = summaryNote;
 
-  const sentimentEl = card.querySelector('.tracker-summary-insight .tracker-summary-value');
-  if (sentimentEl) sentimentEl.textContent = getVerdictLabel(patch.verdict) || 'Neutral / maybe';
-
-  const scoreInsightEl = card.querySelector('.tracker-summary-insights .tracker-summary-insight:last-child');
-  if (scoreInsightEl) {
-    const scoreDisplay = getScoreDisplay(patch.scorecard);
-    if (scoreDisplay) {
-      scoreInsightEl.innerHTML = `<span class="tracker-summary-label">Score</span><span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" aria-label="Score ${escAttr(scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span><span class="tracker-score-raw${scoreDisplay.isZero ? ' is-zero' : ''}">${esc(scoreDisplay.raw)}</span>`;
-    } else {
-      scoreInsightEl.innerHTML = `<span class="tracker-summary-label">Score</span><span class="tracker-summary-value">${esc(patch.scorecard || 'Not scored')}</span>`;
-    }
-  }
+  const detailsEl = card.querySelector('.tracker-summary-details');
+  if (detailsEl) detailsEl.innerHTML = renderCardSummaryDetailsInner(patch);
 
   const submittedEl = card.querySelector('.tracker-card-submitted');
   if (submittedEl) submittedEl.textContent = formatDate(patch.date) || '—';
@@ -590,6 +551,81 @@ function getVerdictLabel(value = '') {
   const normalized = String(value || '').trim();
   const match = VERDICT_OPTIONS.find((option) => option.value === normalized);
   return match ? match.label : normalized;
+}
+
+// ── Emoji indicators (compact card meta) ────────────────────────────────────
+
+const VERDICT_EMOJI = {
+  strong_yes: '🤩',
+  lean_yes: '🙂',
+  neutral: '😐',
+  lean_no: '😕',
+  no: '🚫',
+  research: '🔍',
+};
+
+function getVerdictEmoji(value = '') {
+  return VERDICT_EMOJI[String(value || '').trim()] || '😐';
+}
+
+const NA_COUNTRY_FLAGS = {
+  Canada: '🇨🇦', Mexico: '🇲🇽', Bermuda: '🇧🇲', Greenland: '🇬🇱',
+  Bahamas: '🇧🇸', 'Costa Rica': '🇨🇷', Panama: '🇵🇦',
+};
+
+function getLocationIndicator(location = '') {
+  const loc = String(location || '').trim();
+  if (!loc || loc === 'Unknown') return { emoji: '📍', label: 'Location not set' };
+  if (loc === 'United States' || USA_STATES.includes(loc)) return { emoji: '🇺🇸', label: loc };
+  if (NA_COUNTRY_FLAGS[loc]) return { emoji: NA_COUNTRY_FLAGS[loc], label: loc };
+  if (/remote|anywhere|worldwide/i.test(loc)) return { emoji: '🌐', label: loc };
+  return { emoji: '📍', label: loc };
+}
+
+function getEmploymentIndicator(type = '') {
+  const t = String(type || '').toLowerCase();
+  if (t.includes('intern')) return { emoji: '🎓', label: 'Internship' };
+  if (t.includes('contract')) return { emoji: '✖️', label: 'Contract' };
+  if (t.includes('part')) return { emoji: '⚪', label: 'Part-time' };
+  if (t.includes('temp')) return { emoji: '⏳', label: 'Temporary' };
+  return { emoji: '🟢', label: 'Full-time' };
+}
+
+function getRemoteIndicator(remote) {
+  return remote ? { emoji: '🏠', label: 'Remote / WFH' } : { emoji: '🏢', label: 'On-site' };
+}
+
+/**
+ * Compact emoji-first summary details (location/type/remote indicators + a pay
+ * row carrying salary, the sentiment emoji, and score stars). Reused by both
+ * the initial card render and the live summary sync so they never drift.
+ */
+function renderCardSummaryDetailsInner(app = {}) {
+  const pay = resolvePayBand(app);
+  const salaryText = formatPayDisplay(pay.min, pay.max, app.salary_range);
+  const scoreDisplay = getScoreDisplay(app.scorecard);
+  const loc = getLocationIndicator(app.location);
+  const emp = getEmploymentIndicator(app.employment_type);
+  const rem = getRemoteIndicator(app.remote);
+  const verdictLabel = getVerdictLabel(app.verdict) || 'Neutral / maybe';
+  const verdictEmoji = getVerdictEmoji(app.verdict || 'neutral');
+
+  const stars = scoreDisplay
+    ? `<span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" title="${escAttr('Score: ' + scoreDisplay.raw)}" aria-label="${escAttr('Score: ' + scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span>`
+    : '<span class="tracker-score-stars is-empty" title="Not scored" aria-label="Not scored">☆☆☆☆☆</span>';
+
+  return `
+    <div class="tracker-summary-indicators">
+      <span class="meta-emoji" title="${escAttr(loc.label)}" aria-label="${escAttr('Location: ' + loc.label)}">${loc.emoji}</span>
+      <span class="meta-emoji" title="${escAttr(emp.label)}" aria-label="${escAttr('Type: ' + emp.label)}">${emp.emoji}</span>
+      <span class="meta-emoji" title="${escAttr(rem.label)}" aria-label="${escAttr(rem.label)}">${rem.emoji}</span>
+    </div>
+    <div class="tracker-summary-payrow">
+      <span class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || '')}</span>
+      <span class="tracker-summary-sentiment" title="${escAttr('Sentiment: ' + verdictLabel)}" aria-label="${escAttr('Sentiment: ' + verdictLabel)}">${verdictEmoji}</span>
+      ${stars}
+    </div>
+  `;
 }
 
 function getScoreDisplay(value = '') {

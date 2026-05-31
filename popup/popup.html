@@ -413,20 +413,47 @@
 
     <!-- Job Search Screen -->
     <section id="job-search-screen" class="screen hidden">
-      <div class="tracker-header">
-        <h2 class="section-title" style="margin:0 auto;text-align:center;">Job Search</h2>
-        <button id="job-search-back-btn" class="btn-back" style="position:absolute;left:16px;bottom:16px;">← Back</button>
-      </div>
       <div class="job-search-panel">
-        <div class="job-search-bar">
-          <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
-          <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+        <div class="job-search-sticky">
+          <div class="job-search-header">
+            <h2 class="section-title">Job Search</h2>
+            <button id="job-search-back-btn" class="btn-back job-search-back" type="button">← Back</button>
+          </div>
+          <div class="job-search-toolbar">
+            <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
+            <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+            <button id="job-filters-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-expanded="false" aria-controls="job-search-subbar">⚙ Filters</button>
+          </div>
+          <div id="job-search-subbar" class="job-search-subbar hidden">
+            <div class="job-source-filter-row">
+              <span class="job-source-filter-label">Sources</span>
+              <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
+            </div>
+            <div class="job-pay-filter">
+              <div class="job-pay-filter-head">
+                <span class="job-pay-filter-label">Pay</span>
+                <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
+                  <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
+                  <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
+                </div>
+                <span id="pay-filter-readout" class="job-pay-readout">Any pay</span>
+              </div>
+              <div class="job-pay-row">
+                <label class="job-pay-row-label" for="pay-filter-min">Min</label>
+                <input type="range" id="pay-filter-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
+                <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
+                <span class="job-pay-unit" id="pay-unit-min">K</span>
+              </div>
+              <div class="job-pay-row">
+                <label class="job-pay-row-label" for="pay-filter-max">Max</label>
+                <input type="range" id="pay-filter-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
+                <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
+                <span class="job-pay-unit" id="pay-unit-max">K</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="job-source-filter-row">
-          <span class="job-source-filter-label">Sources:</span>
-          <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
-        </div>
-        <div id="job-search-results" class="job-search-results" aria-live="polite">
+        <div id="job-search-results" class="job-search-results job-search-grid" aria-live="polite">
           <p class="empty-msg">No search yet. Enter a query above.</p>
         </div>
       </div>
@@ -476,7 +503,7 @@
 
           <div class="form-group profile-panel ai-panel-group">
             <label for="adzuna-app-id">Job search sources (optional)</label>
-            <p class="helper-text">Add free <a class="hint-link" href="https://developer.adzuna.com/" target="_blank" rel="noopener">Adzuna API keys</a> to fold Adzuna listings into Job Search alongside the built-in free sources. Stored locally only.</p>
+            <p class="helper-text">Optional keyed sources fold extra listings into Job Search alongside the built-in free ones. Keys are stored locally only.</p>
             <input type="text" id="adzuna-app-id" placeholder="Adzuna App ID" autocomplete="off" />
             <input type="password" id="adzuna-app-key" placeholder="Adzuna App Key" autocomplete="off" style="margin-top:8px" />
             <select id="adzuna-country" style="margin-top:8px" aria-label="Adzuna search country">
@@ -489,9 +516,12 @@
               <option value="nl">Netherlands</option>
               <option value="in">India</option>
             </select>
-            <p class="helper-text" style="margin-top:10px">Add free <a class="hint-link" href="https://developer.usajobs.gov/" target="_blank" rel="noopener">USAJOBS API access</a> (US federal jobs) — uses your registered email + API key.</p>
+            <a class="hint-link" href="https://developer.adzuna.com/signup" target="_blank" rel="noopener">Get free Adzuna keys →</a>
+
+            <p class="helper-text" style="margin-top:14px">USAJOBS (US federal jobs) — uses your registered account email + API key.</p>
             <input type="email" id="usajobs-email" placeholder="USAJOBS account email" autocomplete="off" />
             <input type="password" id="usajobs-api-key" placeholder="USAJOBS API Key" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://developer.usajobs.gov/apirequest/" target="_blank" rel="noopener">Request USAJOBS API access →</a>
           </div>
 
           <div class="profile-save-bar ai-save-bar">

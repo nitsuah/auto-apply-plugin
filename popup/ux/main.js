@@ -391,6 +391,11 @@ export async function applyInitialRequestedScreen() {
     return;
   }
 
+  if (screen === 'job-search') {
+    showScreen('job-search');
+    return;
+  }
+
   if (screen === 'setup') {
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });

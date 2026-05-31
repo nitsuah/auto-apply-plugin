@@ -12,6 +12,8 @@ import {
   searchJobs,
   listJobSources,
   resolveActiveSources,
+  parseJobPay,
+  jobPassesPayFilter,
 } from '../lib/job-search.js';
 
 test('normalizeRemotiveJob maps the common schema and strips HTML', () => {
@@ -229,6 +231,27 @@ test('searchJobs only queries the selected sources', async () => {
   };
   await searchJobs('dev', { fetchImpl, sources: ['arbeitnow'] });
   assert.deepEqual(hits, ['arbeitnow']);
+});
+
+test('parseJobPay reads ranges, k-suffixes, and hourly rates', () => {
+  assert.deepEqual(parseJobPay('$130,000 - $176,000'), { min: 130000, max: 176000, hourly: false });
+  assert.deepEqual(parseJobPay('$120k'), { min: 120000, max: 120000, hourly: false });
+  assert.equal(parseJobPay('$50/hr').hourly, true);
+  assert.equal(parseJobPay(''), null);
+  assert.equal(parseJobPay('competitive'), null);
+});
+
+test('jobPassesPayFilter overlaps ranges and keeps unknown-salary jobs', () => {
+  const annual = { enabled: true, mode: 'annual', min: 100, max: 200 }; // $100k–$200k
+  assert.equal(jobPassesPayFilter({ salary: '$130,000 - $176,000' }, annual), true);
+  assert.equal(jobPassesPayFilter({ salary: '$60,000' }, annual), false);
+  assert.equal(jobPassesPayFilter({ salary: '' }, annual), true); // unknown → keep
+  assert.equal(jobPassesPayFilter({ salary: '$60,000' }, { enabled: false }), true); // disabled
+
+  // Hourly mode converts an hourly posting and compares in $/hr.
+  const hourly = { enabled: true, mode: 'hourly', min: 40, max: 80 };
+  assert.equal(jobPassesPayFilter({ salary: '$50/hr' }, hourly), true);
+  assert.equal(jobPassesPayFilter({ salary: '$20/hr' }, hourly), false);
 });
 
 test('searchJobs throws only when every source fails', async () => {
