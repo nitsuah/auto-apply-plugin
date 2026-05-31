@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   normalizeRemotiveJob,
   normalizeArbeitnowJob,
+  normalizeAdzunaJob,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -54,6 +55,28 @@ test('normalizeArbeitnowJob infers remote and reads unix timestamps', () => {
   assert.equal(job.source, 'Arbeitnow');
   assert.equal(job.atsLabel, 'Greenhouse');
   assert.match(job.posted, /^20\d\d-/);
+});
+
+test('normalizeAdzunaJob maps schema, salary range, and employment type', () => {
+  const job = normalizeAdzunaJob({
+    id: 9,
+    title: 'Data Engineer',
+    company: { display_name: 'Initech' },
+    location: { display_name: 'Remote, US' },
+    salary_min: 110000,
+    salary_max: 140000,
+    contract_time: 'full_time',
+    redirect_url: 'https://www.adzuna.com/land/ad/9',
+    created: '2026-05-28T00:00:00Z',
+    description: 'Pipelines',
+  });
+
+  assert.equal(job.id, 'adzuna:9');
+  assert.equal(job.company, 'Initech');
+  assert.equal(job.source, 'Adzuna');
+  assert.equal(job.salary, '$110,000 - $140,000');
+  assert.equal(job.employment_type, 'Full-time');
+  assert.equal(job.remote, true);
 });
 
 test('detectAtsLabelFromUrl recognizes known applicant tracking systems', () => {
@@ -110,6 +133,32 @@ test('searchJobs merges sources, dedupes, sorts by recency, and reports source s
   assert.equal(jobs[0].company, 'Globex');
   assert.equal(sources.find((s) => s.name === 'Remotive').ok, true);
   assert.equal(sources.find((s) => s.name === 'Arbeitnow').count, 2);
+});
+
+test('searchJobs includes Adzuna only when credentials are supplied', async () => {
+  let adzunaCalled = false;
+  const fetchImpl = async (url) => {
+    if (url.includes('api.adzuna.com')) {
+      adzunaCalled = true;
+      return { ok: true, json: async () => ({ results: [
+        { id: 7, title: 'ML Engineer', company: { display_name: 'Initech' }, location: { display_name: 'Remote' }, redirect_url: 'https://adzuna/7', created: '2026-05-29T00:00:00Z' },
+      ] }) };
+    }
+    if (url.includes('remotive.com')) return { ok: true, json: async () => ({ jobs: [] }) };
+    return { ok: true, json: async () => ({ data: [] }) };
+  };
+
+  const withoutCreds = await searchJobs('engineer', { fetchImpl });
+  assert.equal(adzunaCalled, false);
+  assert.equal(withoutCreds.sources.some((s) => s.name === 'Adzuna'), false);
+
+  const withCreds = await searchJobs('engineer', {
+    fetchImpl,
+    adzuna: { appId: 'id', appKey: 'key', country: 'us' },
+  });
+  assert.equal(adzunaCalled, true);
+  assert.equal(withCreds.sources.find((s) => s.name === 'Adzuna').ok, true);
+  assert.ok(withCreds.jobs.some((j) => j.source === 'Adzuna'));
 });
 
 test('searchJobs throws only when every source fails', async () => {

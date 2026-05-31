@@ -14,6 +14,9 @@ export function readSettingsForm() {
     preferred_salary_max: Number($('salary-max')?.value) || null,
     work_authorization: $('work-auth')?.value || null,
     preferred_remote: $('prefer-remote')?.checked,
+    adzuna_app_id: $('adzuna-app-id')?.value.trim() || '',
+    adzuna_app_key: $('adzuna-app-key')?.value.trim() || '',
+    adzuna_country: $('adzuna-country')?.value || 'us',
     privacy_consent: $('privacy-consent')?.checked,
     privacy_consent_at: $('privacy-consent')?.checked ? new Date().toISOString() : null,
   };

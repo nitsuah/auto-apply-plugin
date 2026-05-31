@@ -467,6 +467,23 @@
             </select>
           </div>
 
+          <div class="form-group profile-panel ai-panel-group">
+            <label for="adzuna-app-id">Job search sources (optional)</label>
+            <p class="helper-text">Add free <a class="hint-link" href="https://developer.adzuna.com/" target="_blank" rel="noopener">Adzuna API keys</a> to fold Adzuna listings into Job Search alongside the built-in free sources. Stored locally only.</p>
+            <input type="text" id="adzuna-app-id" placeholder="Adzuna App ID" autocomplete="off" />
+            <input type="password" id="adzuna-app-key" placeholder="Adzuna App Key" autocomplete="off" style="margin-top:8px" />
+            <select id="adzuna-country" style="margin-top:8px" aria-label="Adzuna search country">
+              <option value="us">United States</option>
+              <option value="gb">United Kingdom</option>
+              <option value="ca">Canada</option>
+              <option value="au">Australia</option>
+              <option value="de">Germany</option>
+              <option value="fr">France</option>
+              <option value="nl">Netherlands</option>
+              <option value="in">India</option>
+            </select>
+          </div>
+
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
             <p id="ai-status" class="status-msg"></p>

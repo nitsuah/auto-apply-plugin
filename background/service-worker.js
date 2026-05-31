@@ -349,7 +349,16 @@ async function handleRemoveResumeAttachment() {
 }
 
 async function handleSearchJobs({ query } = {}) {
-  const { jobs, sources } = await searchJobs(query);
+  const data = await chrome.storage.local.get('settings');
+  const settings = data.settings || {};
+  const adzuna = (settings.adzuna_app_id && settings.adzuna_app_key)
+    ? {
+        appId: settings.adzuna_app_id,
+        appKey: settings.adzuna_app_key,
+        country: settings.adzuna_country || 'us',
+      }
+    : null;
+  const { jobs, sources } = await searchJobs(query, { adzuna });
   return { success: true, jobs, sources };
 }
 
