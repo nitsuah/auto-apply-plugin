@@ -555,17 +555,31 @@ function getVerdictLabel(value = '') {
 
 // ── Emoji indicators (compact card meta) ────────────────────────────────────
 
+// More discernible than smileys: fire / thumbs / dash / thumbs-down / x / glass.
 const VERDICT_EMOJI = {
-  strong_yes: '🤩',
-  lean_yes: '🙂',
-  neutral: '😐',
-  lean_no: '😕',
-  no: '🚫',
+  strong_yes: '🔥',
+  lean_yes: '👍',
+  neutral: '➖',
+  lean_no: '👎',
+  no: '❌',
   research: '🔍',
 };
+const VERDICT_CYCLE = ['strong_yes', 'lean_yes', 'neutral', 'lean_no', 'no', 'research'];
 
 function getVerdictEmoji(value = '') {
-  return VERDICT_EMOJI[String(value || '').trim()] || '😐';
+  return VERDICT_EMOJI[String(value || '').trim()] || '➖';
+}
+
+// Resolve a 0–5 integer star count from whatever scorecard text is stored.
+function getStarCount(scorecard) {
+  const ui = getScorecardUiState(scorecard);
+  if (ui.selectValue && ui.selectValue !== 'other') {
+    const n = Number(ui.selectValue);
+    return Number.isFinite(n) ? Math.max(0, Math.min(5, n)) : 0;
+  }
+  const display = getScoreDisplay(scorecard);
+  if (!display) return 0;
+  return (String(display.stars).match(/★/g) || []).length;
 }
 
 const NA_COUNTRY_FLAGS = {
@@ -609,20 +623,25 @@ function renderCardSummaryDetailsInner(app = {}) {
   const rem = getRemoteIndicator(app.remote);
   const verdictLabel = getVerdictLabel(app.verdict) || 'Neutral / maybe';
   const verdictEmoji = getVerdictEmoji(app.verdict || 'neutral');
+  const verdictValue = String(app.verdict || 'neutral').trim() || 'neutral';
 
-  const stars = scoreDisplay
-    ? `<span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" title="${escAttr('Score: ' + scoreDisplay.raw)}" aria-label="${escAttr('Score: ' + scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span>`
-    : '<span class="tracker-score-stars is-empty" title="Not scored" aria-label="Not scored">☆☆☆☆☆</span>';
+  // Clickable stars (reverse DOM order enables a pure-CSS hover-fill).
+  const starCount = getStarCount(app.scorecard);
+  const scoreTitle = scoreDisplay ? `Score: ${scoreDisplay.raw} (click to set)` : 'Not scored (click to set)';
+  const starButtons = [5, 4, 3, 2, 1]
+    .map((n) => `<span class="tracker-star${n <= starCount ? ' is-filled' : ''}" data-star="${n}" title="Set score ${n}/5">★</span>`)
+    .join('');
+  const stars = `<span class="tracker-score-stars tracker-score-interactive${scoreDisplay && scoreDisplay.isZero ? ' is-zero' : ''}" title="${escAttr(scoreTitle)}" aria-label="${escAttr(scoreTitle)}">${starButtons}</span>`;
 
   return `
     <div class="tracker-summary-indicators">
-      <span class="meta-emoji" title="${escAttr(loc.label)}" aria-label="${escAttr('Location: ' + loc.label)}">${loc.emoji}</span>
+      <span class="meta-emoji meta-flag" title="${escAttr(loc.label)}" aria-label="${escAttr('Location: ' + loc.label)}">${loc.emoji}</span>
       <span class="meta-emoji" title="${escAttr(emp.label)}" aria-label="${escAttr('Type: ' + emp.label)}">${emp.emoji}</span>
       <span class="meta-emoji" title="${escAttr(rem.label)}" aria-label="${escAttr(rem.label)}">${rem.emoji}</span>
     </div>
     <div class="tracker-summary-payrow">
       <span class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || '')}</span>
-      <span class="tracker-summary-sentiment" title="${escAttr('Sentiment: ' + verdictLabel)}" aria-label="${escAttr('Sentiment: ' + verdictLabel)}">${verdictEmoji}</span>
+      <span class="tracker-summary-sentiment tracker-sentiment-interactive" data-sentiment-cycle="1" data-verdict="${escAttr(verdictValue)}" title="${escAttr('Sentiment: ' + verdictLabel + ' (click to change)')}" aria-label="${escAttr('Sentiment: ' + verdictLabel)}">${verdictEmoji}</span>
       ${stars}
     </div>
   `;

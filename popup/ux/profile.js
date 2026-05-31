@@ -43,6 +43,8 @@ export function applyStateToSetupForm(state = {}) {
   if ($('adzuna-country')) $('adzuna-country').value = settings.adzuna_country || 'us';
   set('usajobs-email', settings.usajobs_email || '');
   set('usajobs-api-key', settings.usajobs_api_key || '');
+  set('linkedin-client-id', settings.linkedin_client_id || '');
+  set('linkedin-client-secret', settings.linkedin_client_secret || '');
   const privacyConsent = $('privacy-consent');
   if (privacyConsent) privacyConsent.checked = settings.privacy_consent === true;
 

@@ -19,6 +19,8 @@ export function readSettingsForm() {
     adzuna_country: $('adzuna-country')?.value || 'us',
     usajobs_email: $('usajobs-email')?.value.trim() || '',
     usajobs_api_key: $('usajobs-api-key')?.value.trim() || '',
+    linkedin_client_id: $('linkedin-client-id')?.value.trim() || '',
+    linkedin_client_secret: $('linkedin-client-secret')?.value.trim() || '',
     privacy_consent: $('privacy-consent')?.checked,
     privacy_consent_at: $('privacy-consent')?.checked ? new Date().toISOString() : null,
   };

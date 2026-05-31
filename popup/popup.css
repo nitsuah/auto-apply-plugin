@@ -31,23 +31,16 @@
   cursor: pointer;
 }
 /* --- Job Search Panel --- */
+/* Centered job-search column; results inside lay out as a grid. */
 #job-search-screen .job-search-panel {
-  max-width: none;
-  margin: 0;
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 0;
 }
-#job-search-screen .job-search-bar {
-  display: flex;
-  gap: 8px;
-}
-#job-search-input {
-  flex: 1;
-}
-#job-search-submit-btn {
-  min-width: 80px;
-}
+#job-search-input { flex: 1; }
+#job-search-submit-btn { min-width: 80px; }
 
-/* Pinned search header + controls so they stay reachable while scrolling. */
+/* Pinned header + controls (tracker-toolbar style). */
 .job-search-sticky {
   position: sticky;
   top: 0;
@@ -55,7 +48,7 @@
   background: var(--bg);
   padding: 8px 0 10px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .job-search-header {
@@ -66,17 +59,30 @@
   margin-bottom: 10px;
 }
 
-.job-search-header .section-title {
-  margin: 0;
+.job-search-header .section-title { margin: 0; }
+.job-search-back { position: static; }
+
+.job-search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.job-search-back {
-  position: static;
-}
-
-.job-search-grid {
+.job-search-subbar {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+/* Results grid — needs to beat the .job-search-results flex fallback. */
+.job-search-results.job-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
   align-items: start;
 }
@@ -86,22 +92,29 @@
   grid-column: 1 / -1;
 }
 
-/* Pay filter */
-.job-pay-filter {
+.job-source-filter-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
 }
 
-.job-pay-enable {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
+.job-source-filter-label,
+.job-pay-filter-label {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
-  white-space: nowrap;
+  min-width: 52px;
+}
+
+/* Pay filter */
+.job-pay-filter { display: grid; gap: 8px; }
+
+.job-pay-filter-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .job-pay-mode-toggle {
@@ -125,24 +138,41 @@
   color: var(--accent);
 }
 
-.job-pay-sliders {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 200px;
-  min-width: 160px;
-}
-
-.job-pay-sliders input[type="range"] {
-  flex: 1;
-  accent-color: var(--accent);
-}
-
 .job-pay-readout {
   font-size: 11px;
   font-weight: 600;
   color: var(--text);
+  margin-left: auto;
   white-space: nowrap;
+}
+
+.job-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-pay-row-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 28px;
+}
+
+.job-pay-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  min-width: 120px;
+}
+
+.job-pay-num {
+  width: 66px;
+  text-align: right;
+}
+
+.job-pay-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 34px;
 }
 .job-search-results {
   display: flex;
@@ -152,24 +182,77 @@
 .job-search-result {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px 18px;
+  padding: 12px 14px;
   background: var(--surface-2);
   color: var(--text);
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+.job-result-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.job-result-headline { min-width: 0; }
+
 .job-title {
   font-weight: 600;
-  font-size: 17px;
+  font-size: 14px;
   margin-bottom: 2px;
   color: var(--text);
+  line-height: 1.3;
 }
 .job-meta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-bottom: 6px;
 }
-.job-link {
+
+.job-result-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.job-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.job-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.job-icon-btn.is-saved {
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+.job-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .job-source-note {
@@ -220,8 +303,15 @@
 }
 
 .job-source-chip.is-unavailable {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.55;
+  /* Clickable — routes to AI settings to add credentials. */
+  cursor: pointer;
+}
+
+.job-source-chip.is-unavailable:hover {
+  opacity: 0.8;
+  border-color: var(--blue);
+  color: var(--blue);
 }
 
 .job-badges {
@@ -631,6 +721,38 @@ textarea {
 
 .hint-link:hover {
   text-decoration: underline;
+}
+
+/* LinkedIn OAuth / redirect URL */
+.oauth-redirect-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.oauth-redirect-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.oauth-redirect-uri {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 3px 6px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.linkedin-connect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 /* ── Resume tabs ── */
@@ -2119,6 +2241,46 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .tracker-summary-sentiment {
   font-size: 14px;
   line-height: 1;
+}
+
+/* Click the sentiment emoji to cycle the verdict. */
+.tracker-sentiment-interactive {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 2px;
+  transition: filter 0.1s, background 0.1s;
+}
+
+.tracker-sentiment-interactive:hover {
+  filter: brightness(1.25);
+  background: rgba(148, 163, 184, 0.16);
+}
+
+/* Interactive star rating — reverse flex so :hover fills hovered + earlier. */
+.tracker-score-interactive {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.tracker-score-interactive .tracker-star {
+  color: #4b5563;
+  transition: color 0.1s, transform 0.1s;
+}
+
+.tracker-score-interactive .tracker-star.is-filled {
+  color: #f5d56d;
+}
+
+.tracker-score-interactive:hover .tracker-star {
+  color: #4b5563;
+}
+
+.tracker-score-interactive .tracker-star:hover,
+.tracker-score-interactive .tracker-star:hover ~ .tracker-star {
+  color: #f5d56d;
+  transform: scale(1.12);
 }
 
 .tracker-card-note-right {

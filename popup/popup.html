@@ -524,6 +524,23 @@
             <a class="hint-link" href="https://developer.usajobs.gov/apirequest/" target="_blank" rel="noopener">Request USAJOBS API access →</a>
           </div>
 
+          <div class="form-group profile-panel ai-panel-group" id="linkedin-oauth-section">
+            <label for="linkedin-client-id">Profile import — Sign in with LinkedIn (optional)</label>
+            <p class="helper-text">Create a free LinkedIn app, add the redirect URL below to it, paste your Client ID + Secret, then connect to pre-fill your name &amp; email. BYO app, stored locally only. (LinkedIn's public API doesn't expose job listings, so this is profile-import only.)</p>
+            <div class="oauth-redirect-row">
+              <span class="oauth-redirect-label">Redirect URL</span>
+              <code id="oauth-redirect-uri" class="oauth-redirect-uri">—</code>
+              <button type="button" id="copy-redirect-uri-btn" class="btn btn-ghost btn-xs">Copy</button>
+            </div>
+            <input type="text" id="linkedin-client-id" placeholder="LinkedIn Client ID" autocomplete="off" />
+            <input type="password" id="linkedin-client-secret" placeholder="LinkedIn Client Secret" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://www.linkedin.com/developers/apps/new" target="_blank" rel="noopener">Create a LinkedIn app →</a>
+            <div class="linkedin-connect-row">
+              <button type="button" id="connect-linkedin-btn" class="btn btn-secondary btn-sm">🔗 Connect LinkedIn</button>
+              <span id="linkedin-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
             <p id="ai-status" class="status-msg" role="status" aria-live="polite"></p>

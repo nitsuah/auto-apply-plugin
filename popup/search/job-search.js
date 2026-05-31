@@ -1,7 +1,6 @@
 // job-search.js
-// Job search panel: pick which sources to query (plug-and-play registry on the
-// service-worker side), filter by pay, render a results grid, and save a result
-// straight into the tracker.
+// Job search panel: pick sources (plug-and-play registry), filter by pay,
+// render a results grid, and save a result straight into the tracker.
 
 import { esc, escAttr, sendMessage } from '../../lib/utils.js';
 import { isStandaloneView, openExpandedWorkspace } from '../ux/navigation.js';
@@ -10,52 +9,71 @@ import { jobPassesPayFilter } from '../../lib/job-search.js';
 const lastResultsById = new Map();
 const selectedSourceIds = new Set();
 let sourceSelectionSeeded = false;
-
-// Unfiltered results from the last query, so pay-filter tweaks re-filter locally
-// without re-hitting the network.
 let lastRawResults = [];
 let lastSources = [];
 
 // ── Pay filter state ─────────────────────────────────────────────────────────
 
 const PAY_RANGES = {
-  annual: { min: 0, max: 500, step: 5 },   // values are thousands ($k)
-  hourly: { min: 0, max: 200, step: 1 },    // values are $/hr
+  annual: { min: 0, max: 500, step: 5, unit: 'K' },   // values are thousands ($k)
+  hourly: { min: 0, max: 200, step: 1, unit: '$/hr' }, // values are $/hr
 };
-const payFilter = { enabled: false, mode: 'annual', min: 0, max: 500 };
+const payFilter = { mode: 'annual', min: 0, max: 500 };
 let payDefaultsSeeded = false;
 
+function payIsActive() {
+  const r = PAY_RANGES[payFilter.mode];
+  return payFilter.min > r.min || payFilter.max < r.max;
+}
+
 function fmtPayValue(v, mode) {
-  return mode === 'hourly' ? `$${v}/hr` : `$${v}k`;
+  return mode === 'hourly' ? `$${v}` : `$${v}k`;
 }
 
 function payReadoutText() {
-  if (!payFilter.enabled) return 'Any pay';
-  const { min, max } = PAY_RANGES[payFilter.mode];
+  if (!payIsActive()) return 'Any pay';
+  const r = PAY_RANGES[payFilter.mode];
   const lo = fmtPayValue(payFilter.min, payFilter.mode);
-  const hi = payFilter.max >= max ? `${fmtPayValue(max, payFilter.mode)}+` : fmtPayValue(payFilter.max, payFilter.mode);
-  const open = payFilter.min <= min && payFilter.max >= max;
-  return open ? `Any ${payFilter.mode} pay` : `${lo} – ${hi} (${payFilter.mode})`;
+  const hi = payFilter.max >= r.max ? `${fmtPayValue(r.max, payFilter.mode)}+` : fmtPayValue(payFilter.max, payFilter.mode);
+  const suffix = payFilter.mode === 'hourly' ? '/hr' : '';
+  return `${lo} – ${hi}${suffix}`;
 }
 
 function syncPayUi() {
-  const minEl = document.getElementById('pay-filter-min');
-  const maxEl = document.getElementById('pay-filter-max');
-  const readout = document.getElementById('pay-filter-readout');
-  const { min, max, step } = PAY_RANGES[payFilter.mode];
-  [minEl, maxEl].forEach((el) => {
+  const r = PAY_RANGES[payFilter.mode];
+  const minSlider = document.getElementById('pay-filter-min');
+  const maxSlider = document.getElementById('pay-filter-max');
+  const minNum = document.getElementById('pay-min-num');
+  const maxNum = document.getElementById('pay-max-num');
+  [minSlider, maxSlider, minNum, maxNum].forEach((el) => {
     if (!el) return;
-    el.min = String(min);
-    el.max = String(max);
-    el.step = String(step);
-    el.disabled = !payFilter.enabled;
+    el.min = String(r.min);
+    el.max = String(r.max);
+    el.step = String(r.step);
   });
-  if (minEl) minEl.value = String(payFilter.min);
-  if (maxEl) maxEl.value = String(payFilter.max);
+  if (minSlider) minSlider.value = String(payFilter.min);
+  if (maxSlider) maxSlider.value = String(payFilter.max);
+  if (minNum) minNum.value = String(payFilter.min);
+  if (maxNum) maxNum.value = String(payFilter.max);
+  const unitMin = document.getElementById('pay-unit-min');
+  const unitMax = document.getElementById('pay-unit-max');
+  if (unitMin) unitMin.textContent = r.unit;
+  if (unitMax) unitMax.textContent = r.unit;
+  const readout = document.getElementById('pay-filter-readout');
   if (readout) readout.textContent = payReadoutText();
   document.querySelectorAll('.job-pay-mode').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.mode === payFilter.mode);
   });
+}
+
+function setPayFromInputs(rawMin, rawMax) {
+  const r = PAY_RANGES[payFilter.mode];
+  const clamp = (v) => Math.min(r.max, Math.max(r.min, Math.round((Number(v) || 0) / r.step) * r.step));
+  let lo = clamp(rawMin);
+  let hi = clamp(rawMax);
+  if (lo > hi) [lo, hi] = [hi, lo];
+  payFilter.min = lo;
+  payFilter.max = hi;
 }
 
 async function seedPayDefaultsFromMemory() {
@@ -68,7 +86,7 @@ async function seedPayDefaultsFromMemory() {
     if (Number.isFinite(min) && min > 0) payFilter.min = Math.min(500, Math.round(min / 1000));
     if (Number.isFinite(max) && max > 0) payFilter.max = Math.min(500, Math.round(max / 1000));
   } catch {
-    // No settings — leave the full default range.
+    // No settings — keep the full default range.
   }
 }
 
@@ -107,15 +125,18 @@ function renderSourceChips(sources) {
     const classes = ['job-source-chip'];
     if (selected) classes.push('is-active');
     if (!s.available) classes.push('is-unavailable');
-    const title = s.available ? `Toggle ${s.label}` : `${s.label} — add ${s.requires || 'credentials'} to enable`;
-    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}"${s.available ? '' : ' disabled'} aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}</button>`;
+    const title = s.available
+      ? `Toggle ${s.label}`
+      : `${s.label} — click to configure ${s.requires || 'credentials'}`;
+    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}</button>`;
   }).join('');
 }
 
 // ── Results ──────────────────────────────────────────────────────────────────
 
 function applyAndRender() {
-  const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, payFilter));
+  const filter = { enabled: payIsActive(), mode: payFilter.mode, min: payFilter.min, max: payFilter.max };
+  const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, filter));
   renderJobSearchResults(filtered, lastSources);
 }
 
@@ -129,7 +150,7 @@ export function renderJobSearchResults(results, sources = []) {
   const sourceNote = renderSourceNote(sources);
 
   if (!results || results.length === 0) {
-    const note = payFilter.enabled && lastRawResults.length
+    const note = payIsActive() && lastRawResults.length
       ? '<p class="empty-msg">No jobs match the current pay filter.</p>'
       : '<p class="empty-msg">No jobs found for this search.</p>';
     resultsDiv.innerHTML = sourceNote + note;
@@ -143,16 +164,22 @@ export function renderJobSearchResults(results, sources = []) {
       j.salary ? `<span class="job-badge job-badge-salary">${esc(j.salary)}</span>` : '',
       `<span class="job-badge job-badge-source">${esc(j.source || 'Web')}</span>`,
     ].filter(Boolean).join('');
-    const ctaLabel = j.atsLabel ? `Apply on ${esc(j.atsLabel)} →` : 'Go to job post →';
+    const ctaTitle = j.atsLabel ? `Apply on ${j.atsLabel}` : 'Go to job post';
+    const desc = j.description ? `<p class="job-desc">${esc(j.description.slice(0, 180))}…</p>` : '';
     return `
     <div class="job-search-result" data-job-id="${escAttr(j.id)}">
-      <div class="job-title">${esc(j.title || 'Untitled role')}</div>
-      <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
-      <div class="job-badges">${badges}</div>
-      <div class="job-result-actions">
-        <a href="${escAttr(j.url)}" target="_blank" rel="noopener" class="btn btn-secondary btn-xs job-link">${ctaLabel}</a>
-        <button type="button" class="btn btn-primary btn-xs job-save-btn" data-job-id="${escAttr(j.id)}">＋ Save to Tracker</button>
+      <div class="job-result-top">
+        <div class="job-result-headline">
+          <div class="job-title">${esc(j.title || 'Untitled role')}</div>
+          <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
+        </div>
+        <div class="job-result-actions">
+          <a href="${escAttr(j.url)}" target="_blank" rel="noopener" class="job-icon-btn" title="${escAttr(ctaTitle)}" aria-label="${escAttr(ctaTitle)}">↗</a>
+          <button type="button" class="job-icon-btn job-save-btn" data-job-id="${escAttr(j.id)}" title="Save to Tracker" aria-label="Save to Tracker">💾</button>
+        </div>
       </div>
+      <div class="job-badges">${badges}</div>
+      ${desc}
     </div>`;
   }).join('');
 }
@@ -166,9 +193,8 @@ function renderSourceNote(sources = []) {
 async function saveJobToTracker(jobId, button) {
   const job = lastResultsById.get(jobId);
   if (!job) return;
-  const original = button.textContent;
   button.disabled = true;
-  button.textContent = 'Saving…';
+  button.textContent = '…';
   try {
     const resp = await sendMessage({
       type: 'LOG_APPLICATION',
@@ -180,11 +206,12 @@ async function saveJobToTracker(jobId, button) {
       },
     });
     if (!resp?.success) throw new Error(resp?.error || 'Could not save job.');
-    button.textContent = '✓ Saved';
+    button.textContent = '✓';
     button.classList.add('is-saved');
+    button.title = 'Saved to Tracker';
   } catch (err) {
     button.disabled = false;
-    button.textContent = original;
+    button.textContent = '💾';
     console.warn('[apply-bot] Failed to save job to tracker.', err);
   }
 }
@@ -192,7 +219,6 @@ async function saveJobToTracker(jobId, button) {
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 export function initJobSearchHandlers(showScreen) {
-  // Job Search lives in the expanded workspace, not the toolbar popup.
   const openPanel = async () => {
     if (!isStandaloneView()) {
       const opened = await openExpandedWorkspace('job-search');
@@ -212,7 +238,7 @@ export function initJobSearchHandlers(showScreen) {
     jobSearchSubmitBtn.onclick = async () => {
       const query = jobSearchInput.value.trim();
       if (!selectedSourceIds.size) {
-        if (resultsDiv) resultsDiv.innerHTML = '<p class="empty-msg">Select at least one source above.</p>';
+        if (resultsDiv) resultsDiv.innerHTML = '<p class="empty-msg">Select at least one source in Filters.</p>';
         return;
       }
       jobSearchSubmitBtn.disabled = true;
@@ -235,10 +261,23 @@ export function initJobSearchHandlers(showScreen) {
     jobSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') jobSearchSubmitBtn.click(); });
   }
 
-  // Source filter chips.
-  document.getElementById('job-source-filters')?.addEventListener('click', (event) => {
+  // Filters expander (mirrors the tracker's "Add manually" sub-bar pattern).
+  document.getElementById('job-filters-toggle')?.addEventListener('click', (event) => {
+    const subbar = document.getElementById('job-search-subbar');
+    if (!subbar) return;
+    const open = subbar.classList.toggle('hidden');
+    event.currentTarget.setAttribute('aria-expanded', String(!open));
+    event.currentTarget.classList.toggle('is-active', !open);
+  });
+
+  // Source chips: toggle available ones; route locked ones to AI settings.
+  document.getElementById('job-source-filters')?.addEventListener('click', async (event) => {
     const chip = event.target.closest('.job-source-chip');
-    if (!chip || chip.disabled) return;
+    if (!chip) return;
+    if (chip.dataset.available === '0') {
+      await openExpandedWorkspace('ai', 'ai-settings-section');
+      return;
+    }
     const id = chip.dataset.sourceId;
     if (!id) return;
     if (selectedSourceIds.has(id)) selectedSourceIds.delete(id); else selectedSourceIds.add(id);
@@ -246,37 +285,34 @@ export function initJobSearchHandlers(showScreen) {
     chip.setAttribute('aria-pressed', String(selectedSourceIds.has(id)));
   });
 
-  // Pay filter controls.
-  document.getElementById('pay-filter-enabled')?.addEventListener('change', (e) => {
-    payFilter.enabled = !!e.target.checked;
-    syncPayUi();
-    applyAndRender();
-  });
+  // Pay mode toggle.
   document.querySelectorAll('.job-pay-mode').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (payFilter.mode === btn.dataset.mode) return;
       payFilter.mode = btn.dataset.mode === 'hourly' ? 'hourly' : 'annual';
-      const range = PAY_RANGES[payFilter.mode];
-      payFilter.min = range.min;
-      payFilter.max = range.max;
+      const r = PAY_RANGES[payFilter.mode];
+      payFilter.min = r.min;
+      payFilter.max = r.max;
       syncPayUi();
       applyAndRender();
     });
   });
-  const onPaySlide = () => {
-    const minEl = document.getElementById('pay-filter-min');
-    const maxEl = document.getElementById('pay-filter-max');
-    let lo = Number(minEl?.value);
-    let hi = Number(maxEl?.value);
-    if (lo > hi) { [lo, hi] = [hi, lo]; if (minEl) minEl.value = String(lo); if (maxEl) maxEl.value = String(hi); }
-    payFilter.min = lo;
-    payFilter.max = hi;
-    const readout = document.getElementById('pay-filter-readout');
-    if (readout) readout.textContent = payReadoutText();
+
+  // Sliders + number boxes stay in sync; either updates the filter.
+  const onPayChange = (source) => {
+    const minSlider = document.getElementById('pay-filter-min');
+    const maxSlider = document.getElementById('pay-filter-max');
+    const minNum = document.getElementById('pay-min-num');
+    const maxNum = document.getElementById('pay-max-num');
+    if (source === 'num') setPayFromInputs(minNum?.value, maxNum?.value);
+    else setPayFromInputs(minSlider?.value, maxSlider?.value);
+    syncPayUi();
     applyAndRender();
   };
-  document.getElementById('pay-filter-min')?.addEventListener('input', onPaySlide);
-  document.getElementById('pay-filter-max')?.addEventListener('input', onPaySlide);
+  document.getElementById('pay-filter-min')?.addEventListener('input', () => onPayChange('slider'));
+  document.getElementById('pay-filter-max')?.addEventListener('input', () => onPayChange('slider'));
+  document.getElementById('pay-min-num')?.addEventListener('change', () => onPayChange('num'));
+  document.getElementById('pay-max-num')?.addEventListener('change', () => onPayChange('num'));
 
   // Save-to-Tracker.
   if (resultsDiv) {
@@ -288,12 +324,8 @@ export function initJobSearchHandlers(showScreen) {
     });
   }
 
-  document.getElementById('job-search-back-btn')?.addEventListener('click', () => {
-    if (isStandaloneView()) { window.close(); return; }
-    showScreen('main');
-  });
+  document.getElementById('job-search-back-btn')?.addEventListener('click', () => showScreen('main'));
 
-  // If we loaded straight into the standalone job-search view, populate it.
   if (isStandaloneView() && new URLSearchParams(window.location.search).get('screen') === 'job-search') {
     loadJobSources();
   }

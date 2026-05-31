@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "identity"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
@@ -14,6 +15,7 @@
     "https://www.arbeitnow.com/*",
     "https://api.adzuna.com/*",
     "https://data.usajobs.gov/*",
+    "https://api.linkedin.com/*",
     "https://*.greenhouse.io/*",
     "https://*.ashbyhq.com/*",
     "https://*.lever.co/*",

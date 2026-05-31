@@ -146,6 +146,35 @@ export function initTrackerHandlers() {
 
   // Delegated click handlers on tracker body
   $('tracker-body')?.addEventListener('click', async (event) => {
+    // Interactive score stars on the collapsed card — set the score without
+    // expanding the card.
+    const starEl = event.target.closest('.tracker-star[data-star]');
+    if (starEl) {
+      const card = starEl.closest('.tracker-card');
+      const id = card?.dataset.id;
+      if (id) {
+        const value = Number(starEl.dataset.star) || 0;
+        const resp = await sendMessage({ type: 'UPDATE_APPLICATION', payload: { id, patch: { scorecard: value ? `${value}/5` : '' } } });
+        if (resp?.success && resp.entry) syncTrackerCardSummary(card, resp.entry);
+      }
+      return;
+    }
+
+    // Click the sentiment emoji to cycle the verdict — also without expanding.
+    const sentEl = event.target.closest('[data-sentiment-cycle]');
+    if (sentEl) {
+      const card = sentEl.closest('.tracker-card');
+      const id = card?.dataset.id;
+      if (id) {
+        const order = ['strong_yes', 'lean_yes', 'neutral', 'lean_no', 'no', 'research'];
+        const cur = sentEl.dataset.verdict || 'neutral';
+        const next = order[(order.indexOf(cur) + 1 + order.length) % order.length];
+        const resp = await sendMessage({ type: 'UPDATE_APPLICATION', payload: { id, patch: { verdict: next } } });
+        if (resp?.success && resp.entry) syncTrackerCardSummary(card, resp.entry);
+      }
+      return;
+    }
+
     // AI summarize / clean-up on a card's description (sets the textarea without
     // auto-saving, so the original is preserved until the user clicks Save).
     const jdAiBtn = event.target.closest('.tracker-jd-ai-btn');
