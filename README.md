@@ -175,8 +175,10 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,S
 ## Privacy
 
 - Your resume and API key are stored **only** in your local browser storage.
-- The only external network call is to the Gemini API with your own key.
+- External network calls happen **only** for actions you trigger (AI help with your Gemini key; optional job-search sources / LinkedIn profile import with your own credentials).
 - No servers, no accounts, no telemetry.
+
+See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Policy, Security posture, and your GDPR/CCPA data rights — the same content shown in the app's **Help & privacy** panel.
 
 ---
 

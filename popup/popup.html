@@ -442,26 +442,47 @@
               <span class="job-source-filter-label">Sources</span>
               <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
             </div>
-            <div class="job-pay-filter">
-              <div class="job-pay-filter-head">
+            <div class="job-filter-row">
+              <label class="job-filter-field">
+                <span>Remote</span>
+                <select id="filter-remote">
+                  <option value="any">Any</option>
+                  <option value="remote">Remote</option>
+                  <option value="onsite">On-site</option>
+                </select>
+              </label>
+              <label class="job-filter-field">
+                <span>Type</span>
+                <select id="filter-type">
+                  <option value="any">Any</option>
+                  <option value="full">Full-time</option>
+                  <option value="part">Part-time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Internship</option>
+                  <option value="temp">Temporary</option>
+                </select>
+              </label>
+              <label class="job-filter-field">
+                <span>Location</span>
+                <select id="filter-location">
+                  <option value="any">Anywhere</option>
+                  <option value="usa">USA</option>
+                  <option value="remote">Remote / global</option>
+                  <option value="europe">Europe</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <div class="job-pay-inline">
                 <span class="job-pay-filter-label">Pay</span>
                 <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
                   <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
                   <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
                 </div>
-                <span id="pay-filter-readout" class="job-pay-readout">Any pay</span>
-              </div>
-              <div class="job-pay-row">
-                <label class="job-pay-row-label" for="pay-filter-min">Min</label>
-                <input type="range" id="pay-filter-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
                 <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
-                <span class="job-pay-unit" id="pay-unit-min">K</span>
-              </div>
-              <div class="job-pay-row">
-                <label class="job-pay-row-label" for="pay-filter-max">Max</label>
-                <input type="range" id="pay-filter-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
+                <span class="job-pay-dash">–</span>
                 <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
-                <span class="job-pay-unit" id="pay-unit-max">K</span>
+                <span class="job-pay-unit" id="pay-unit-min">K</span>
+                <span id="pay-filter-readout" class="job-pay-readout">Any pay</span>
               </div>
             </div>
           </div>
@@ -501,10 +522,7 @@
               target="_blank"
               rel="noopener"
             >Get a free key →</a>
-          </div>
-
-          <div class="form-group profile-panel ai-panel-group">
-            <label for="gemini-model">Gemini Model</label>
+            <label for="gemini-model" style="margin-top:12px">Gemini Model</label>
             <select id="gemini-model">
               <option value="auto" selected>Auto-detect best available (recommended)</option>
               <option value="gemini-2.5-flash">gemini-2.5-flash (best default)</option>
@@ -569,10 +587,11 @@
         <h2 class="section-title">Help & privacy</h2>
       </div>
 
-      <div class="help-card" id="help-legal-section">
+      <div class="help-card help-grid" id="help-legal-section">
         <div class="legal-meta">
           <span class="legal-version">Apply Workspace · Terms &amp; Privacy v1.0</span>
           <span class="legal-updated">Last updated May 31, 2026</span>
+          <a class="hint-link legal-canonical-link" href="https://github.com/nitsuah/auto-apply-plugin/blob/main/PRIVACY.md" target="_blank" rel="noopener">Full policy →</a>
           <span id="consent-signed-date" class="legal-signed">Consent not recorded yet.</span>
         </div>
 
@@ -591,11 +610,14 @@
 
         <div class="help-section" id="help-privacy-section">
           <h3>Privacy Policy</h3>
-          <p><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
-          <p><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</p>
-          <p><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, the extension still works using deterministic, on-device autofill and sends nothing anywhere.</p>
-          <p><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</p>
-          <p><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key. There is no analytics, advertising, tracking, or telemetry of any kind.</p>
+          <p class="help-lead"><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
+          <ul class="legal-list">
+            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
+            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, autofill is fully on-device and sends nothing.</li>
+            <li><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</li>
+            <li><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key.</li>
+            <li><strong>No tracking.</strong> No analytics, advertising, tracking, or telemetry of any kind.</li>
+          </ul>
         </div>
 
         <div class="help-section" id="help-gdpr-section">
@@ -609,20 +631,22 @@
           </ul>
         </div>
 
-        <div class="help-section" id="help-ats-section">
-          <h3>What is an ATS?</h3>
-          <p>An applicant tracking system is the hiring software behind many job forms. Apply Workspace uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
-        </div>
-
-        <div class="help-section" id="help-data-controls-section">
-          <h3>Data controls — what each action removes</h3>
-          <div class="data-control-explainer">
-            <p class="data-control-title">🧹 Clear temp cache</p>
-            <p class="helper-text">Removes only short-lived working data and keeps everything you set up. Specifically it deletes: cached page drafts (in-progress form values), the last generated answer set, the last fill report, and the "recently filled" pointer. <strong>Your profile, resume, saved memory, tracker, settings, and Gemini key are kept.</strong></p>
+        <div class="help-col-stack">
+          <div class="help-section" id="help-ats-section">
+            <h3>What is an ATS?</h3>
+            <p>An applicant tracking system is the hiring software behind many job forms. Apply Workspace uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
           </div>
-          <div class="data-control-explainer">
-            <p class="data-control-title">🗑 Delete all local data</p>
-            <p class="helper-text">Wipes <strong>everything</strong> this extension stores on your device — profile and resume, saved answer defaults &amp; ignore list, the entire application tracker, all settings <strong>including your Gemini API key and your recorded consent</strong>, plus everything the temp cache covers. This cannot be undone.</p>
+
+          <div class="help-section" id="help-data-controls-section">
+            <h3>Data controls — what each action removes</h3>
+            <div class="data-control-explainer">
+              <p class="data-control-title">🧹 Clear temp cache</p>
+              <p class="helper-text">Removes only short-lived working data and keeps everything you set up. Specifically it deletes: cached page drafts (in-progress form values), the last generated answer set, the last fill report, and the "recently filled" pointer. <strong>Your profile, resume, saved memory, tracker, settings, and Gemini key are kept.</strong></p>
+            </div>
+            <div class="data-control-explainer">
+              <p class="data-control-title">🗑 Delete all local data</p>
+              <p class="helper-text">Wipes <strong>everything</strong> this extension stores on your device — profile and resume, saved answer defaults &amp; ignore list, the entire application tracker, all settings <strong>including your Gemini API key and your recorded consent</strong>, plus everything the temp cache covers. This cannot be undone.</p>
+            </div>
           </div>
         </div>
       </div>

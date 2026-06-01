@@ -19,6 +19,7 @@ const PAY_RANGES = {
   hourly: { min: 0, max: 200, step: 1, unit: '$/hr' }, // values are $/hr
 };
 const payFilter = { mode: 'annual', min: 0, max: 500 };
+const extraFilters = { remote: 'any', type: 'any', location: 'any' };
 let payDefaultsSeeded = false;
 let prefsLoaded = false;
 
@@ -30,6 +31,7 @@ function saveJobPrefs() {
       jobSearchPrefs: {
         sources: [...selectedSourceIds],
         pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max },
+        filters: { ...extraFilters },
       },
     });
   } catch {
@@ -53,6 +55,11 @@ async function restoreJobPrefs() {
       payFilter.min = Math.min(r.max, Math.max(r.min, Number(prefs.pay.min) || r.min));
       payFilter.max = Math.min(r.max, Math.max(r.min, Number(prefs.pay.max) || r.max));
       payDefaultsSeeded = true;
+    }
+    if (prefs.filters && typeof prefs.filters === 'object') {
+      for (const key of ['remote', 'type', 'location']) {
+        if (typeof prefs.filters[key] === 'string') extraFilters[key] = prefs.filters[key];
+      }
     }
   } catch {
     // ignore
@@ -79,29 +86,49 @@ function payReadoutText() {
 
 function syncPayUi() {
   const r = PAY_RANGES[payFilter.mode];
-  const minSlider = document.getElementById('pay-filter-min');
-  const maxSlider = document.getElementById('pay-filter-max');
   const minNum = document.getElementById('pay-min-num');
   const maxNum = document.getElementById('pay-max-num');
-  [minSlider, maxSlider, minNum, maxNum].forEach((el) => {
+  [minNum, maxNum].forEach((el) => {
     if (!el) return;
     el.min = String(r.min);
     el.max = String(r.max);
     el.step = String(r.step);
   });
-  if (minSlider) minSlider.value = String(payFilter.min);
-  if (maxSlider) maxSlider.value = String(payFilter.max);
   if (minNum) minNum.value = String(payFilter.min);
   if (maxNum) maxNum.value = String(payFilter.max);
-  const unitMin = document.getElementById('pay-unit-min');
-  const unitMax = document.getElementById('pay-unit-max');
-  if (unitMin) unitMin.textContent = r.unit;
-  if (unitMax) unitMax.textContent = r.unit;
+  const unit = document.getElementById('pay-unit-min');
+  if (unit) unit.textContent = r.unit;
   const readout = document.getElementById('pay-filter-readout');
   if (readout) readout.textContent = payReadoutText();
   document.querySelectorAll('.job-pay-mode').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.mode === payFilter.mode);
   });
+  // Reflect saved extra-filter selections.
+  const setSel = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setSel('filter-remote', extraFilters.remote);
+  setSel('filter-type', extraFilters.type);
+  setSel('filter-location', extraFilters.location);
+}
+
+// Classify a job's location string into a coarse region bucket.
+function classifyLocation(location = '') {
+  const s = String(location || '').toLowerCase();
+  if (!s || s === 'unknown') return 'other';
+  if (/\bremote\b|anywhere|worldwide|flexible|global/.test(s)) return 'remote';
+  if (/\b(usa|u\.s\.a|united states|u\.s\.)\b|\b(us)\b|, us$|america/.test(s)) return 'usa';
+  if (/\b(uk|united kingdom|england|ireland|germany|france|spain|portugal|netherlands|poland|italy|sweden|norway|denmark|finland|switzerland|austria|belgium|czech|romania|greece|europe|eu)\b/.test(s)) return 'europe';
+  return 'other';
+}
+
+function jobPassesExtraFilters(job) {
+  if (extraFilters.remote === 'remote' && !job.remote) return false;
+  if (extraFilters.remote === 'onsite' && job.remote) return false;
+  if (extraFilters.type !== 'any') {
+    const t = String(job.employment_type || '').toLowerCase();
+    if (!t.includes(extraFilters.type)) return false;
+  }
+  if (extraFilters.location !== 'any' && classifyLocation(job.location) !== extraFilters.location) return false;
+  return true;
 }
 
 function setPayFromInputs(rawMin, rawMax) {
@@ -177,8 +204,8 @@ function renderSourceChips(sources) {
 // ── Results ──────────────────────────────────────────────────────────────────
 
 function applyAndRender() {
-  const filter = { enabled: payIsActive(), mode: payFilter.mode, min: payFilter.min, max: payFilter.max };
-  const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, filter));
+  const payCfg = { enabled: payIsActive(), mode: payFilter.mode, min: payFilter.min, max: payFilter.max };
+  const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, payCfg) && jobPassesExtraFilters(j));
   renderJobSearchResults(filtered, lastSources);
 }
 
@@ -343,22 +370,27 @@ export function initJobSearchHandlers(showScreen) {
     });
   });
 
-  // Sliders + number boxes stay in sync; either updates the filter.
-  const onPayChange = (source) => {
-    const minSlider = document.getElementById('pay-filter-min');
-    const maxSlider = document.getElementById('pay-filter-max');
+  // Pay number boxes update the filter.
+  const onPayChange = () => {
     const minNum = document.getElementById('pay-min-num');
     const maxNum = document.getElementById('pay-max-num');
-    if (source === 'num') setPayFromInputs(minNum?.value, maxNum?.value);
-    else setPayFromInputs(minSlider?.value, maxSlider?.value);
+    setPayFromInputs(minNum?.value, maxNum?.value);
     syncPayUi();
     applyAndRender();
     saveJobPrefs();
   };
-  document.getElementById('pay-filter-min')?.addEventListener('input', () => onPayChange('slider'));
-  document.getElementById('pay-filter-max')?.addEventListener('input', () => onPayChange('slider'));
-  document.getElementById('pay-min-num')?.addEventListener('change', () => onPayChange('num'));
-  document.getElementById('pay-max-num')?.addEventListener('change', () => onPayChange('num'));
+  document.getElementById('pay-min-num')?.addEventListener('change', onPayChange);
+  document.getElementById('pay-max-num')?.addEventListener('change', onPayChange);
+
+  // Remote / type / location filter selects.
+  const onExtraFilterChange = (key) => (event) => {
+    extraFilters[key] = event.target.value;
+    applyAndRender();
+    saveJobPrefs();
+  };
+  document.getElementById('filter-remote')?.addEventListener('change', onExtraFilterChange('remote'));
+  document.getElementById('filter-type')?.addEventListener('change', onExtraFilterChange('type'));
+  document.getElementById('filter-location')?.addEventListener('change', onExtraFilterChange('location'));
 
   // Save-to-Tracker.
   if (resultsDiv) {
