@@ -212,6 +212,14 @@ export function initMemoryHandlers() {
   $('learned-defaults-list')?.addEventListener('click', handleMemoryClick);
   $('ignored-memory-list')?.addEventListener('click', handleMemoryClick);
   $('sensitive-memory-list')?.addEventListener('click', handleMemoryClick);
+
+  // Re-filter the ignore list on every keystroke.
+  $('ignore-search-input')?.addEventListener('input', async () => {
+    const resp = await sendMessage({ type: 'GET_LEARNED_DEFAULTS' });
+    const allIgnored = Array.isArray(resp?.ignoredItems) ? resp.ignoredItems : [];
+    const container = $('ignored-memory-list');
+    if (container) renderIgnoredMemoryGroup(container, allIgnored, 'No ignored memory right now.');
+  });
 }
 
 // CRUD functions for memory actions

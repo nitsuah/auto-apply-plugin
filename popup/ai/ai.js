@@ -4,7 +4,22 @@
 import { $, sendMessage } from '../../lib/utils.js';
 import { showScreen } from '../ux/navigation.js';
 import { setStatus } from '../ux/state.js';
-import { readSettingsForm } from '../forms/forms.js';
+import { $ } from '../../lib/utils.js';
+
+/** Read only the settings fields that live on the AI panel. */
+function readAiSettings() {
+  return {
+    gemini_api_key: $('api-key-input')?.value.trim() || '',
+    gemini_model: $('gemini-model')?.value || 'auto',
+    adzuna_app_id: $('adzuna-app-id')?.value.trim() || '',
+    adzuna_app_key: $('adzuna-app-key')?.value.trim() || '',
+    adzuna_country: $('adzuna-country')?.value || 'us',
+    usajobs_email: $('usajobs-email')?.value.trim() || '',
+    usajobs_api_key: $('usajobs-api-key')?.value.trim() || '',
+    linkedin_client_id: $('linkedin-client-id')?.value.trim() || '',
+    linkedin_client_secret: $('linkedin-client-secret')?.value.trim() || '',
+  };
+}
 
 function getOauthRedirectUri() {
   try {
@@ -22,7 +37,7 @@ async function connectLinkedIn() {
   try {
     // Persist the latest Client ID/Secret so the service worker can read them.
     setStatus('linkedin-status', '⏳ Saving credentials…');
-    await sendMessage({ type: 'SAVE_SETUP', payload: { settings: readSettingsForm() } });
+    await sendMessage({ type: 'SAVE_SETTINGS_ONLY', payload: { settings: readAiSettings() } });
 
     setStatus('linkedin-status', '⏳ Opening LinkedIn sign-in…');
     const resp = await sendMessage({ type: 'LINKEDIN_CONNECT' });
@@ -44,9 +59,9 @@ async function connectLinkedIn() {
  */
 export async function handleSaveAiSettings() {
   try {
-    const settings = readSettingsForm();
+    const settings = readAiSettings();
     const resp = await sendMessage({
-      type: 'SAVE_SETUP',
+      type: 'SAVE_SETTINGS_ONLY',
       payload: { settings },
     });
     if (!resp?.success) throw new Error(resp?.error || 'Failed to save AI settings.');

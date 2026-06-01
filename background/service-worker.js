@@ -41,6 +41,8 @@ async function handleMessage(msg) {
   switch (msg.type) {
     case 'SAVE_SETUP':
       return handleSaveSetup(msg.payload);
+    case 'SAVE_SETTINGS_ONLY':
+      return handleSaveSettingsOnly(msg.payload);
     case 'GET_STATE':
       return getState();
     case 'GET_RESUME_ATTACHMENT':
@@ -107,6 +109,26 @@ const MAX_RESUME_EXCERPT_LENGTH = 1000;
 const MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH = 1200;
 const MAX_RESUME_ATTACHMENT_DATA_LENGTH = 1_500_000;
 const MAX_RESUME_ATTACHMENT_TEXT_LENGTH = 200_000;
+
+/**
+ * Save only the settings (no resume parsing, no profile) — used by the AI
+ * settings panel which doesn't have access to the full profile form DOM.
+ */
+async function handleSaveSettingsOnly({ settings } = {}) {
+  if (!settings) throw new Error('No settings provided.');
+  const data = await chrome.storage.local.get('settings');
+  const existing = data.settings || {};
+  // Merge, preserving privacy_consent from the existing record so the AI panel
+  // (which doesn't render the consent checkbox) can't inadvertently clear it.
+  const next = {
+    ...existing,
+    ...settings,
+    privacy_consent: existing.privacy_consent === true,
+    privacy_consent_at: existing.privacy_consent_at || null,
+  };
+  await chrome.storage.local.set({ settings: next });
+  return { success: true };
+}
 
 async function handleSaveSetup({ resumeRaw, settings, profile = {}, resumeMeta }) {
   const data = await chrome.storage.local.get(['resume']);

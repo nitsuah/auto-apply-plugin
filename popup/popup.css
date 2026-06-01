@@ -524,6 +524,91 @@
   opacity: 0.7;
 }
 
+/* ── UX audit fixes (batch) ──────────────────────────────────────────────── */
+
+/* #4 — Green overuse: neutralize metadata tags so green signals CTAs/status.
+   "Remote" was green; now a neutral slate, salary stays blue. */
+.job-badge-remote {
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+/* #8 — Card tag rows: single-line, source badge always last on its own row. */
+.job-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  max-height: 52px; /* ~2 rows cap so grid rows stay even */
+}
+
+/* #10 — Results meta-bar: anchored, styled, not floating text. */
+.job-source-note {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+/* #12 — Pipeline column header separation (additive to existing layout rule). */
+#tracker-body .tracker-lane-header,
+#tracker-body .tracker-lane-subheader {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+/* #13 — Drafted gets a blue hue; Pending stays amber so they're distinct. */
+.tracker-overflow-bubble[data-status-tone="drafted"] {
+  border-color: rgba(147, 197, 253, 0.45) !important;
+  color: #93c5fd !important;
+  background: rgba(147, 197, 253, 0.1) !important;
+}
+
+/* #17 — Import/Export CSV button parity with Add manually. */
+#import-csv-btn, #export-csv-btn {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+#import-csv-btn:hover, #export-csv-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* #19 — AI settings section header hierarchy. */
+#ai-settings-section .help-section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* #21 — Save AI Settings: less whitespace between cards and button. */
+.ai-save-bar {
+  padding-top: 12px;
+  margin-top: 0;
+}
+
+/* #29 — Upload drop zone: larger, higher-contrast border. */
+.file-drop-zone {
+  min-height: 120px;
+  border-color: rgba(148, 163, 184, 0.5);
+  font-size: 12px;
+}
+
+/* #32 — Ignore list search: added by JS, styled here. */
+.ignore-list-search {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+/* ── End UX audit batch ──────────────────────────────────────────────────── */
+
 /* AI summarize / clean-up toolbar (quick-add + tracker card descriptions) */
 .jd-ai-toolbar {
   display: flex;

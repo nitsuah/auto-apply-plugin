@@ -84,6 +84,7 @@ updated: 2026-05-21 (qa-closeout)
 
 Captured so they aren't lost; pick up when prioritized.
 
+- [ ] **UX Audit batch 2 (medium priority):** #11 expanded card modal (kanban), #22 popup/standalone state sync, #24 scalar answer preview density, #26 narrative card overflow, #27 sensitive section alarming red, #30 profile single-column, #31 memory bubble hover/connector, #33 memory delete confirm+danger.
 - [ ] **Wire `axe-core` into the Playwright e2e.** *Blocked here:* adding `@axe-core/playwright` needs an `npm install` to update `package-lock.json`, and the e2e Docker image runs `npm ci` (requires a matching lock); npm isn't available in the current dev environment.
 - [ ] **Refresh `screenshots/` gallery** for the new tracker/profile/job-search/AI/help UI. *Blocked here:* needs the extension loaded in a real Chrome to capture.
 - [ ] **a11y burndown (remaining from `docs/a11y-audit.md`):** keyboard alternative for bubble/card drag-and-drop (status `<select>` is the current path — document or enhance); automated color-contrast verification of muted text over tinted surfaces + small badges; focus-ring audit at popup vs. standalone widths.
