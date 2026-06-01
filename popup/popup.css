@@ -1324,10 +1324,13 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 }
 
 /* ── Field labels (core profile / preferences) ── */
-.field-label {
+/* `label.field-label` / the 2-class selector beat `.form-group > label`. */
+label.field-label,
+.field-label.field-group-span {
   display: grid;
   gap: 3px;
   min-width: 0;
+  margin-bottom: 0;
 }
 
 .field-label > span {
