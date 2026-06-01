@@ -6,10 +6,6 @@ import { showScreen } from './navigation.js';
 import { setStatus } from './state.js';
 
 export function initHelpHandlers() {
-  // Back button
-  const helpBackBtn = $('help-back-btn');
-  if (helpBackBtn) helpBackBtn.onclick = () => showScreen('main');
-
   // Review privacy settings -> go to setup/profile
   $('open-privacy-setup-btn')?.addEventListener('click', () => {
     showScreen('setup');

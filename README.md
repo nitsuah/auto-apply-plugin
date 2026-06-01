@@ -185,3 +185,9 @@ See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Polic
 ## License
 
 MIT — built because filling out the same form 47 times is beneath EVERYONE. 🤙
+## Community Standards
+
+Shared community policies are centralized in https://github.com/nitsuah/.github:
+- Contributing: https://github.com/nitsuah/.github/blob/main/CONTRIBUTING.md
+- Code of Conduct: https://github.com/nitsuah/.github/blob/main/CODE_OF_CONDUCT.md
+- Security: https://github.com/nitsuah/.github/blob/main/SECURITY.md

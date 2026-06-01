@@ -66,8 +66,27 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
+
+/* Input shrinks to share the row with chips + buttons */
+#job-search-input {
+  flex: 1 1 140px;
+  min-width: 100px;
+}
+
+/* Source chips sit inline between the input and the Search/Filters buttons */
+#job-source-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  flex-shrink: 0;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#job-source-filters::-webkit-scrollbar { display: none; }
 
 .job-search-subbar {
   margin-top: 10px;
@@ -79,12 +98,13 @@
   gap: 10px;
 }
 
-/* Results grid — needs to beat the .job-search-results flex fallback. */
+/* Results grid — fixed column width for consistent card dimensions. */
 .job-search-results.job-search-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: 1fr;
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .job-search-grid .job-source-note,
@@ -194,25 +214,30 @@
   flex-wrap: wrap;
 }
 
+/* min-box | sliders | max-box K — all on one line */
+.job-pay-inline-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
 .job-pay-sliders {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex: 1;
+  min-width: 80px;
 }
 
 .job-pay-sliders input[type="range"] {
-  width: 64px;
-  accent-color: var(--blue);
+  flex: 1;
+  accent-color: var(--accent); /* green */
 }
 
-.job-pay-cells {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.job-pay-cells .job-pay-num {
-  width: 68px;
+.job-pay-inline-inputs .job-pay-num {
+  width: 60px;
+  text-align: center;
 }
 
 /* Remove spinner arrows on pay number inputs */
@@ -283,7 +308,9 @@
   position: relative;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px 14px 36px;
+  /* min-height so short cards don't feel tiny; the grid row stretch does the rest */
+  min-height: 180px;
+  padding: 12px 14px 40px;
   background: var(--surface-2);
   color: var(--text);
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
@@ -324,11 +351,11 @@
   background: rgba(74, 222, 128, 0.22);
 }
 
-/* Save button (bottom-left) — green, appears on hover. */
+/* Save button (bottom-right) — green, appears on hover. */
 .job-save-btn {
   position: absolute;
   bottom: 8px;
-  left: 12px;
+  right: 12px;
   z-index: 2;
   font-size: 11px;
   font-weight: 600;
@@ -439,9 +466,10 @@
 }
 
 .job-source-chip {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 3px 8px;
+  white-space: nowrap;
   border-radius: 999px;
   border: 1px dashed var(--border);
   background: transparent;
@@ -580,12 +608,6 @@
   color: var(--text);
 }
 
-/* #19 — AI settings section header hierarchy. */
-#ai-settings-section .help-section h3 {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
 
 /* #21 — Save AI Settings: less whitespace between cards and button. */
 .ai-save-bar {
@@ -811,6 +833,15 @@ body[data-screen="main"] .header-screen-label {
 .icon-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Nav labels: hidden in the narrow popup, visible in the standalone tab. */
+.tracker-btn-label {
+  display: none;
+}
+
+body[data-standalone="true"] .tracker-btn-label {
+  display: inline;
 }
 
 /* Active nav tab — glowing green pill */
@@ -1627,15 +1658,27 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 }
 
 /* Main action button palette */
+/* Fill Form — deep dark purple */
 #fill-btn {
-  background: #c4b5fd;
-  border-color: #c4b5fd;
-  color: #1a1d27;
+  background: #5b21b6;
+  border-color: #5b21b6;
+  color: #f5f3ff;
 }
 
 #fill-btn:hover:not(:disabled) {
-  background: #b3a1f9;
-  border-color: #b3a1f9;
+  background: #4c1d95;
+  border-color: #4c1d95;
+}
+
+/* Edit Profile + Preview side-by-side row */
+.main-secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.main-secondary-row .btn {
+  width: 100%;
 }
 
 #edit-resume-btn {
@@ -1888,12 +1931,13 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
   border-left-width: 3px;
 }
 
+/* AI card labels match Help section h3 size (12px) for visual consistency. */
 #profile-api-section { border-left-color: var(--accent); }
-#profile-api-section > label:first-of-type { color: var(--accent); font-size: 14px; font-weight: 700; }
+#profile-api-section > label:first-of-type { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 #job-sources-section { border-left-color: var(--blue); }
-#job-sources-section > label:first-of-type { color: var(--blue); font-size: 14px; font-weight: 700; }
+#job-sources-section > label:first-of-type { color: var(--blue); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 #linkedin-oauth-section { border-left-color: var(--purple); }
-#linkedin-oauth-section > label:first-of-type { color: var(--purple); font-size: 14px; font-weight: 700; }
+#linkedin-oauth-section > label:first-of-type { color: var(--purple); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
 /* ── Help: legal sections as content-sized cards ── */
 .help-card.help-grid {

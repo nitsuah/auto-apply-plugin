@@ -191,11 +191,11 @@ export async function loadJobSources() {
   return sources;
 }
 
-function renderSourceChips(sources) {
+function renderSourceChips(sources, countMap = {}) {
   const container = document.getElementById('job-source-filters');
   if (!container) return;
   if (!sources.length) {
-    container.innerHTML = '<span class="helper-text">No sources available.</span>';
+    container.innerHTML = '';
     return;
   }
   container.innerHTML = sources.map((s) => {
@@ -203,11 +203,29 @@ function renderSourceChips(sources) {
     const classes = ['job-source-chip'];
     if (selected) classes.push('is-active');
     if (!s.available) classes.push('is-unavailable');
+    const count = countMap[s.id];
+    const countLabel = (count != null) ? ` (${count})` : '';
     const title = s.available
       ? `Toggle ${s.label}`
       : `${s.label} — click to configure ${s.requires || 'credentials'}`;
-    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}</button>`;
+    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}${esc(countLabel)}</button>`;
   }).join('');
+}
+
+function updateSourceChipCounts(sourceResults = []) {
+  const countMap = {};
+  sourceResults.forEach((s) => { countMap[s.id] = s.ok ? (s.count || 0) : '!'; });
+  const container = document.getElementById('job-source-filters');
+  if (!container) return;
+  container.querySelectorAll('.job-source-chip[data-source-id]').forEach((chip) => {
+    const id = chip.dataset.sourceId;
+    if (id in countMap) {
+      // Update the count suffix — strip old one first
+      const base = chip.textContent.replace(/\s*\(.*?\)\s*$/, '').replace(/\s*🔒\s*$/, '').trim();
+      const locked = chip.dataset.available === '0';
+      chip.textContent = `${base}${locked ? ' 🔒' : ''} (${countMap[id]})`;
+    }
+  });
 }
 
 // ── Results ──────────────────────────────────────────────────────────────────
@@ -225,17 +243,15 @@ export function renderJobSearchResults(results, sources = []) {
   lastResultsById.clear();
   (results || []).forEach((job) => { if (job?.id) lastResultsById.set(job.id, job); });
 
-  const sourceNote = renderSourceNote(sources);
-
   if (!results || results.length === 0) {
     const note = payIsActive() && lastRawResults.length
       ? '<p class="empty-msg">No jobs match the current pay filter.</p>'
       : '<p class="empty-msg">No jobs found for this search.</p>';
-    resultsDiv.innerHTML = sourceNote + note;
+    resultsDiv.innerHTML = note;
     return;
   }
 
-  resultsDiv.innerHTML = sourceNote + results.map((j) => {
+  resultsDiv.innerHTML = results.map((j) => {
     const badges = [
       j.remote ? '<span class="job-badge job-badge-remote">Remote</span>' : '',
       j.employment_type ? `<span class="job-badge">${esc(j.employment_type)}</span>` : '',
@@ -259,11 +275,6 @@ export function renderJobSearchResults(results, sources = []) {
   }).join('');
 }
 
-function renderSourceNote(sources = []) {
-  if (!Array.isArray(sources) || !sources.length) return '';
-  const parts = sources.map((s) => s.ok ? `${esc(s.name)} (${Number(s.count) || 0})` : `${esc(s.name)} unavailable`);
-  return `<p class="job-source-note helper-text">Sources: ${parts.join(' · ')}</p>`;
-}
 
 async function saveJobToTracker(jobId, button) {
   const job = lastResultsById.get(jobId);
@@ -326,6 +337,7 @@ export function initJobSearchHandlers(showScreen) {
         if (!resp?.success) throw new Error(resp?.error || 'Search failed.');
         lastRawResults = resp.jobs || [];
         lastSources = resp.sources || [];
+        updateSourceChipCounts(lastSources);
         applyAndRender();
       } catch (err) {
         lastRawResults = [];

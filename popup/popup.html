@@ -323,14 +323,16 @@
             <button id="fill-btn" class="btn btn-primary btn-full">
               ⚡ Fill Form
             </button>
-            <button id="preview-btn" class="btn btn-ghost btn-full">
-              👁 Preview Answers
-            </button>
+            <div class="main-secondary-row">
+              <button id="edit-resume-btn" class="btn btn-ghost">
+                ✏️ Edit Profile
+              </button>
+              <button id="preview-btn" class="btn btn-ghost">
+                👁 Preview
+              </button>
+            </div>
             <button id="save-job-btn" class="btn btn-ghost btn-full hidden">
               💾 Save Job to Tracker
-            </button>
-            <button id="edit-resume-btn" class="btn btn-ghost btn-full">
-              ✏️ Edit Profile
             </button>
             <button id="open-job-search-btn" class="btn btn-primary btn-full btn-search-jobs">
               🔍 Job Search
@@ -482,14 +484,12 @@
             <h2 class="section-title">Job Search</h2>
             <button id="job-search-back-btn" class="btn-back job-search-back" type="button">← Back</button>
           </div>
+          <!-- Toolbar: [search input] [source chips] [Search] [Filters] -->
           <div class="job-search-toolbar">
-            <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
+            <input id="job-search-input" type="search" placeholder="Search jobs…" aria-label="Search jobs" />
+            <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
             <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
             <button id="job-filters-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-expanded="false" aria-controls="job-search-subbar">⚙ Filters</button>
-          </div>
-          <div class="job-source-filter-row">
-            <span class="job-source-filter-label">Sources</span>
-            <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
           </div>
           <div id="job-search-subbar" class="job-search-subbar hidden">
             <div class="job-filter-row">
@@ -529,13 +529,13 @@
                     <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
                     <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
                   </div>
-                  <div class="job-pay-sliders">
-                    <input type="range" id="pay-slider-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
-                    <input type="range" id="pay-slider-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
-                  </div>
-                  <div class="job-pay-cells">
+                  <!-- min-box | sliders | max-box K -->
+                  <div class="job-pay-inline-inputs">
                     <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
-                    <span class="job-pay-dash">–</span>
+                    <div class="job-pay-sliders">
+                      <input type="range" id="pay-slider-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
+                      <input type="range" id="pay-slider-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
+                    </div>
                     <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
                     <span class="job-pay-unit" id="pay-unit-min">K</span>
                   </div>
@@ -554,7 +554,6 @@
     <!-- AI Screen -->
     <section id="ai-screen" class="screen hidden">
       <div class="tracker-header">
-        <button id="ai-back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">AI settings</h2>
       </div>
 
@@ -641,7 +640,6 @@
     <!-- Help Screen -->
     <section id="help-screen" class="screen hidden">
       <div class="tracker-header">
-        <button id="help-back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">Help & privacy</h2>
       </div>
 
