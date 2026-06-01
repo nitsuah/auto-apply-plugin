@@ -6,6 +6,7 @@ import {
   normalizeArbeitnowJob,
   normalizeAdzunaJob,
   normalizeUsaJobsJob,
+  normalizeMuseJob,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -217,9 +218,28 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
   const dropped = resolveActiveSources({}, ['adzuna', 'arbeitnow']).map((s) => s.id);
   assert.deepEqual(dropped, ['arbeitnow']);
 
-  // No allow-list → every available source.
+  // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse']);
+});
+
+test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
+  const job = normalizeMuseJob({
+    id: 55,
+    name: 'Product Designer',
+    company: { name: 'Globex' },
+    locations: [{ name: 'New York, NY' }],
+    categories: [{ name: 'Design and UX' }],
+    publication_date: '2026-05-22T00:00:00Z',
+    refs: { landing_page: 'https://www.themuse.com/jobs/globex/product-designer' },
+    contents: '<p>Design <b>things</b></p>',
+  });
+  assert.equal(job.id, 'themuse:55');
+  assert.equal(job.company, 'Globex');
+  assert.equal(job.source, 'The Muse');
+  assert.equal(job.location, 'New York, NY');
+  assert.deepEqual(job.tags, ['Design and UX']);
+  assert.equal(job.description, 'Design things');
 });
 
 test('searchJobs only queries the selected sources', async () => {

@@ -20,6 +20,44 @@ const PAY_RANGES = {
 };
 const payFilter = { mode: 'annual', min: 0, max: 500 };
 let payDefaultsSeeded = false;
+let prefsLoaded = false;
+
+// ── Persisted preferences (sources + pay filter) ─────────────────────────────
+
+function saveJobPrefs() {
+  try {
+    chrome.storage?.local?.set?.({
+      jobSearchPrefs: {
+        sources: [...selectedSourceIds],
+        pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max },
+      },
+    });
+  } catch {
+    // Non-extension context — ignore.
+  }
+}
+
+async function restoreJobPrefs() {
+  try {
+    const data = await chrome.storage?.local?.get?.('jobSearchPrefs');
+    const prefs = data?.jobSearchPrefs;
+    if (!prefs) return;
+    if (Array.isArray(prefs.sources)) {
+      selectedSourceIds.clear();
+      prefs.sources.forEach((id) => selectedSourceIds.add(id));
+      sourceSelectionSeeded = true;
+    }
+    if (prefs.pay && (prefs.pay.mode === 'annual' || prefs.pay.mode === 'hourly')) {
+      payFilter.mode = prefs.pay.mode;
+      const r = PAY_RANGES[payFilter.mode];
+      payFilter.min = Math.min(r.max, Math.max(r.min, Number(prefs.pay.min) || r.min));
+      payFilter.max = Math.min(r.max, Math.max(r.min, Number(prefs.pay.max) || r.max));
+      payDefaultsSeeded = true;
+    }
+  } catch {
+    // ignore
+  }
+}
 
 function payIsActive() {
   const r = PAY_RANGES[payFilter.mode];
@@ -93,6 +131,10 @@ async function seedPayDefaultsFromMemory() {
 // ── Source filter chips ──────────────────────────────────────────────────────
 
 export async function loadJobSources() {
+  if (!prefsLoaded) {
+    await restoreJobPrefs();
+    prefsLoaded = true;
+  }
   let sources = [];
   try {
     const resp = await sendMessage({ type: 'GET_JOB_SOURCES' });
@@ -229,6 +271,7 @@ export function initJobSearchHandlers(showScreen) {
   };
   document.getElementById('job-search-btn')?.addEventListener('click', openPanel);
   document.getElementById('header-job-search-btn')?.addEventListener('click', openPanel);
+  document.getElementById('open-job-search-btn')?.addEventListener('click', openPanel);
 
   const jobSearchInput = document.getElementById('job-search-input');
   const jobSearchSubmitBtn = document.getElementById('job-search-submit-btn');
@@ -283,6 +326,7 @@ export function initJobSearchHandlers(showScreen) {
     if (selectedSourceIds.has(id)) selectedSourceIds.delete(id); else selectedSourceIds.add(id);
     chip.classList.toggle('is-active', selectedSourceIds.has(id));
     chip.setAttribute('aria-pressed', String(selectedSourceIds.has(id)));
+    saveJobPrefs();
   });
 
   // Pay mode toggle.
@@ -295,6 +339,7 @@ export function initJobSearchHandlers(showScreen) {
       payFilter.max = r.max;
       syncPayUi();
       applyAndRender();
+      saveJobPrefs();
     });
   });
 
@@ -308,6 +353,7 @@ export function initJobSearchHandlers(showScreen) {
     else setPayFromInputs(minSlider?.value, maxSlider?.value);
     syncPayUi();
     applyAndRender();
+    saveJobPrefs();
   };
   document.getElementById('pay-filter-min')?.addEventListener('input', () => onPayChange('slider'));
   document.getElementById('pay-filter-max')?.addEventListener('input', () => onPayChange('slider'));

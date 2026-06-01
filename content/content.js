@@ -216,6 +216,10 @@ function extractJobInfo() {
   else if (matchesDomain(hostname, 'circle.com') || matchesDomain(hostname, 'phenompeople.com')) info = extractPhenom();
   else info = extractGenericJobInfo();
 
+  // Structured data (schema.org JobPosting) is the most reliable source for
+  // salary / employment type / location, so capture it when present.
+  info._ld = parseJobPostingJsonLd(readJsonLdObjects());
+
   return enrichJobInfo(info);
 }
 
@@ -292,22 +296,133 @@ function extractGenericJobInfo() {
 }
 
 function enrichJobInfo(info = {}) {
-  const jd = String(info.jd || extractGenericText() || '');
+  const ld = info._ld || null;
+  const jd = String(info.jd || (ld && ld.description) || extractGenericText() || '');
   const locationText = firstNonEmptyText(
     info.location,
+    ld && ld.location,
     extractLocationFromPage(),
     extractLocationFromText(jd),
     'Unknown'
   );
 
-  return {
+  const result = {
     ...info,
+    title: info.title || (ld && ld.title) || '',
+    company: info.company || (ld && ld.company) || '',
     jd,
     location: locationText || 'Unknown',
-    employment_type: detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
-    remote: detectRemoteFromText(`${locationText}\n${jd}`),
-    salary_range: extractSalaryRangeFromText(jd),
+    employment_type: (ld && ld.employment_type) || detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
+    remote: (ld && ld.remote) || detectRemoteFromText(`${locationText}\n${jd}`),
+    salary_range: (ld && ld.salary_range) || extractSalaryRangeFromText(jd),
   };
+  delete result._ld;
+  return result;
+}
+
+// ── JSON-LD JobPosting (schema.org) — inlined pure copy of lib/jd-parser.js ────
+
+function readJsonLdObjects() {
+  const out = [];
+  for (const el of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try { out.push(JSON.parse(el.textContent || '')); } catch { /* ignore malformed */ }
+  }
+  return out;
+}
+
+function parseJobPostingJsonLd(ldObjects = []) {
+  const postings = collectJobPostings(ldObjects);
+  if (!postings.length) return null;
+  const p = postings[0];
+  return {
+    title: ldText(p.title),
+    company: ldText(p.hiringOrganization?.name ?? p.hiringOrganization),
+    location: parseJsonLdLocation(p.jobLocation),
+    employment_type: normalizeJsonLdEmploymentType(p.employmentType),
+    remote: isJsonLdRemote(p),
+    salary_range: parseJsonLdSalary(p.baseSalary || p.estimatedSalary),
+    description: stripLdHtml(ldText(p.description)).slice(0, 6000),
+    url: ldText(p.url),
+    datePosted: ldText(p.datePosted),
+  };
+}
+
+function collectJobPostings(ldObjects = []) {
+  const out = [];
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(visit); return; }
+    if (Array.isArray(node['@graph'])) node['@graph'].forEach(visit);
+    const type = node['@type'];
+    if (type === 'JobPosting' || (Array.isArray(type) && type.includes('JobPosting'))) out.push(node);
+  };
+  (Array.isArray(ldObjects) ? ldObjects : [ldObjects]).forEach(visit);
+  return out;
+}
+
+function ldText(value) {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number') return String(value);
+  return '';
+}
+
+function stripLdHtml(value) {
+  return String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseJsonLdLocation(jobLocation) {
+  const loc = Array.isArray(jobLocation) ? jobLocation[0] : jobLocation;
+  const addr = loc?.address || loc;
+  if (!addr || typeof addr !== 'object') return '';
+  const country = ldText(addr.addressCountry?.name ?? addr.addressCountry);
+  return [ldText(addr.addressLocality), ldText(addr.addressRegion), country].filter(Boolean).join(', ');
+}
+
+function normalizeJsonLdEmploymentType(employmentType) {
+  const raw = Array.isArray(employmentType) ? employmentType[0] : employmentType;
+  const t = String(raw || '').toUpperCase();
+  if (!t) return '';
+  if (t.includes('PART')) return 'Part-time';
+  if (t.includes('CONTRACT')) return 'Contract';
+  if (t.includes('INTERN')) return 'Internship';
+  if (t.includes('TEMP')) return 'Temporary';
+  if (t.includes('FULL')) return 'Full-time';
+  return '';
+}
+
+function isJsonLdRemote(posting) {
+  if (String(posting.jobLocationType || '').toUpperCase().includes('TELECOMMUTE')) return true;
+  return /\bremote\b|telecommute|work from home|wfh/i.test(`${ldText(posting.title)} ${ldText(posting.description)}`);
+}
+
+function parseJsonLdSalary(baseSalary) {
+  if (!baseSalary || typeof baseSalary !== 'object') return '';
+  const currency = baseSalary.currency || baseSalary.currencyCode || 'USD';
+  const sym = currency === 'USD' ? '$' : `${currency} `;
+  const v = baseSalary.value;
+  const num = (n) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Number(n) : null);
+  let min = null;
+  let max = null;
+  let unit = '';
+  if (v && typeof v === 'object') {
+    min = num(v.minValue);
+    max = num(v.maxValue);
+    unit = v.unitText || '';
+    if (min == null && max == null) min = num(v.value);
+  } else {
+    min = num(v);
+  }
+  const fmt = (n) => `${sym}${Math.round(n).toLocaleString()}`;
+  const suffix = /hour/i.test(String(unit)) ? '/hr' : '';
+  if (min != null && max != null && min !== max) return `${fmt(min)} - ${fmt(max)}${suffix}`;
+  if (min != null) return `${fmt(min)}${suffix}`;
+  if (max != null) return `${fmt(max)}${suffix}`;
+  return '';
 }
 
 function extractLocationFromPage() {

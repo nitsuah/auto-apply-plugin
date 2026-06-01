@@ -422,7 +422,8 @@ body {
   color: var(--text);
   width: 440px;
   min-width: 440px;
-  min-height: 520px;
+  /* Compact floor; Chrome grows the popup to fit content (up to ~600px). */
+  min-height: 300px;
   overflow-x: hidden;
   overflow-y: auto;
   font-size: 13px;
@@ -1320,6 +1321,111 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 .badge-memory {
   background: rgba(192, 132, 252, 0.16);
   color: var(--purple);
+}
+
+/* ── Field labels (core profile / preferences) ── */
+.field-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.field-label > span {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.field-label > input,
+.field-label > select,
+.field-label > textarea {
+  width: 100%;
+}
+
+.field-group-span {
+  grid-column: 1 / -1;
+}
+
+.pref-pay-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pref-pay-row .field-label {
+  flex: 1 1 80px;
+}
+
+.pref-pay-row .sep {
+  align-self: center;
+  padding-bottom: 8px;
+}
+
+.pref-remote-inline {
+  flex: 2 1 120px;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.pref-bottom-fields .field-label {
+  flex: 1;
+}
+
+/* ── Resume two-column (input | saved copy, 1:2) ── */
+.resume-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.resume-saved-col .resume-attachment-card {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .resume-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Memory accents: ignore list = grey, sensitive memory = red ── */
+.ignored-collapsible .memory-title {
+  color: var(--text-muted);
+}
+
+.ignored-collapsible .badge-memory {
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.ignored-collapsible .memory-bubble {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+}
+
+.ignored-collapsible .memory-bubble:hover {
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #e2e8f0;
+}
+
+.sensitive-group .badge-memory {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.14);
+}
+
+/* ── Standalone "home" main view should feel compact, not sprawling ── */
+body[data-standalone="true"][data-screen="main"] .screen > * {
+  max-width: 860px;
+}
+
+.btn-search-jobs {
+  margin-top: 2px;
 }
 
 /* ── Action buttons ── */

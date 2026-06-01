@@ -57,39 +57,42 @@
             <div class="form-group profile-panel" id="profile-resume-section">
               <label>Resume</label>
               <p class="helper-text">Upload or paste a resume here. New resume parsing uses the Gemini key from the AI panel.</p>
-              <div class="resume-tabs">
-                <button class="tab-btn active" data-tab="upload">Upload File</button>
-                <button class="tab-btn" data-tab="paste">Paste Text</button>
-              </div>
-
-              <div id="tab-upload" class="tab-content active">
-                <label class="file-drop-zone" id="file-drop-zone">
-                  <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
-                  <span id="file-drop-label">📄 Drop PDF / DOCX / TXT here or click to browse</span>
-                </label>
-              </div>
-
-              <div id="tab-paste" class="tab-content hidden">
-                <textarea
-                  id="resume-text"
-                  rows="8"
-                  placeholder="Paste your resume text here…"
-                ></textarea>
-              </div>
-
-              <div id="resume-attachment-card" class="resume-attachment-card hidden">
-                <div class="resume-attachment-header">
-                  <div>
-                    <span class="resume-attachment-title">Saved local copy</span>
-                    <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
+              <div class="resume-grid">
+                <div class="resume-input-col">
+                  <div class="resume-tabs">
+                    <button class="tab-btn active" data-tab="upload">Upload File</button>
+                    <button class="tab-btn" data-tab="paste">Paste Text</button>
                   </div>
-                  <div class="resume-attachment-actions">
-                    <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
-                    <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
+                  <div id="tab-upload" class="tab-content active">
+                    <label class="file-drop-zone" id="file-drop-zone">
+                      <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
+                      <span id="file-drop-label">📄 Drop PDF / DOCX / TXT here or click to browse</span>
+                    </label>
+                  </div>
+                  <div id="tab-paste" class="tab-content hidden">
+                    <textarea
+                      id="resume-text"
+                      rows="8"
+                      placeholder="Paste your resume text here…"
+                    ></textarea>
                   </div>
                 </div>
-                <p id="resume-attachment-meta" class="helper-text">Stored locally only for this browser profile.</p>
-                <pre id="resume-attachment-preview" class="resume-attachment-preview"></pre>
+                <div class="resume-saved-col">
+                  <div id="resume-attachment-card" class="resume-attachment-card hidden">
+                    <div class="resume-attachment-header">
+                      <div>
+                        <span class="resume-attachment-title">Saved local copy</span>
+                        <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
+                      </div>
+                      <div class="resume-attachment-actions">
+                        <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
+                        <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
+                      </div>
+                    </div>
+                    <p id="resume-attachment-meta" class="helper-text">Stored locally only for this browser profile.</p>
+                    <pre id="resume-attachment-preview" class="resume-attachment-preview"></pre>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -99,65 +102,72 @@
                 <label>Core profile details</label>
                 <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
                 <div class="profile-grid">
-                  <input type="text" id="profile-full-name" placeholder="Full name" />
-                  <input type="text" id="profile-email" placeholder="Email" />
-                  <input type="text" id="profile-phone" placeholder="Phone" />
-                  <input type="text" id="profile-location" placeholder="Current location" />
-                  <input type="text" id="profile-address-line1" placeholder="Street address" />
-                  <div class="inline-fields compact-fields">
-                    <input type="text" id="profile-city" placeholder="City" />
-                    <input type="text" id="profile-state-region" placeholder="State" />
-                    <input type="text" id="profile-postal-code" placeholder="ZIP" />
+                  <label class="field-label"><span>Full name</span><input type="text" id="profile-full-name" placeholder="Full name" /></label>
+                  <label class="field-label"><span>Email</span><input type="text" id="profile-email" placeholder="Email" /></label>
+                  <label class="field-label"><span>Phone</span><input type="text" id="profile-phone" placeholder="Phone" /></label>
+                  <label class="field-label"><span>Current location</span><input type="text" id="profile-location" placeholder="Current location" /></label>
+                  <label class="field-label"><span>Street address</span><input type="text" id="profile-address-line1" placeholder="Street address" /></label>
+                  <div class="field-label field-group-span">
+                    <span>City / State / ZIP</span>
+                    <div class="inline-fields compact-fields">
+                      <input type="text" id="profile-city" placeholder="City" />
+                      <input type="text" id="profile-state-region" placeholder="State" />
+                      <input type="text" id="profile-postal-code" placeholder="ZIP" />
+                    </div>
                   </div>
-                  <input type="text" id="profile-linkedin" placeholder="LinkedIn URL" />
-                  <input type="text" id="profile-github" placeholder="GitHub URL" />
-                  <input type="text" id="profile-portfolio" placeholder="Portfolio / website" />
-                  <input type="text" id="profile-current-company" placeholder="Current company" />
-                  <input type="text" id="profile-current-title" placeholder="Current job title" />
-                  <input type="number" id="profile-years-of-experience" placeholder="Years of experience" min="0" step="1" />
-                  <input type="text" id="profile-pronouns" placeholder="Pronouns (optional)" />
+                  <label class="field-label"><span>LinkedIn</span><input type="text" id="profile-linkedin" placeholder="LinkedIn URL" /></label>
+                  <label class="field-label"><span>GitHub</span><input type="text" id="profile-github" placeholder="GitHub URL" /></label>
+                  <label class="field-label"><span>Portfolio / website</span><input type="text" id="profile-portfolio" placeholder="Portfolio / website" /></label>
+                  <label class="field-label"><span>Current company</span><input type="text" id="profile-current-company" placeholder="Current company" /></label>
+                  <label class="field-label"><span>Current job title</span><input type="text" id="profile-current-title" placeholder="Current job title" /></label>
+                  <label class="field-label"><span>Years of experience</span><input type="number" id="profile-years-of-experience" placeholder="Years" min="0" step="1" /></label>
+                  <label class="field-label"><span>Pronouns (optional)</span><input type="text" id="profile-pronouns" placeholder="Pronouns" /></label>
                 </div>
               </div>
 
               <div class="form-group settings-group profile-panel" id="preferences-section">
                 <label>Preferences &amp; answer defaults (optional)</label>
-                <div class="inline-fields">
-                  <input type="number" id="salary-min" placeholder="Min salary" />
+                <div class="pref-pay-row">
+                  <label class="field-label"><span>Min salary</span><input type="number" id="salary-min" placeholder="Min" /></label>
                   <span class="sep">–</span>
-                  <input type="number" id="salary-max" placeholder="Max salary" />
+                  <label class="field-label"><span>Max salary</span><input type="number" id="salary-max" placeholder="Max" /></label>
+                  <label class="checkbox-row pref-remote-inline">
+                    <input type="checkbox" id="prefer-remote" checked />
+                    Prefer remote
+                  </label>
                 </div>
-                <select id="work-auth">
-                  <option value="">Work authorization…</option>
-                  <option value="US Citizen">US Citizen</option>
-                  <option value="Green Card">Green Card</option>
-                  <option value="H-1B">H-1B</option>
-                  <option value="OPT">OPT</option>
-                  <option value="TN Visa">TN Visa</option>
-                  <option value="Other">Other</option>
-                </select>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="prefer-remote" checked />
-                  Prefer remote roles
-                </label>
                 <p class="helper-text" style="margin-top:10px">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
                 <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
                 <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
                 <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
-                <div class="inline-fields" style="margin-top:8px">
-                  <input type="text" id="default-start-date" placeholder="Start date / availability" />
-                  <select id="default-sponsorship">
-                    <option value="">Sponsorship need…</option>
-                    <option value="No">No sponsorship required</option>
-                    <option value="Yes">Will require sponsorship</option>
-                  </select>
+                <div class="inline-fields pref-bottom-fields" style="margin-top:8px">
+                  <label class="field-label"><span>Start date / availability</span><input type="text" id="default-start-date" placeholder="e.g. 2 weeks, immediately" /></label>
+                  <label class="field-label"><span>Sponsorship</span>
+                    <select id="default-sponsorship">
+                      <option value="">Sponsorship need…</option>
+                      <option value="No">No sponsorship required</option>
+                      <option value="Yes">Will require sponsorship</option>
+                    </select>
+                  </label>
                 </div>
+                <label class="field-label" style="margin-top:8px"><span>Work authorization</span>
+                  <select id="work-auth">
+                    <option value="">Work authorization…</option>
+                    <option value="US Citizen">US Citizen</option>
+                    <option value="Green Card">Green Card</option>
+                    <option value="H-1B">H-1B</option>
+                    <option value="OPT">OPT</option>
+                    <option value="TN Visa">TN Visa</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
               </div>
             </div>
 
             <!-- Row: Memory (col A) · Demographic + sensitive memory (col B, protected) -->
             <div class="profile-row-2col">
               <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
-                <details class="profile-collapsible memory-collapsible">
+                <details class="profile-collapsible memory-collapsible" open>
                   <summary class="collapsible-summary">
                     <span class="report-title memory-title">Memory</span>
                     <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
@@ -272,6 +282,9 @@
             </button>
             <button id="edit-resume-btn" class="btn btn-ghost btn-full">
               ✏️ Edit Profile
+            </button>
+            <button id="open-job-search-btn" class="btn btn-primary btn-full btn-search-jobs">
+              🔍 Search for Jobs
             </button>
           </div>
           <p id="fill-status" class="status-msg" role="status" aria-live="polite"></p>
