@@ -1,0 +1,36 @@
+name: PR Annotate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  annotate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Label PR
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # v1.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: needs-review
+
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: |
+            👋 Thanks for the PR!
+
+            Automated checks will run (lint → unit tests → coverage + E2E in parallel).
+
+            **Checklist before merge:**
+            - [ ] All CI jobs green
+            - [ ] Tests added/updated for new behavior
+            - [ ] UI changes reviewed in the standalone workspace (Pipeline, Profile, Job Search)
+            - [ ] `TASKS.md` updated if picking up or closing a tracked item
+            - [ ] No new secrets or credentials committed

@@ -4,7 +4,6 @@
 import { $, sendMessage } from '../../lib/utils.js';
 import { showScreen } from '../ux/navigation.js';
 import { setStatus } from '../ux/state.js';
-import { $ } from '../../lib/utils.js';
 
 /** Read only the settings fields that live on the AI panel. */
 function readAiSettings() {
