@@ -3,6 +3,39 @@
 
 import { $ } from '../../lib/utils.js';
 
+const KNOWN_START_DATES = ['Immediately', '2 weeks', '2–4 weeks', '1 month', '2 months', '3+ months'];
+
+function readStartDate() {
+  const sel = $('default-start-date')?.value || '';
+  if (sel === 'Other') return $('default-start-date-other')?.value.trim() || '';
+  return sel;
+}
+
+/** Update the demographic "bubble" chips to show each field's current value. */
+export function syncDemoChips() {
+  document.querySelectorAll('.demo-chip').forEach((chip) => {
+    const target = document.getElementById(chip.dataset.demoFor);
+    const value = String(target?.value || '').trim();
+    const valueEl = chip.querySelector('.demo-chip-value');
+    if (valueEl) {
+      valueEl.textContent = value || 'Not set';
+      valueEl.dataset.empty = value ? 'false' : 'true';
+    }
+  });
+}
+
+/** Reflect a stored start-date value onto the dropdown (+ Other freeform). */
+export function applyStartDateValue(value = '') {
+  const startVal = String(value || '').trim();
+  const select = $('default-start-date');
+  const wrap = $('start-date-other-wrap');
+  const other = $('default-start-date-other');
+  const isKnown = !startVal || KNOWN_START_DATES.includes(startVal);
+  if (select) select.value = startVal && isKnown ? startVal : (startVal ? 'Other' : '');
+  if (other) other.value = isKnown ? '' : startVal;
+  if (wrap) wrap.classList.toggle('hidden', select?.value !== 'Other');
+}
+
 /**
  * Read settings form values (API key, privacy, etc)
  */
@@ -50,7 +83,7 @@ export function readProfileForm() {
     why_company_default: $('default-why-company')?.value.trim() || '',
     why_role_default: $('default-why-role')?.value.trim() || '',
     additional_info_default: $('default-additional-info')?.value.trim() || '',
-    start_date: $('default-start-date')?.value.trim() || '',
+    start_date: readStartDate(),
     requires_sponsorship: $('default-sponsorship')?.value || '',
     sensitive_optin: sensitiveOptin,
     gender: sensitiveOptin ? ($('profile-gender')?.value || '') : '',
@@ -85,7 +118,7 @@ export function fillProfileForm(profile = {}) {
   set('default-why-company', profile.why_company_default || '');
   set('default-why-role', profile.why_role_default || '');
   set('default-additional-info', profile.additional_info_default || '');
-  set('default-start-date', profile.start_date || '');
+  applyStartDateValue(profile.start_date || '');
   set('default-sponsorship', profile.requires_sponsorship || '');
 
   const sensitiveEnabled = !!profile.sensitive_optin;
@@ -97,6 +130,7 @@ export function fillProfileForm(profile = {}) {
   set('profile-veteran', sensitiveEnabled ? (profile.veteran || '') : '');
   set('profile-disability', sensitiveEnabled ? (profile.disability || '') : '');
   set('profile-pronouns-sensitive', sensitiveEnabled ? (profile.pronouns_sensitive || '') : '');
+  syncDemoChips();
 }
 
 /**

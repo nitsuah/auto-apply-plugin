@@ -43,7 +43,7 @@
 /* Pinned header + controls (tracker-toolbar style). */
 .job-search-sticky {
   position: sticky;
-  top: 0;
+  top: 56px;
   z-index: 6;
   background: var(--bg);
   padding: 8px 0 10px;
@@ -526,6 +526,10 @@ body[data-standalone="true"] #app {
   background: var(--surface);
   padding: 12px 16px 10px;
   border-bottom: 1px solid var(--border);
+  /* Keep the top nav pinned across all screens. */
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 body[data-standalone="true"] .header {
@@ -914,6 +918,15 @@ textarea {
   }
 }
 
+/* Memory row: protected/sensitive (red) on the left, regular memory on the right. */
+.profile-row-2col .sensitive-group {
+  order: 1;
+}
+
+.profile-row-2col #profile-memory-section {
+  order: 2;
+}
+
 .profile-row-2col > * {
   min-width: 0;
   margin-bottom: 0;
@@ -1170,6 +1183,53 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   display: none;
 }
 
+/* Demographic fields as expandable red "bubble" labels. */
+.demo-field {
+  width: 100%;
+}
+
+.demo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.demo-chip:hover {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(248, 113, 113, 0.14);
+}
+
+.demo-chip-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fca5a5;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.demo-chip-value {
+  font-size: 12px;
+}
+
+.demo-chip-value[data-empty="true"] {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.demo-select.hidden {
+  display: none;
+}
+
 .checkbox-row input[type="checkbox"] {
   width: auto;
   accent-color: var(--accent);
@@ -1420,10 +1480,10 @@ label.field-label,
   flex: 1;
 }
 
-/* ── Resume two-column (input | saved copy, 1:2) ── */
+/* ── Resume two-column (narrow input | wide saved copy, 1:3) ── */
 .resume-grid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 3fr;
   gap: 12px;
   align-items: start;
 }
@@ -1436,6 +1496,28 @@ label.field-label,
   .resume-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Expandable resume preview — collapsed by default, click to show all. */
+.resume-attachment-preview.expanded {
+  max-height: none;
+}
+
+/* ── Smarter field sizing in Core Profile ── */
+.profile-grid-eligibility {
+  margin-top: 8px;
+}
+
+.field-group-span .inline-fields #profile-state-region {
+  max-width: 90px;
+}
+
+.field-group-span .inline-fields #profile-postal-code {
+  max-width: 120px;
+}
+
+#profile-years-of-experience {
+  max-width: 140px;
 }
 
 /* ── Memory accents: ignore list = grey, sensitive memory = red ── */
@@ -1488,6 +1570,18 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
 #ai-consent-gated .ai-save-bar {
   grid-column: 1 / -1;
 }
+
+/* Per-card flair (colored left accent + heading), like the Help panel. */
+#ai-consent-gated .ai-panel-group {
+  border-left-width: 3px;
+}
+
+#profile-api-section { border-left-color: var(--accent); }
+#profile-api-section > label { color: var(--accent); }
+#job-sources-section { border-left-color: var(--blue); }
+#job-sources-section > label { color: var(--blue); }
+#linkedin-oauth-section { border-left-color: var(--purple); }
+#linkedin-oauth-section > label { color: var(--purple); }
 
 /* ── Help: legal sections as content-sized cards ── */
 .help-card.help-grid {
@@ -1728,6 +1822,10 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  /* Pin the tracker toolbar just below the top nav. */
+  position: sticky;
+  top: 56px;
+  z-index: 12;
 }
 
 .tracker-toolbar-actions {
@@ -2259,6 +2357,25 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   font-size: 9px;
 }
 
+.tracker-section-toggle {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tracker-section-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .tracker-lane-empty {
   padding: 8px 0;
 }
@@ -2427,33 +2544,35 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   opacity: 0.55;
 }
 
-/* Compact emoji-first summary details */
+/* Compact emoji-first summary details — one inline row */
 .tracker-summary-details {
   margin-top: 5px;
 }
 
-.tracker-summary-indicators {
+.tracker-summary-detailrow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.tracker-summary-detailrow .tracker-summary-salary {
+  margin-top: 0;
 }
 
 .meta-emoji {
   font-size: 13px;
   line-height: 1;
   cursor: default;
-}
-
-.tracker-summary-payrow {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 5px;
 }
 
-.tracker-summary-payrow .tracker-summary-salary {
-  margin-top: 0;
+.flag-svg {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 .tracker-summary-sentiment {
@@ -2680,8 +2799,8 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 
 .tracker-scorecard-editor {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(150px, 1fr);
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .tracker-scorecard-other.hidden {
@@ -2718,6 +2837,48 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
+}
+
+/* Keep editor boxes + fields from bleeding into the next column. */
+.tracker-card-groups-grid > * {
+  min-width: 0;
+}
+
+.tracker-field-label {
+  min-width: 0;
+}
+
+.tracker-field-label > input,
+.tracker-field-label > select,
+.tracker-field-label > textarea,
+.tracker-field-url,
+.tracker-location-select,
+.tracker-scorecard-editor select,
+.tracker-scorecard-editor input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Company + Role at the top of the context box. */
+.tracker-context-headline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+
+.tracker-context-headline .tracker-field-label {
+  min-width: 0;
+}
+
+/* Tighter submitted / last-updated cells. */
+.tracker-date-box {
+  gap: 4px;
+}
+
+.tracker-date-box input {
+  padding: 5px 8px;
 }
 
 .tracker-field-description {

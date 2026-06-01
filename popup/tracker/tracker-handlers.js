@@ -4,7 +4,7 @@
 import { $, sendMessage, sendToActiveTab, renderStatusOptions } from '../../lib/utils.js';
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 import { trackerDragState, trackerViewState, trackerSaveTimers, expandedTrackerIds } from './tracker-state.js';
-import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup, toggleFinalStageBubbleSelection, clearFinalStageBubbleSelections, toggleFinalDockLane } from './tracker-ui.js';
+import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup, toggleFinalStageBubbleSelection, clearFinalStageBubbleSelections, toggleFinalDockLane, setBubblesExpanded, areAllBubblesExpanded } from './tracker-ui.js';
 import { getTrackingStatusMeta } from './tracker-meta.js';
 import { exportCsv, importTrackerCsvFile } from './tracker-csv.js';
 import { showScreen } from '../ux/navigation.js';
@@ -208,9 +208,26 @@ export function initTrackerHandlers() {
       return;
     }
 
+    // Expand/collapse every card in one section at once.
+    const sectionToggle = event.target.closest('.tracker-section-toggle');
+    if (sectionToggle) {
+      const wrap = sectionToggle.closest('.tracker-lane-subheader, .tracker-lane-header');
+      const ids = [...(wrap?.querySelectorAll('.tracker-overflow-bubble[data-id]') || [])]
+        .map((b) => b.dataset.id).filter(Boolean);
+      setBubblesExpanded(ids, !areAllBubblesExpanded(ids));
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
+
+    // Clear (×) on a final-stage dock only collapses that lane's previews.
     const clearBubblesBtn = event.target.closest('[data-clear-final-bubbles="true"]');
     if (clearBubblesBtn) {
-      clearFinalStageBubbleSelections();
+      const lane = clearBubblesBtn.closest('.tracker-lane-final');
+      const ids = [...(lane?.querySelectorAll('[data-expand-card-id]') || [])]
+        .map((b) => b.dataset.expandCardId).filter(Boolean);
+      if (ids.length) setBubblesExpanded(ids, false);
+      else clearFinalStageBubbleSelections();
       await renderTracker();
       showScreen('tracker');
       return;

@@ -85,6 +85,7 @@
                         <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
                       </div>
                       <div class="resume-attachment-actions">
+                        <button type="button" id="toggle-resume-preview-btn" class="btn btn-ghost btn-sm">⤢ Expand</button>
                         <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
                         <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
                       </div>
@@ -123,6 +124,45 @@
                   <label class="field-label"><span>Years of experience</span><input type="number" id="profile-years-of-experience" placeholder="Years" min="0" step="1" /></label>
                   <label class="field-label"><span>Pronouns (optional)</span><input type="text" id="profile-pronouns" placeholder="Pronouns" /></label>
                 </div>
+                <div class="profile-grid profile-grid-eligibility">
+                  <label class="field-label">
+                    <span>Start date / availability</span>
+                    <select id="default-start-date">
+                      <option value="">Select…</option>
+                      <option value="Immediately">Immediately</option>
+                      <option value="2 weeks">2 weeks</option>
+                      <option value="2–4 weeks">2–4 weeks</option>
+                      <option value="1 month">1 month</option>
+                      <option value="2 months">2 months</option>
+                      <option value="3+ months">3+ months</option>
+                      <option value="Other">Other (specify)</option>
+                    </select>
+                  </label>
+                  <label class="field-label">
+                    <span>Work authorization</span>
+                    <select id="work-auth">
+                      <option value="">Work authorization…</option>
+                      <option value="US Citizen">US Citizen</option>
+                      <option value="Green Card">Green Card</option>
+                      <option value="H-1B">H-1B</option>
+                      <option value="OPT">OPT</option>
+                      <option value="TN Visa">TN Visa</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+                  <label class="field-label">
+                    <span>Sponsorship</span>
+                    <select id="default-sponsorship">
+                      <option value="">Sponsorship need…</option>
+                      <option value="No">No sponsorship required</option>
+                      <option value="Yes">Will require sponsorship</option>
+                    </select>
+                  </label>
+                  <label class="field-label field-group-span field-start-other hidden" id="start-date-other-wrap">
+                    <span>Custom start date / availability</span>
+                    <input type="text" id="default-start-date-other" placeholder="e.g. mid-July, after notice period" />
+                  </label>
+                </div>
               </div>
 
               <div class="form-group settings-group profile-panel" id="preferences-section">
@@ -140,27 +180,6 @@
                 <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
                 <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
                 <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
-                <div class="inline-fields pref-bottom-fields" style="margin-top:8px">
-                  <label class="field-label"><span>Start date / availability</span><input type="text" id="default-start-date" placeholder="e.g. 2 weeks, immediately" /></label>
-                  <label class="field-label"><span>Sponsorship</span>
-                    <select id="default-sponsorship">
-                      <option value="">Sponsorship need…</option>
-                      <option value="No">No sponsorship required</option>
-                      <option value="Yes">Will require sponsorship</option>
-                    </select>
-                  </label>
-                </div>
-                <label class="field-label" style="margin-top:8px"><span>Work authorization</span>
-                  <select id="work-auth">
-                    <option value="">Work authorization…</option>
-                    <option value="US Citizen">US Citizen</option>
-                    <option value="Green Card">Green Card</option>
-                    <option value="H-1B">H-1B</option>
-                    <option value="OPT">OPT</option>
-                    <option value="TN Visa">TN Visa</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </label>
               </div>
             </div>
 
@@ -201,40 +220,56 @@
                   Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
                 </label>
                 <div id="sensitive-fields" class="sensitive-fields hidden">
-                  <select id="profile-gender">
-                  <option value="">Gender…</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-race">
-                  <option value="">Race / Ethnicity…</option>
-                  <option value="White">White</option>
-                  <option value="Black or African American">Black or African American</option>
-                  <option value="Hispanic or Latino">Hispanic or Latino</option>
-                  <option value="Asian">Asian</option>
-                  <option value="Native American or Alaska Native">Native American or Alaska Native</option>
-                  <option value="Native Hawaiian or Pacific Islander">Native Hawaiian or Pacific Islander</option>
-                  <option value="Two or more races">Two or more races</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-veteran">
-                  <option value="">Veteran status…</option>
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-disability">
-                  <option value="">Disability status…</option>
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <input type="text" id="profile-pronouns-sensitive" placeholder="Pronouns (optional)" />
-              </div>
+                  <p class="helper-text" style="margin:0 0 6px">Click a label to set it; it collapses back to a chip when done.</p>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-gender"><span class="demo-chip-label">Gender</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-gender" class="demo-select hidden">
+                      <option value="">Gender…</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-race"><span class="demo-chip-label">Race / Ethnicity</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-race" class="demo-select hidden">
+                      <option value="">Race / Ethnicity…</option>
+                      <option value="White">White</option>
+                      <option value="Black or African American">Black or African American</option>
+                      <option value="Hispanic or Latino">Hispanic or Latino</option>
+                      <option value="Asian">Asian</option>
+                      <option value="Native American or Alaska Native">Native American or Alaska Native</option>
+                      <option value="Native Hawaiian or Pacific Islander">Native Hawaiian or Pacific Islander</option>
+                      <option value="Two or more races">Two or more races</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-veteran"><span class="demo-chip-label">Veteran status</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-veteran" class="demo-select hidden">
+                      <option value="">Veteran status…</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-disability"><span class="demo-chip-label">Disability status</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-disability" class="demo-select hidden">
+                      <option value="">Disability status…</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-pronouns-sensitive"><span class="demo-chip-label">Pronouns</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <input type="text" id="profile-pronouns-sensitive" class="demo-select hidden" placeholder="Pronouns (optional)" />
+                  </div>
+                </div>
                 <details class="profile-collapsible sensitive-collapsible">
                   <summary class="collapsible-summary">
                     <span class="report-title memory-title">Sensitive memory</span>
@@ -532,7 +567,7 @@
             </select>
           </div>
 
-          <div class="form-group profile-panel ai-panel-group">
+          <div class="form-group profile-panel ai-panel-group" id="job-sources-section">
             <label for="adzuna-app-id">Job search sources (optional)</label>
             <p class="helper-text">Optional keyed sources fold extra listings into Job Search alongside the built-in free ones. Keys are stored locally only.</p>
             <input type="text" id="adzuna-app-id" placeholder="Adzuna App ID" autocomplete="off" />

@@ -12,6 +12,7 @@ import {
   handleResumeFileDrop,
   downloadResumeAttachment,
   renderResumeAttachment,
+  syncDemoChips,
 } from '../forms/forms.js';
 
 // Re-export for consumers
@@ -152,6 +153,19 @@ export async function initSetupHandlers() {
     }
   });
 
+  // Reveal the custom start-date field only when "Other" is selected.
+  $('default-start-date')?.addEventListener('change', (event) => {
+    $('start-date-other-wrap')?.classList.toggle('hidden', event.target.value !== 'Other');
+  });
+
+  // Expand / collapse the saved resume preview (show full copy without scroll).
+  $('toggle-resume-preview-btn')?.addEventListener('click', (event) => {
+    const preview = $('resume-attachment-preview');
+    if (!preview) return;
+    const expanded = preview.classList.toggle('expanded');
+    event.currentTarget.textContent = expanded ? '⤡ Collapse' : '⤢ Expand';
+  });
+
   const sensitiveOptin = $('sensitive-optin');
   const sensitiveFields = $('sensitive-fields');
   if (sensitiveOptin && sensitiveFields) {
@@ -160,6 +174,27 @@ export async function initSetupHandlers() {
     };
     sensitiveOptin.addEventListener('change', syncSensitiveVisibility);
     syncSensitiveVisibility();
+
+    // Demographic chips: click a chip to reveal its control; collapse on
+    // change / blur with the chosen value reflected back into the chip.
+    sensitiveFields.addEventListener('click', (event) => {
+      const chip = event.target.closest('.demo-chip');
+      if (!chip) return;
+      const field = $(chip.dataset.demoFor);
+      if (!field) return;
+      chip.classList.add('hidden');
+      field.classList.remove('hidden');
+      field.focus();
+    });
+    const collapseDemoField = (event) => {
+      const field = event.target.closest('.demo-select');
+      if (!field) return;
+      syncDemoChips();
+      field.classList.add('hidden');
+      sensitiveFields.querySelector(`.demo-chip[data-demo-for="${field.id}"]`)?.classList.remove('hidden');
+    };
+    sensitiveFields.addEventListener('change', collapseDemoField);
+    sensitiveFields.addEventListener('focusout', collapseDemoField);
   }
 
   $('download-resume-attachment-btn')?.addEventListener('click', async () => {
