@@ -4,6 +4,15 @@
 import { $, sendToActiveTab, getReviewItemLabel } from '../../lib/utils.js';
 import { setStatus } from './state.js';
 
+// Mapping from screen name to its header nav button id
+const NAV_BTN_MAP = {
+  'job-search': 'header-job-search-btn',
+  tracker: 'header-tracker-btn',
+  ai: 'header-ai-btn',
+  setup: 'header-profile-btn',
+  help: 'header-help-btn',
+};
+
 // Show a named screen and hide others
 export function showScreen(name) {
   for (const el of document.querySelectorAll('.screen')) {
@@ -25,6 +34,18 @@ export function showScreen(name) {
       main: '',
     };
     label.textContent = labels[name] || '';
+  }
+
+  // Show/hide the global back button (hidden on the home/main screen)
+  const backBtn = document.getElementById('global-back-btn');
+  if (backBtn) {
+    backBtn.classList.toggle('hidden', name === 'main');
+  }
+
+  // Update active tab indicator on header nav buttons
+  for (const [screen, btnId] of Object.entries(NAV_BTN_MAP)) {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.classList.toggle('active-tab', screen === name);
   }
 }
 

@@ -202,7 +202,7 @@
 
 .job-pay-sliders input[type="range"] {
   width: 64px;
-  accent-color: var(--accent);
+  accent-color: var(--blue);
 }
 
 .job-pay-cells {
@@ -212,7 +212,19 @@
 }
 
 .job-pay-cells .job-pay-num {
-  width: 56px;
+  width: 68px;
+}
+
+/* Remove spinner arrows on pay number inputs */
+.job-pay-num::-webkit-outer-spin-button,
+.job-pay-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.job-pay-num[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .job-pay-inline {
@@ -284,6 +296,9 @@
 
 .job-search-result:hover {
   border-color: var(--blue);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+  transition: border-color 0.12s, box-shadow 0.15s, transform 0.15s;
 }
 
 /* Saved indicator (top-right) — links to the Pipeline. */
@@ -395,6 +410,12 @@
 
 .job-source-note {
   margin-bottom: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--text-muted);
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 .job-source-filter-row {
@@ -422,8 +443,8 @@
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.08);
+  border: 1px dashed var(--border);
+  background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s, background 0.12s;
@@ -454,9 +475,10 @@
 
 .job-badges {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   margin-bottom: 10px;
+  overflow: hidden;
 }
 
 .job-badge {
@@ -533,10 +555,11 @@
 }
 
 :root {
-  --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface-2: #22263a;
-  --border: #2e3347;
+  --bg: #0b0f19;
+  --bg-base: #0b0f19;
+  --surface: #141720;
+  --surface-2: #1d2133;
+  --border: #272b3e;
   --accent: #4ade80;
   --accent-dark: #16a34a;
   --blue: #60a5fa;
@@ -556,7 +579,7 @@ body {
 }
 
 body {
-  background: var(--bg);
+  background: var(--bg-base);
   color: var(--text);
   width: 440px;
   min-width: 440px;
@@ -620,7 +643,7 @@ body[data-standalone="true"] #app {
 /* ── Header ── */
 .header {
   background: var(--surface);
-  padding: 12px 16px 10px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   /* Keep the top nav pinned across all screens. */
   position: sticky;
@@ -697,11 +720,36 @@ body[data-screen="main"] .header-screen-label {
   font-weight: 600;
   padding: 5px 10px;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .icon-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Active nav tab — glowing green pill */
+.icon-btn.active-tab {
+  background: rgba(74, 222, 128, 0.13);
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.55);
+  font-weight: 700;
+}
+
+/* Global back button in header */
+.global-back-btn {
+  border-radius: 999px;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 10px;
+  margin-right: 4px;
+}
+
+.global-back-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .count-pill {
@@ -930,12 +978,14 @@ textarea {
 /* ── File drop zone ── */
 .file-drop-zone {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Fixed-size drop box rather than a full-width column. */
+  gap: 6px;
+  /* Larger drop zone for better usability */
   width: 100%;
-  max-width: 280px;
-  min-height: 96px;
+  max-width: 360px;
+  min-height: 120px;
   background: var(--surface);
   border: 2px dashed var(--border);
   border-radius: var(--radius);
@@ -1032,14 +1082,16 @@ textarea {
   margin-bottom: 0;
 }
 
-/* Lower-half two-column layout (left = Core + Memory, right = Sensitive + Prefs). */
+/* Lower-half two-column layout — stacked single column for less whitespace asymmetry. */
 .profile-two-col {
   display: grid;
   gap: 12px;
   align-items: start;
+  grid-template-columns: 1fr;
+  max-width: 720px;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 900px) {
   .profile-two-col {
     grid-template-columns: 1fr 1fr;
   }
@@ -1290,27 +1342,27 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   margin-top: 2px;
 }
 
-/* Demographic / sensitive data — flagged red as the most protected category. */
+/* Demographic / sensitive data — neutral styling (not alarming red) */
 .sensitive-group {
   padding: 10px;
-  border: 1px solid rgba(248, 113, 113, 0.45);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(248, 113, 113, 0.07);
+  background: var(--surface);
   margin-bottom: 12px;
 }
 .sensitive-section-label {
-  color: #fca5a5 !important;
+  color: var(--text-muted) !important;
 }
 .sensitive-group .memory-title {
-  color: #fca5a5;
+  color: var(--text-muted);
 }
 .sensitive-group .memory-bubble {
-  border-color: rgba(248, 113, 113, 0.4);
-  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.07);
 }
 .sensitive-group .memory-bubble:hover {
-  border-color: rgba(248, 113, 113, 0.7);
-  color: #fecaca;
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #e2e8f0;
 }
 .sensitive-check {
   align-items: flex-start;
@@ -1729,7 +1781,7 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
 /* ── AI panel: cards in a content-sized grid instead of full-width stacks ── */
 #ai-consent-gated {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
   align-items: start;
 }
@@ -1740,6 +1792,10 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
 
 #ai-consent-gated .ai-save-bar {
   grid-column: 1 / -1;
+  position: static;
+  background: transparent;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 /* Per-card flair (colored left accent + heading), like the Help panel. */
@@ -1748,11 +1804,11 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
 }
 
 #profile-api-section { border-left-color: var(--accent); }
-#profile-api-section > label { color: var(--accent); }
+#profile-api-section > label:first-of-type { color: var(--accent); font-size: 14px; font-weight: 700; }
 #job-sources-section { border-left-color: var(--blue); }
-#job-sources-section > label { color: var(--blue); }
+#job-sources-section > label:first-of-type { color: var(--blue); font-size: 14px; font-weight: 700; }
 #linkedin-oauth-section { border-left-color: var(--purple); }
-#linkedin-oauth-section > label { color: var(--purple); }
+#linkedin-oauth-section > label:first-of-type { color: var(--purple); font-size: 14px; font-weight: 700; }
 
 /* ── Help: legal sections as content-sized cards ── */
 .help-card.help-grid {
@@ -3646,6 +3702,207 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
     font-size: 11px;
     padding: 5px 8px;
   }
+}
+
+/* ── Pipeline card: expanded as floating modal overlay ── */
+.tracker-card.expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  width: min(860px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+/* Blurred backdrop when a card is expanded */
+body.modal-open::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(5, 8, 16, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Pipeline lane header: distinct visual separation from cards ── */
+.tracker-lane-header {
+  margin: -10px -10px 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* ── Pipeline "Drafted" status: distinct from generic "Pending" ── */
+.tracker-status-select[data-status-tone="drafted"] {
+  background: rgba(96, 165, 250, 0.09);
+  border-color: rgba(96, 165, 250, 0.22);
+  color: #93c5fd;
+}
+
+/* ── Secondary pipeline action buttons (Import/Export CSV) ── */
+#import-csv-btn,
+#export-csv-btn {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+#import-csv-btn:hover:not(:disabled),
+#export-csv-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Preview screen: dense key-value list for scalar answers ── */
+.preview-key-value-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0;
+  font-size: 12px;
+}
+
+.preview-kv-row {
+  display: contents;
+}
+
+.preview-kv-label {
+  padding: 5px 10px 5px 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.preview-kv-value {
+  padding: 5px 0;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  word-break: break-word;
+}
+
+/* Narrative cards with overflow fade and Show more toggle */
+.preview-card.is-collapsible .preview-card-value {
+  position: relative;
+  max-height: 72px;
+  overflow: hidden;
+}
+
+.preview-card.is-collapsible .preview-card-value::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(transparent, rgba(15, 23, 42, 0.95));
+  pointer-events: none;
+}
+
+.preview-card.is-expanded .preview-card-value {
+  max-height: none;
+  overflow: visible;
+}
+
+.preview-card.is-expanded .preview-card-value::after {
+  display: none;
+}
+
+.preview-show-more-btn {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--blue);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  display: block;
+}
+
+.preview-show-more-btn:hover {
+  text-decoration: underline;
+}
+
+/* ── Memory: bubble active state and connector to expanded card ── */
+.memory-bubble.is-active {
+  background: rgba(192, 132, 252, 0.18);
+  border-color: rgba(192, 132, 252, 0.65);
+  color: #e9d5ff;
+  border-radius: 999px 999px 6px 6px;
+}
+
+.memory-item.expanded {
+  border-left: 2px solid rgba(192, 132, 252, 0.5);
+  margin-left: 4px;
+}
+
+/* Memory action buttons — adequate padding, delete = danger */
+.memory-item-actions .btn-xs {
+  padding: 5px 12px;
+}
+
+.memory-delete-btn {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.memory-delete-btn:hover:not(:disabled) {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.65);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Ignore list filter search input */
+.ignore-list-search {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+/* ── Status card: ATS divider ── */
+.status-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 4px;
+  opacity: 0.6;
+}
+
+/* ── API key validation badge ── */
+.api-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.1);
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.api-key-badge.is-connected {
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.api-key-badge.is-invalid {
+  color: var(--red);
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* Respect users who prefer reduced motion — disable non-essential animation. */

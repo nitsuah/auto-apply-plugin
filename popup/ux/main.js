@@ -208,6 +208,23 @@ export async function initMainHandlers() {
     showScreen('help');
   });
 
+  // Profile nav button
+  $('header-profile-btn')?.addEventListener('click', async () => {
+    if (!isStandaloneView()) {
+      const opened = await openExpandedWorkspace('setup', 'core-profile-section');
+      if (opened) return;
+    }
+    showScreen('setup');
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+    await renderLearnedDefaults();
+  });
+
+  // Global back button returns to home
+  $('global-back-btn')?.addEventListener('click', async () => {
+    await loadMainScreen();
+  });
+
   bindReviewJumpHandlers('fill-report-unresolved', 'fill-status');
 
   $('fill-btn')?.addEventListener('click', async () => {

@@ -108,7 +108,7 @@ const MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH = 1200;
 const MAX_RESUME_ATTACHMENT_DATA_LENGTH = 1_500_000;
 const MAX_RESUME_ATTACHMENT_TEXT_LENGTH = 200_000;
 
-async function handleSaveSetup({ resumeRaw, settings, profile, resumeMeta }) {
+async function handleSaveSetup({ resumeRaw, settings, profile = {}, resumeMeta }) {
   const data = await chrome.storage.local.get(['resume']);
   const existingResume = data.resume?.structured || null;
   const existingAttachment = sanitizeResumeAttachment(data.resume?.attachment || null);

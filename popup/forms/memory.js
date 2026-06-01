@@ -44,11 +44,11 @@ export async function renderLearnedDefaults() {
  * Compact "bubble" (chip) shown for a contracted memory item. Clicking expands
  * it into the full editable card via the shared expand handler.
  */
-function renderMemoryChip(item, { label = 'Prompt' } = {}) {
+function renderMemoryChip(item, { label = 'Prompt', isActive = false } = {}) {
   const question = String(item.question || '').trim();
   const display = question.length > 24 ? `${question.slice(0, 22)}…` : (question || label);
   const tooltip = question + (item.answer ? ` → ${item.answer}` : '');
-  return `<button type="button" class="memory-bubble memory-expand-btn" data-question="${escAttr(question)}" aria-expanded="false" title="${escAttr(tooltip)}">${esc(display)}</button>`;
+  return `<button type="button" class="memory-bubble memory-expand-btn${isActive ? ' is-active' : ''}" data-question="${escAttr(question)}" aria-expanded="${isActive}" title="${escAttr(tooltip)}">${esc(display)}</button>`;
 }
 
 /**
@@ -62,7 +62,8 @@ export function renderMemoryGroup(container, items, emptyMessage) {
   }
 
   container.innerHTML = items.map(item => {
-    if (!expandedMemoryQuestions.has(item.question)) {
+    const isActive = expandedMemoryQuestions.has(item.question);
+    if (!isActive) {
       return renderMemoryChip(item);
     }
     return `
@@ -92,12 +93,19 @@ export function renderMemoryGroup(container, items, emptyMessage) {
  * become full restore/delete cards inline.
  */
 export function renderIgnoredMemoryGroup(container, items, emptyMessage) {
-  if (!items.length) {
-    container.innerHTML = `<p class="empty-msg">${esc(emptyMessage)}</p>`;
+  // Apply search filter from #ignore-search-input if present
+  const searchInput = document.getElementById('ignore-search-input');
+  const query = (searchInput?.value || '').toLowerCase().trim();
+  const filtered = query
+    ? items.filter(item => item.question.toLowerCase().includes(query) || String(item.answer || '').toLowerCase().includes(query))
+    : items;
+
+  if (!filtered.length) {
+    container.innerHTML = `<p class="empty-msg">${esc(query ? 'No matches.' : emptyMessage)}</p>`;
     return;
   }
 
-  container.innerHTML = items.map(item => {
+  container.innerHTML = filtered.map(item => {
     if (!expandedMemoryQuestions.has(item.question)) {
       return renderMemoryChip(item, { label: 'Ignored prompt' });
     }
@@ -175,6 +183,8 @@ export function initMemoryHandlers() {
         const item = deleteBtn.closest('.memory-item');
         const isIgnored = item?.classList.contains('ignored-memory-item');
         if (!question) return;
+        const confirmed = window.confirm(`Delete this memory entry?\n\n"${question.slice(0, 80)}"`);
+        if (!confirmed) return;
         if (isIgnored) {
           await deleteIgnoredLearnedDefault(question);
         } else {
