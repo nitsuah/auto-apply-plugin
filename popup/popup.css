@@ -202,36 +202,48 @@
   white-space: nowrap;
 }
 
-/* Pay filter laid out like the other labeled filters, with sliders + cells. */
+/* "Edit" in popup, "Edit Profile" in standalone tab. */
+.label-full { display: none; }
+body[data-standalone="true"] .label-full { display: inline; }
+
+/* Pay filter — all controls on one row. */
 .job-pay-field {
-  min-width: 220px;
+  min-width: 260px;
 }
 
 .job-pay-controls {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
-/* min-box | sliders | max-box K — all on one line */
+/* Inline "Pay" label before the Annual/Hourly toggle. */
+.job-pay-label-inline {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* min-box | sliders (half-width) | max-box K — all on one line */
 .job-pay-inline-inputs {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
 }
 
 .job-pay-sliders {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
-  min-width: 80px;
+  width: 90px; /* half of the previous flex:1 target */
+  flex-shrink: 0;
 }
 
 .job-pay-sliders input[type="range"] {
-  flex: 1;
+  width: 100%;
   accent-color: var(--accent); /* green */
 }
 
@@ -487,6 +499,29 @@
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(74, 222, 128, 0.12);
+}
+
+/* Source chip heatmap — applied after search, overrides is-active. */
+.job-source-chip.chip-count-zero {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-muted) !important;
+  background: rgba(148, 163, 184, 0.06) !important;
+  opacity: 0.65;
+}
+.job-source-chip.chip-count-low {
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: #fca5a5 !important;
+  background: rgba(248, 113, 113, 0.1) !important;
+}
+.job-source-chip.chip-count-mid {
+  border-color: rgba(251, 146, 60, 0.55) !important;
+  color: #fdba74 !important;
+  background: rgba(251, 146, 60, 0.1) !important;
+}
+.job-source-chip.chip-count-high {
+  border-color: rgba(74, 222, 128, 0.6) !important;
+  color: #86efac !important;
+  background: rgba(74, 222, 128, 0.14) !important;
 }
 
 .job-source-chip.is-unavailable {

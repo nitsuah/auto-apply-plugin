@@ -212,20 +212,39 @@ function renderSourceChips(sources, countMap = {}) {
   }).join('');
 }
 
+function heatmapClass(count) {
+  if (typeof count !== 'number' || count === 0) return 'chip-count-zero';
+  if (count <= 5) return 'chip-count-low';
+  if (count <= 10) return 'chip-count-mid';
+  return 'chip-count-high';
+}
+
 function updateSourceChipCounts(sourceResults = []) {
   const countMap = {};
-  sourceResults.forEach((s) => { countMap[s.id] = s.ok ? (s.count || 0) : '!'; });
+  sourceResults.forEach((s) => { countMap[s.id] = s.ok ? (s.count || 0) : null; });
   const container = document.getElementById('job-source-filters');
   if (!container) return;
-  container.querySelectorAll('.job-source-chip[data-source-id]').forEach((chip) => {
+
+  const chips = [...container.querySelectorAll('.job-source-chip[data-source-id]')];
+  chips.forEach((chip) => {
     const id = chip.dataset.sourceId;
-    if (id in countMap) {
-      // Update the count suffix — strip old one first
-      const base = chip.textContent.replace(/\s*\(.*?\)\s*$/, '').replace(/\s*🔒\s*$/, '').trim();
-      const locked = chip.dataset.available === '0';
-      chip.textContent = `${base}${locked ? ' 🔒' : ''} (${countMap[id]})`;
-    }
+    if (!(id in countMap)) return;
+    const count = countMap[id];
+    // Strip any existing count suffix, update label
+    const base = chip.textContent.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*🔒\s*$/, '').trim();
+    const locked = chip.dataset.available === '0';
+    chip.textContent = count !== null
+      ? `${base}${locked ? ' 🔒' : ''} (${count})`
+      : `${base}${locked ? ' 🔒' : ''} (!)`;
+    chip.dataset.count = count !== null ? count : -1;
+    // Apply heatmap
+    chip.classList.remove('chip-count-zero', 'chip-count-low', 'chip-count-mid', 'chip-count-high');
+    chip.classList.add(heatmapClass(count !== null ? count : 0));
   });
+
+  // Re-sort chips by count descending (highest results first)
+  chips.sort((a, b) => Number(b.dataset.count || 0) - Number(a.dataset.count || 0));
+  chips.forEach((chip) => container.appendChild(chip));
 }
 
 // ── Results ──────────────────────────────────────────────────────────────────
@@ -443,7 +462,6 @@ export function initJobSearchHandlers(showScreen) {
     });
   }
 
-  document.getElementById('job-search-back-btn')?.addEventListener('click', () => showScreen('main'));
 
   if (isStandaloneView() && new URLSearchParams(window.location.search).get('screen') === 'job-search') {
     loadJobSources();

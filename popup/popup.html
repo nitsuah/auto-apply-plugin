@@ -325,7 +325,7 @@
             </button>
             <div class="main-secondary-row">
               <button id="edit-resume-btn" class="btn btn-ghost">
-                ✏️ Edit Profile
+                ✏️ Edit<span class="label-full"> Profile</span>
               </button>
               <button id="preview-btn" class="btn btn-ghost">
                 👁 Preview
@@ -482,7 +482,6 @@
         <div class="job-search-sticky">
           <div class="job-search-header">
             <h2 class="section-title">Job Search</h2>
-            <button id="job-search-back-btn" class="btn-back job-search-back" type="button">← Back</button>
           </div>
           <!-- Toolbar: [search input] [source chips] [Search] [Filters] -->
           <div class="job-search-toolbar">
@@ -523,13 +522,13 @@
                 </select>
               </label>
               <div class="job-filter-field job-pay-field">
-                <span>Pay</span>
                 <div class="job-pay-controls" id="pay-controls">
+                  <span class="job-pay-label-inline">Pay</span>
                   <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
                     <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
                     <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
                   </div>
-                  <!-- min-box | sliders | max-box K -->
+                  <!-- min-box | sliders (half width) | max-box K -->
                   <div class="job-pay-inline-inputs">
                     <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
                     <div class="job-pay-sliders">
