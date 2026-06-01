@@ -7,6 +7,7 @@ import { isStandaloneView, openExpandedWorkspace } from '../ux/navigation.js';
 import { jobPassesPayFilter } from '../../lib/job-search.js';
 
 const lastResultsById = new Map();
+const savedJobIds = new Set();
 const selectedSourceIds = new Set();
 let sourceSelectionSeeded = false;
 let lastRawResults = [];
@@ -88,7 +89,9 @@ function syncPayUi() {
   const r = PAY_RANGES[payFilter.mode];
   const minNum = document.getElementById('pay-min-num');
   const maxNum = document.getElementById('pay-max-num');
-  [minNum, maxNum].forEach((el) => {
+  const minSlider = document.getElementById('pay-slider-min');
+  const maxSlider = document.getElementById('pay-slider-max');
+  [minNum, maxNum, minSlider, maxSlider].forEach((el) => {
     if (!el) return;
     el.min = String(r.min);
     el.max = String(r.max);
@@ -96,10 +99,16 @@ function syncPayUi() {
   });
   if (minNum) minNum.value = String(payFilter.min);
   if (maxNum) maxNum.value = String(payFilter.max);
+  if (minSlider) minSlider.value = String(payFilter.min);
+  if (maxSlider) maxSlider.value = String(payFilter.max);
   const unit = document.getElementById('pay-unit-min');
   if (unit) unit.textContent = r.unit;
+  const readoutText = payReadoutText();
   const readout = document.getElementById('pay-filter-readout');
-  if (readout) readout.textContent = payReadoutText();
+  if (readout) readout.textContent = readoutText;
+  // The visible range text is hidden; surface it as a tooltip instead.
+  const controls = document.getElementById('pay-controls');
+  if (controls) controls.title = readoutText;
   document.querySelectorAll('.job-pay-mode').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.mode === payFilter.mode);
   });
@@ -233,22 +242,19 @@ export function renderJobSearchResults(results, sources = []) {
       j.salary ? `<span class="job-badge job-badge-salary">${esc(j.salary)}</span>` : '',
       `<span class="job-badge job-badge-source">${esc(j.source || 'Web')}</span>`,
     ].filter(Boolean).join('');
-    const ctaTitle = j.atsLabel ? `Apply on ${j.atsLabel}` : 'Go to job post';
+    const openLabel = j.atsLabel ? `Open ${esc(j.title || 'job')} (apply on ${esc(j.atsLabel)})` : `Open ${esc(j.title || 'job')} at ${esc(j.company || '')}`;
     const desc = j.description ? `<p class="job-desc">${esc(j.description.slice(0, 180))}…</p>` : '';
+    const saved = savedJobIds.has(j.id);
     return `
-    <div class="job-search-result" data-job-id="${escAttr(j.id)}">
-      <div class="job-result-top">
-        <div class="job-result-headline">
-          <div class="job-title">${esc(j.title || 'Untitled role')}</div>
-          <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
-        </div>
-        <div class="job-result-actions">
-          <a href="${escAttr(j.url)}" target="_blank" rel="noopener" class="job-icon-btn" title="${escAttr(ctaTitle)}" aria-label="${escAttr(ctaTitle)}">↗</a>
-          <button type="button" class="job-icon-btn job-save-btn" data-job-id="${escAttr(j.id)}" title="Save to Tracker" aria-label="Save to Tracker">💾</button>
-        </div>
+    <div class="job-search-result" data-job-id="${escAttr(j.id)}" data-job-url="${escAttr(j.url)}" role="link" tabindex="0" aria-label="${escAttr(openLabel)}">
+      <button type="button" class="job-saved-link${saved ? '' : ' hidden'}" data-job-id="${escAttr(j.id)}" title="Saved — open in Pipeline" aria-label="Saved — open in Pipeline">✓ Saved</button>
+      <div class="job-result-headline">
+        <div class="job-title">${esc(j.title || 'Untitled role')}</div>
+        <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
       </div>
       <div class="job-badges">${badges}</div>
       ${desc}
+      <button type="button" class="job-save-btn${saved ? ' hidden' : ''}" data-job-id="${escAttr(j.id)}">💾 Save job</button>
     </div>`;
   }).join('');
 }
@@ -262,8 +268,9 @@ function renderSourceNote(sources = []) {
 async function saveJobToTracker(jobId, button) {
   const job = lastResultsById.get(jobId);
   if (!job) return;
+  const card = button.closest('.job-search-result');
   button.disabled = true;
-  button.textContent = '…';
+  button.textContent = 'Saving…';
   try {
     const resp = await sendMessage({
       type: 'LOG_APPLICATION',
@@ -275,12 +282,12 @@ async function saveJobToTracker(jobId, button) {
       },
     });
     if (!resp?.success) throw new Error(resp?.error || 'Could not save job.');
-    button.textContent = '✓';
-    button.classList.add('is-saved');
-    button.title = 'Saved to Tracker';
+    savedJobIds.add(jobId);
+    button.classList.add('hidden');
+    card?.querySelector('.job-saved-link')?.classList.remove('hidden');
   } catch (err) {
     button.disabled = false;
-    button.textContent = '💾';
+    button.textContent = '💾 Save job';
     console.warn('[apply-bot] Failed to save job to tracker.', err);
   }
 }
@@ -370,17 +377,21 @@ export function initJobSearchHandlers(showScreen) {
     });
   });
 
-  // Pay number boxes update the filter.
-  const onPayChange = () => {
-    const minNum = document.getElementById('pay-min-num');
-    const maxNum = document.getElementById('pay-max-num');
-    setPayFromInputs(minNum?.value, maxNum?.value);
+  // Pay sliders + number boxes both drive the filter and stay in sync.
+  const onPayChange = (source) => {
+    if (source === 'slider') {
+      setPayFromInputs(document.getElementById('pay-slider-min')?.value, document.getElementById('pay-slider-max')?.value);
+    } else {
+      setPayFromInputs(document.getElementById('pay-min-num')?.value, document.getElementById('pay-max-num')?.value);
+    }
     syncPayUi();
     applyAndRender();
     saveJobPrefs();
   };
-  document.getElementById('pay-min-num')?.addEventListener('change', onPayChange);
-  document.getElementById('pay-max-num')?.addEventListener('change', onPayChange);
+  document.getElementById('pay-min-num')?.addEventListener('change', () => onPayChange('num'));
+  document.getElementById('pay-max-num')?.addEventListener('change', () => onPayChange('num'));
+  document.getElementById('pay-slider-min')?.addEventListener('input', () => onPayChange('slider'));
+  document.getElementById('pay-slider-max')?.addEventListener('input', () => onPayChange('slider'));
 
   // Remote / type / location filter selects.
   const onExtraFilterChange = (key) => (event) => {
@@ -392,13 +403,31 @@ export function initJobSearchHandlers(showScreen) {
   document.getElementById('filter-type')?.addEventListener('change', onExtraFilterChange('type'));
   document.getElementById('filter-location')?.addEventListener('change', onExtraFilterChange('location'));
 
-  // Save-to-Tracker.
+  // Card interactions: save / open-in-tracker / open-post (card body is a link).
   if (resultsDiv) {
-    resultsDiv.addEventListener('click', (event) => {
+    const handleResultActivate = (event) => {
       const saveBtn = event.target.closest('.job-save-btn');
-      if (!saveBtn) return;
-      const jobId = saveBtn.dataset.jobId || '';
-      if (jobId) saveJobToTracker(jobId, saveBtn);
+      if (saveBtn) {
+        const jobId = saveBtn.dataset.jobId || '';
+        if (jobId) saveJobToTracker(jobId, saveBtn);
+        return;
+      }
+      const savedLink = event.target.closest('.job-saved-link');
+      if (savedLink) {
+        openExpandedWorkspace('tracker');
+        return;
+      }
+      const card = event.target.closest('.job-search-result');
+      const url = card?.dataset.jobUrl;
+      if (url) window.open(url, '_blank', 'noopener');
+    };
+    resultsDiv.addEventListener('click', handleResultActivate);
+    resultsDiv.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      if (event.target.closest('.job-search-result') && !event.target.closest('button')) {
+        event.preventDefault();
+        handleResultActivate(event);
+      }
     });
   }
 

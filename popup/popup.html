@@ -54,8 +54,9 @@
           </div>
 
           <div id="profile-consent-gated" class="profile-consent-gated consent-locked">
-            <div class="form-group profile-panel" id="profile-resume-section">
-              <label>Resume</label>
+            <details class="form-group profile-panel profile-section" id="profile-resume-section" open>
+              <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Resume</span></summary>
+              <div class="collapsible-body">
               <p class="helper-text">Upload or paste a resume here. New resume parsing uses the Gemini key from the AI panel.</p>
               <div class="resume-grid">
                 <div class="resume-input-col">
@@ -85,7 +86,7 @@
                         <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
                       </div>
                       <div class="resume-attachment-actions">
-                        <button type="button" id="toggle-resume-preview-btn" class="btn btn-ghost btn-sm">⤢ Expand</button>
+                        <button type="button" id="toggle-resume-preview-btn" class="btn btn-ghost btn-sm">⤡ Collapse</button>
                         <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
                         <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
                       </div>
@@ -95,12 +96,15 @@
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+            </details>
 
-            <!-- Row: Core profile (left) · Preferences & answer defaults (right) -->
-            <div class="profile-row-2col">
-              <div class="form-group profile-panel" id="core-profile-section">
-                <label>Core profile details</label>
+            <!-- Lower half: two columns. Left = Core profile + Memory. Right = Sensitive + Preferences. -->
+            <div class="profile-two-col">
+              <div class="profile-col">
+              <details class="form-group profile-panel profile-section" id="core-profile-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Core profile details</span></summary>
+                <div class="collapsible-body">
                 <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
                 <div class="profile-grid">
                   <label class="field-label"><span>Full name</span><input type="text" id="profile-full-name" placeholder="Full name" /></label>
@@ -163,28 +167,9 @@
                     <input type="text" id="default-start-date-other" placeholder="e.g. mid-July, after notice period" />
                   </label>
                 </div>
-              </div>
-
-              <div class="form-group settings-group profile-panel" id="preferences-section">
-                <label>Preferences &amp; answer defaults (optional)</label>
-                <div class="pref-pay-row">
-                  <label class="field-label"><span>Min salary</span><input type="number" id="salary-min" placeholder="Min" /></label>
-                  <span class="sep">–</span>
-                  <label class="field-label"><span>Max salary</span><input type="number" id="salary-max" placeholder="Max" /></label>
-                  <label class="checkbox-row pref-remote-inline">
-                    <input type="checkbox" id="prefer-remote" checked />
-                    Prefer remote
-                  </label>
                 </div>
-                <p class="helper-text" style="margin-top:10px">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
-                <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
-                <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
-                <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
-              </div>
-            </div>
+              </details>
 
-            <!-- Row: Memory (col A) · Demographic + sensitive memory (col B, protected) -->
-            <div class="profile-row-2col">
               <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
                 <details class="profile-collapsible memory-collapsible" open>
                   <summary class="collapsible-summary">
@@ -212,9 +197,12 @@
                   </div>
                 </details>
               </div>
+              </div>
 
-              <div class="form-group sensitive-group profile-panel">
-                <label class="sensitive-section-label">🔒 Sensitive / Demographic — protected data</label>
+              <div class="profile-col">
+              <details class="form-group sensitive-group profile-panel profile-section" id="sensitive-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title sensitive-section-label">🔒 Sensitive / Demographic — protected data</span></summary>
+                <div class="collapsible-body">
                 <label class="checkbox-row sensitive-check">
                   <input type="checkbox" id="sensitive-optin" />
                   Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
@@ -283,6 +271,27 @@
                   </div>
                 </details>
                 <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
+                </div>
+              </details>
+
+              <details class="form-group settings-group profile-panel profile-section" id="preferences-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Preferences &amp; answer defaults (optional)</span></summary>
+                <div class="collapsible-body">
+                <div class="pref-pay-row">
+                  <label class="field-label"><span>Min salary</span><input type="number" id="salary-min" placeholder="Min" /></label>
+                  <span class="sep">–</span>
+                  <label class="field-label"><span>Max salary</span><input type="number" id="salary-max" placeholder="Max" /></label>
+                  <label class="checkbox-row pref-remote-inline">
+                    <input type="checkbox" id="prefer-remote" checked />
+                    Prefer remote
+                  </label>
+                </div>
+                <p class="helper-text" style="margin-top:10px">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
+                <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
+                <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
+                <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
+                </div>
+              </details>
               </div>
             </div>
 
@@ -309,17 +318,17 @@
             <button id="fill-btn" class="btn btn-primary btn-full">
               ⚡ Fill Form
             </button>
-            <button id="preview-btn" class="btn btn-secondary btn-full">
+            <button id="preview-btn" class="btn btn-ghost btn-full">
               👁 Preview Answers
             </button>
-            <button id="save-job-btn" class="btn btn-secondary btn-full hidden">
+            <button id="save-job-btn" class="btn btn-ghost btn-full hidden">
               💾 Save Job to Tracker
             </button>
             <button id="edit-resume-btn" class="btn btn-ghost btn-full">
               ✏️ Edit Profile
             </button>
             <button id="open-job-search-btn" class="btn btn-primary btn-full btn-search-jobs">
-              🔍 Search for Jobs
+              🔍 Job Search
             </button>
           </div>
           <p id="fill-status" class="status-msg" role="status" aria-live="polite"></p>
@@ -472,11 +481,11 @@
             <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
             <button id="job-filters-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-expanded="false" aria-controls="job-search-subbar">⚙ Filters</button>
           </div>
+          <div class="job-source-filter-row">
+            <span class="job-source-filter-label">Sources</span>
+            <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
+          </div>
           <div id="job-search-subbar" class="job-search-subbar hidden">
-            <div class="job-source-filter-row">
-              <span class="job-source-filter-label">Sources</span>
-              <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
-            </div>
             <div class="job-filter-row">
               <label class="job-filter-field">
                 <span>Remote</span>
@@ -507,17 +516,25 @@
                   <option value="other">Other</option>
                 </select>
               </label>
-              <div class="job-pay-inline">
-                <span class="job-pay-filter-label">Pay</span>
-                <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
-                  <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
-                  <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
+              <div class="job-filter-field job-pay-field">
+                <span>Pay</span>
+                <div class="job-pay-controls" id="pay-controls">
+                  <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
+                    <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
+                    <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
+                  </div>
+                  <div class="job-pay-sliders">
+                    <input type="range" id="pay-slider-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
+                    <input type="range" id="pay-slider-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
+                  </div>
+                  <div class="job-pay-cells">
+                    <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
+                    <span class="job-pay-dash">–</span>
+                    <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
+                    <span class="job-pay-unit" id="pay-unit-min">K</span>
+                  </div>
                 </div>
-                <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
-                <span class="job-pay-dash">–</span>
-                <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
-                <span class="job-pay-unit" id="pay-unit-min">K</span>
-                <span id="pay-filter-readout" class="job-pay-readout">Any pay</span>
+                <span id="pay-filter-readout" class="job-pay-readout visually-hidden" aria-live="polite">Any pay</span>
               </div>
             </div>
           </div>
@@ -655,23 +672,25 @@
           </ul>
         </div>
 
-        <div class="help-section" id="help-gdpr-section">
-          <h3>GDPR &amp; CCPA / your rights</h3>
-          <p>Because all data lives locally on your device and we never receive it, you remain the sole controller of your information and can exercise every right directly from this panel:</p>
-          <ul class="legal-list">
-            <li><strong>Access &amp; portability:</strong> Export your tracker to CSV from the Pipeline screen; your profile and memory are visible and editable in the Profile screen.</li>
-            <li><strong>Rectification:</strong> Edit any saved field at any time in Profile.</li>
-            <li><strong>Erasure ("right to be forgotten"):</strong> Use <em>Delete all local data</em> below to wipe everything instantly. No request to us is needed because we hold nothing.</li>
-            <li><strong>Withdraw consent:</strong> Re-open privacy settings to review or revoke. Deleting local data clears your recorded consent.</li>
-          </ul>
-        </div>
-
         <div class="help-col-stack">
+          <div class="help-section" id="help-gdpr-section">
+            <h3>GDPR &amp; CCPA / your rights</h3>
+            <p>Because all data lives locally on your device and we never receive it, you remain the sole controller of your information and can exercise every right directly from this panel:</p>
+            <ul class="legal-list">
+              <li><strong>Access &amp; portability:</strong> Export your tracker to CSV from the Pipeline screen; your profile and memory are visible and editable in the Profile screen.</li>
+              <li><strong>Rectification:</strong> Edit any saved field at any time in Profile.</li>
+              <li><strong>Erasure ("right to be forgotten"):</strong> Use <em>Delete all local data</em> below to wipe everything instantly. No request to us is needed because we hold nothing.</li>
+              <li><strong>Withdraw consent:</strong> Re-open privacy settings to review or revoke. Deleting local data clears your recorded consent.</li>
+            </ul>
+          </div>
+
           <div class="help-section" id="help-ats-section">
             <h3>What is an ATS?</h3>
             <p>An applicant tracking system is the hiring software behind many job forms. Apply Workspace uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
           </div>
+        </div>
 
+        <div class="help-col-stack">
           <div class="help-section" id="help-data-controls-section">
             <h3>Data controls — what each action removes</h3>
             <div class="data-control-explainer">
@@ -683,14 +702,15 @@
               <p class="helper-text">Wipes <strong>everything</strong> this extension stores on your device — profile and resume, saved answer defaults &amp; ignore list, the entire application tracker, all settings <strong>including your Gemini API key and your recorded consent</strong>, plus everything the temp cache covers. This cannot be undone.</p>
             </div>
           </div>
+
+          <div class="action-btns help-actions">
+            <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
+            <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
+            <button id="reset-data-btn" class="btn btn-ghost btn-full btn-danger">🗑 Delete all local data</button>
+          </div>
         </div>
       </div>
 
-      <div class="action-btns">
-        <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
-        <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
-        <button id="reset-data-btn" class="btn btn-ghost btn-full btn-danger">🗑 Delete all local data</button>
-      </div>
       <p id="help-status" class="status-msg" role="status" aria-live="polite"></p>
     </section>
 

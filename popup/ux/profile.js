@@ -158,12 +158,13 @@ export async function initSetupHandlers() {
     $('start-date-other-wrap')?.classList.toggle('hidden', event.target.value !== 'Other');
   });
 
-  // Expand / collapse the saved resume preview (show full copy without scroll).
+  // Collapse / expand the saved resume preview (expanded by default — full copy
+  // without a scroll box).
   $('toggle-resume-preview-btn')?.addEventListener('click', (event) => {
     const preview = $('resume-attachment-preview');
     if (!preview) return;
-    const expanded = preview.classList.toggle('expanded');
-    event.currentTarget.textContent = expanded ? '⤡ Collapse' : '⤢ Expand';
+    const collapsed = preview.classList.toggle('collapsed');
+    event.currentTarget.textContent = collapsed ? '⤢ Expand' : '⤡ Collapse';
   });
 
   const sensitiveOptin = $('sensitive-optin');

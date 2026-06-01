@@ -80,6 +80,19 @@ updated: 2026-05-21 (qa-closeout)
   - Progress (2026-05-31): added BYOK Gemini "✨ Summarize" and "🧹 Clean up" buttons on both the Quick-add JD field and each tracker card's description (`transformJobText` in `lib/gemini.js`, `SUMMARIZE_JD` SW message). Summarize returns a scannable labeled-bullet brief; Clean up strips nav/cookie/boilerplate noise. On a card the result fills the textarea without auto-saving, so the original is preserved until the user clicks Save. Requires a Gemini key (clear error otherwise).
   - Remaining: optional summarize/clean-up on long preview answers and on captured search-result descriptions.
 
+### Deferred / blocked (FE-pass follow-ups, 2026-05-31)
+
+Captured so they aren't lost; pick up when prioritized.
+
+- [ ] **Wire `axe-core` into the Playwright e2e.** *Blocked here:* adding `@axe-core/playwright` needs an `npm install` to update `package-lock.json`, and the e2e Docker image runs `npm ci` (requires a matching lock); npm isn't available in the current dev environment.
+- [ ] **Refresh `screenshots/` gallery** for the new tracker/profile/job-search/AI/help UI. *Blocked here:* needs the extension loaded in a real Chrome to capture.
+- [ ] **a11y burndown (remaining from `docs/a11y-audit.md`):** keyboard alternative for bubble/card drag-and-drop (status `<select>` is the current path — document or enhance); automated color-contrast verification of muted text over tinted surfaces + small badges; focus-ring audit at popup vs. standalone widths.
+- [ ] **Separate "Availability" field** (distinct from Start date). Optional — Start date is now a dropdown + "Other" freeform, but it still feeds both the `start_date` and `availability` autofill answers. A true split needs profile-model plumbing (`forms.js`, `lib/gemini.js` deterministic answers/overrides/getProfileFromResume).
+- [ ] **Pay filter — option to hide unknown-salary jobs** when the pay filter is active. Currently unknown-salary jobs are kept (so results aren't wiped); most remote-board listings don't publish pay. Add an explicit toggle if strict filtering is wanted.
+- [ ] **Add another keyed source** (e.g. Reed UK, a RapidAPI jobs endpoint) via the `JOB_SOURCES` registry. Same pattern as Adzuna/USAJOBS.
+- [ ] **Optional summarize / clean-up** on long preview answers and on captured search-result descriptions (extends the existing JD AI buttons).
+- [ ] **On-page detail capture polish:** the content script now reads schema.org JSON-LD `JobPosting`; consider surfacing a confidence/source hint and handling multiple postings per page.
+
 ## Done
 
 - Tracker/workspace UI polish pass: responsive layout improvements, final-stage lane management, status/dropdown readability upgrades, and better card metadata presentation.
