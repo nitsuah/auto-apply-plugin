@@ -210,8 +210,11 @@ function renderSourceChips(sources, countMap = {}) {
     const countLabel = (count != null) ? ` (${count})` : '';
     const title = s.available
       ? `Toggle ${s.label}`
-      : `${s.label} — click to configure ${s.requires || 'credentials'}`;
-    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}${esc(countLabel)}</button>`;
+      : s.session
+        ? `Uses your active LinkedIn session — ${s.requires || 'open LinkedIn in a browser tab'}`
+        : `${s.label} — click to configure ${s.requires || 'credentials'}`;
+    const lockIcon = s.available ? '' : (s.session ? ' ⚡' : ' 🔒');
+    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" data-session="${s.session ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${lockIcon}${esc(countLabel)}</button>`;
   }).join('');
 }
 
@@ -234,11 +237,12 @@ function updateSourceChipCounts(sourceResults = []) {
     if (!(id in countMap)) return;
     const count = countMap[id];
     // Strip any existing count suffix, update label
-    const base = chip.textContent.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*🔒\s*$/, '').trim();
+    const base = chip.textContent.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*[🔒⚡]\s*$/, '').trim();
     const locked = chip.dataset.available === '0';
+    const lockIcon = locked ? (chip.dataset.session === '1' ? ' ⚡' : ' 🔒') : '';
     chip.textContent = count !== null
-      ? `${base}${locked ? ' 🔒' : ''} (${count})`
-      : `${base}${locked ? ' 🔒' : ''} (!)`;
+      ? `${base}${lockIcon} (${count})`
+      : `${base}${lockIcon} (!)`;
     chip.dataset.count = count !== null ? count : -1;
     // Apply heatmap
     chip.classList.remove('chip-count-zero', 'chip-count-low', 'chip-count-mid', 'chip-count-high');

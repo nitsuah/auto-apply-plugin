@@ -27,6 +27,7 @@ export default [
         crypto: 'readonly',
         btoa: 'readonly',
         atob: 'readonly',
+        DOMParser: 'readonly',
         // Chrome extension
         chrome: 'readonly',
       },

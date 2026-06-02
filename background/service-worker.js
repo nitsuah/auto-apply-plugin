@@ -382,7 +382,7 @@ async function handleRemoveResumeAttachment() {
   return { success: true };
 }
 
-function buildJobSearchConfig(settings = {}) {
+async function buildJobSearchConfig(settings = {}) {
   const config = {};
   if (settings.adzuna_app_id && settings.adzuna_app_key) {
     config.adzuna = {
@@ -407,19 +407,25 @@ function buildJobSearchConfig(settings = {}) {
       apiKey: settings.jooble_api_key,
     };
   }
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://www.linkedin.com/*' });
+    config.linkedin = { sessionActive: tabs.length > 0 };
+  } catch {
+    config.linkedin = { sessionActive: false };
+  }
   return config;
 }
 
 async function handleSearchJobs({ query, sources } = {}) {
   const data = await chrome.storage.local.get('settings');
-  const config = buildJobSearchConfig(data.settings || {});
-  const result = await searchJobs(query, { config, sources });
+  const config = await buildJobSearchConfig(data.settings || {});
+  const result = await searchJobs(query, { config, sources, chrome });
   return { success: true, jobs: result.jobs, sources: result.sources };
 }
 
 async function handleGetJobSources() {
   const data = await chrome.storage.local.get('settings');
-  const config = buildJobSearchConfig(data.settings || {});
+  const config = await buildJobSearchConfig(data.settings || {});
   return { success: true, sources: listJobSources(config) };
 }
 

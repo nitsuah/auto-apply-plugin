@@ -12,6 +12,11 @@ import {
   normalizeWorkingNomadsJob,
   normalizeReedJob,
   normalizeJoobleJob,
+  normalizeHnComment,
+  normalizeWwrJob,
+  normalizeRemoteCoJob,
+  normalizeLinkedInJob,
+  parseLinkedInVoyagerResponse,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -225,7 +230,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco']);
 });
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
@@ -281,7 +286,11 @@ test('jobPassesPayFilter overlaps ranges and keeps unknown-salary jobs', () => {
 
 test('searchJobs throws only when every source fails', async () => {
   const fetchImpl = async () => ({ ok: false, status: 503, json: async () => ({}) });
-  await assert.rejects(() => searchJobs('engineer', { fetchImpl }), /unavailable/i);
+  // Only include sources that can actually fail (not the graceful-return ones)
+  await assert.rejects(
+    () => searchJobs('engineer', { fetchImpl, sources: ['remotive', 'arbeitnow', 'themuse'] }),
+    /unavailable/i
+  );
 });
 
 test('normalizeRemoteOkJob maps the RemoteOK shape, skips header row', () => {
@@ -438,6 +447,157 @@ test('jobPassesPayFilter hides unknown-salary jobs when hideUnknown is set', () 
   // Without hideUnknown, unknown salary still passes.
   const filterNoHide = { enabled: true, mode: 'annual', min: 50, max: 200, hideUnknown: false };
   assert.equal(jobPassesPayFilter({ salary: '' }, filterNoHide), true);
+});
+
+// ── New source tests ─────────────────────────────────────────────────────────
+
+test('normalizeHnComment — pipe-delimited format maps correctly', () => {
+  const raw = {
+    objectID: '12345',
+    comment_text: 'Acme Corp | Senior Engineer | Remote | Full-time | $120k-$150k',
+    created_at: '2026-05-30T10:00:00Z',
+  };
+  const job = normalizeHnComment(raw);
+  assert.equal(job.id, 'hn:12345');
+  assert.equal(job.company, 'Acme Corp');
+  assert.equal(job.title, 'Senior Engineer');
+  assert.equal(job.location, 'Remote');
+  assert.equal(job.remote, true);
+  assert.equal(job.url, 'https://news.ycombinator.com/item?id=12345');
+  assert.equal(job.source, "HN: Who's Hiring");
+  assert.match(job.posted, /^20\d\d-/);
+});
+
+test('normalizeHnComment — colon format fallback', () => {
+  const raw = {
+    objectID: '67890',
+    comment_text: 'WidgetCo: Looking for a Backend Developer. Must know Go.',
+    created_at: '2026-06-01T08:00:00Z',
+  };
+  const job = normalizeHnComment(raw);
+  assert.equal(job.id, 'hn:67890');
+  assert.equal(job.company, 'WidgetCo');
+  assert.ok(job.title.toLowerCase().includes('looking') || job.title.toLowerCase().includes('backend'));
+  assert.equal(job.source, "HN: Who's Hiring");
+});
+
+test('normalizeWwrJob — title parsing splits "Category: Role at Company" correctly', () => {
+  const mockItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Design & UX: Product Designer at Figma' },
+        link: { textContent: 'https://weworkremotely.com/jobs/1' },
+        guid: null,
+        pubDate: { textContent: 'Mon, 02 Jun 2026 10:00:00 +0000' },
+        description: { textContent: 'Work on design systems' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeWwrJob(mockItem);
+  assert.equal(job.title, 'Product Designer');
+  assert.equal(job.company, 'Figma');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'We Work Remotely');
+  assert.equal(job.url, 'https://weworkremotely.com/jobs/1');
+});
+
+test('normalizeRemoteCoJob — title parsing splits "Role at Company"', () => {
+  const mockItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Senior Backend Engineer at Stripe' },
+        link: { textContent: 'https://remote.co/job/123' },
+        guid: null,
+        pubDate: { textContent: 'Mon, 02 Jun 2026 10:00:00 +0000' },
+        description: { textContent: 'Work on payments infrastructure' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeRemoteCoJob(mockItem);
+  assert.equal(job.title, 'Senior Backend Engineer');
+  assert.equal(job.company, 'Stripe');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'remote.co');
+});
+
+test('normalizeLinkedInJob — maps entityUrn to id and url, uses companyMap', () => {
+  const raw = {
+    entityUrn: 'urn:li:fsd_jobPosting:9876543',
+    title: 'Staff Engineer',
+    formattedLocation: 'San Francisco, CA',
+    workRemoteAllowed: true,
+    listedAt: 1748736000000,
+    description: { text: 'Build scalable systems.' },
+    companyDetails: { company: 'urn:li:fs_miniCompany:42' },
+  };
+  const companyMap = { 'urn:li:fs_miniCompany:42': 'Acme Corp' };
+  const job = normalizeLinkedInJob(raw, companyMap);
+  assert.equal(job.id, 'linkedin:9876543');
+  assert.equal(job.url, 'https://www.linkedin.com/jobs/view/9876543/');
+  assert.equal(job.company, 'Acme Corp');
+  assert.equal(job.title, 'Staff Engineer');
+  assert.equal(job.remote, true);
+  assert.equal(job.atsLabel, 'LinkedIn');
+  assert.equal(job.source, 'LinkedIn');
+  assert.match(job.posted, /^20\d\d-/);
+});
+
+test('parseLinkedInVoyagerResponse — builds companyMap from included, returns job array', () => {
+  const data = {
+    included: [
+      {
+        $type: 'com.linkedin.voyager.dash.organization.Company',
+        entityUrn: 'urn:li:fs_miniCompany:99',
+        name: 'TechCorp',
+      },
+      {
+        $type: 'com.linkedin.voyager.dash.jobs.JobPosting',
+        entityUrn: 'urn:li:fsd_jobPosting:111',
+        title: 'Frontend Developer',
+        formattedLocation: 'Remote',
+        workRemoteAllowed: true,
+        listedAt: 1748736000000,
+        description: { text: 'Build UIs' },
+        companyDetails: { company: 'urn:li:fs_miniCompany:99' },
+      },
+    ],
+  };
+  const jobs = parseLinkedInVoyagerResponse(data);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].id, 'linkedin:111');
+  assert.equal(jobs[0].company, 'TechCorp');
+  assert.equal(jobs[0].title, 'Frontend Developer');
+  assert.equal(jobs[0].source, 'LinkedIn');
+});
+
+test('listJobSources — linkedin source present, session-gated on sessionActive', () => {
+  const noSession = listJobSources({});
+  const linkedin = noSession.find((s) => s.id === 'linkedin');
+  assert.ok(linkedin, 'linkedin source should be present');
+  assert.equal(linkedin.available, false);
+  assert.equal(linkedin.session, true);
+  assert.equal(linkedin.keyless, false);
+
+  const withSession = listJobSources({ linkedin: { sessionActive: true } });
+  assert.equal(withSession.find((s) => s.id === 'linkedin').available, true);
+});
+
+test('listJobSources — hn-hiring, weworkremotely, remoteco present and available by default', () => {
+  const sources = listJobSources({});
+  const hn = sources.find((s) => s.id === 'hn-hiring');
+  const wwr = sources.find((s) => s.id === 'weworkremotely');
+  const rc = sources.find((s) => s.id === 'remoteco');
+  assert.ok(hn, 'hn-hiring should be present');
+  assert.ok(wwr, 'weworkremotely should be present');
+  assert.ok(rc, 'remoteco should be present');
+  assert.equal(hn.available, true);
+  assert.equal(wwr.available, true);
+  assert.equal(rc.available, true);
+  assert.equal(hn.keyless, true);
+  assert.equal(wwr.keyless, true);
+  assert.equal(rc.keyless, true);
 });
 
 test('searchJobs includes Remote OK, Jobicy, and Working Nomads as default active sources', async () => {

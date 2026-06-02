@@ -67,6 +67,7 @@ function frameOwnsMessage(msg) {
       return !!findFieldForReviewTarget(msg.payload || {});
     case 'GET_JOB_INFO':
     case 'DETECT_ATS':
+    case 'FETCH_LINKEDIN_JOBS':
       // JD/meta extraction belongs to the host page, not embedded form iframes.
       return IS_TOP_FRAME;
     default:
@@ -76,13 +77,17 @@ function frameOwnsMessage(msg) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!frameOwnsMessage(msg)) return false;
-  handleMessage(msg).then(sendResponse).catch((err) => {
+  handleMessage(msg, sendResponse).then((result) => {
+    // Only call sendResponse here if handleMessage returned a value
+    // (FETCH_LINKEDIN_JOBS calls sendResponse directly and returns undefined)
+    if (result !== undefined) sendResponse(result);
+  }).catch((err) => {
     sendResponse({ success: false, error: err.message });
   });
   return true;
 });
 
-async function handleMessage(msg) {
+async function handleMessage(msg, sendResponse) {
   switch (msg.type) {
     case 'FILL_FORM':
       return handleFillForm();
@@ -94,6 +99,30 @@ async function handleMessage(msg) {
       return { ats: detectAts() };
     case 'FOCUS_FIELD':
       return handleFocusField(msg.payload);
+    case 'FETCH_LINKEDIN_JOBS': {
+      const { query, csrfToken } = msg.payload || {};
+      const params = new URLSearchParams({
+        keywords: query || '',
+        start: '0',
+        count: '25',
+        origin: 'GLOBAL_SEARCH_HEADER',
+        q: 'all',
+      });
+      const res = await fetch(`/voyager/api/jobs/search?${params}`, {
+        headers: {
+          'Csrf-Token': csrfToken || '',
+          'X-Restli-Protocol-Version': '2.0.0',
+          'Accept': 'application/vnd.linkedin.normalized+json+2.1',
+        },
+      });
+      if (!res.ok) {
+        sendResponse({ success: false, error: `LinkedIn responded ${res.status}` });
+        return;
+      }
+      const data = await res.json();
+      sendResponse({ success: true, data });
+      return;
+    }
     default:
       throw new Error('Unknown message: ' + msg.type);
   }
