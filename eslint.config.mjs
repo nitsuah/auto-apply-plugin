@@ -25,6 +25,8 @@ export default [
         clearInterval: 'readonly',
         location: 'readonly',
         crypto: 'readonly',
+        btoa: 'readonly',
+        atob: 'readonly',
         // Chrome extension
         chrome: 'readonly',
       },
