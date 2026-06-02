@@ -1069,6 +1069,7 @@ function applyProfileOverrides(resume, profile = {}, settings = {}) {
   next.why_role_default = firstNonEmpty(profile.why_role_default, next.why_role_default);
   next.additional_info_default = firstNonEmpty(profile.additional_info_default, next.additional_info_default);
   next.start_date = firstNonEmpty(profile.start_date, next.start_date);
+  next.availability = firstNonEmpty(profile.availability, next.availability);
   next.requires_sponsorship = firstNonEmpty(profile.requires_sponsorship, next.requires_sponsorship);
 
   if (!Array.isArray(next.experience)) next.experience = [];
@@ -1107,6 +1108,7 @@ function getProfileFromResume(resume = {}, settings = {}) {
     why_role_default: resume?.why_role_default || '',
     additional_info_default: resume?.additional_info_default || '',
     start_date: resume?.start_date || '',
+    availability: resume?.availability || '',
     requires_sponsorship: resume?.requires_sponsorship || '',
     work_authorization: settings.work_authorization || '',
   };
@@ -1181,7 +1183,7 @@ function buildDeterministicAnswers({ resume, settings, customQuestions = [], lea
     desired_salary_max: salaryMax,
     remote_preference: settings.preferred_remote ? 'Remote' : '',
     start_date: profile.start_date || '',
-    availability: profile.start_date || '',
+    availability: profile.availability || profile.start_date || '',
     why_company: profile.why_company_default || '',
     why_role: profile.why_role_default || '',
     additional_information: profile.additional_info_default || '',
@@ -1245,8 +1247,10 @@ function buildDefaultCustomAnswers(customQuestions = [], baseAnswers = {}, learn
       answer = baseAnswers.current_title;
     } else if (/current company|current employer|most recently/.test(lower)) {
       answer = baseAnswers.current_company;
-    } else if (/start date|when can you start|availability|notice period/.test(lower)) {
+    } else if (/when can you start|start date/.test(lower)) {
       answer = baseAnswers.start_date || baseAnswers.availability;
+    } else if (/availability|notice period/.test(lower)) {
+      answer = baseAnswers.availability || baseAnswers.start_date;
     } else if (/pronouns/.test(lower)) {
       answer = baseAnswers.pronouns;
     } else if (/additional information|accommodations/.test(lower)) {

@@ -102,7 +102,7 @@ apply-workspace/
 
 ## Job Search
 
-Click **🔍 Search** in the header to open the job search panel. Results are pulled from up to **10 sources** and deduplicated automatically.
+Click **🔍 Search** in the header to open the job search panel. Results are pulled from up to **14 sources** and deduplicated automatically.
 
 ### Keyless sources (always on)
 
@@ -114,6 +114,15 @@ Click **🔍 Search** in the header to open the job search panel. Results are pu
 | Remote OK | High-volume remote tech board |
 | Jobicy | Remote jobs with structured salary data |
 | Working Nomads | Curated remote listings |
+| HN: Who's Hiring | Monthly HackerNews hiring thread (tech-heavy, often salary posted) |
+| We Work Remotely | Large curated remote jobs board |
+| remote.co | Vetted remote positions across categories |
+
+### Session-based sources (active when you're signed in)
+
+| Source | How it works |
+|--------|-------------|
+| LinkedIn | Uses your active LinkedIn tab session via the Voyager API — no separate key needed; shows ⚡ chip when a LinkedIn tab is open |
 
 ### Optional keyed sources (add credentials in AI settings)
 

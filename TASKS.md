@@ -41,7 +41,8 @@ updated: 2026-06-02
   - Progress (2026-05-31, USAJOBS): added USAJOBS (US federal jobs) as a new registry entry — demonstrates the pattern end-to-end: normalizer + `fetchUsaJobs` (Authorization-Key + User-Agent=email headers) + AI-panel email/key fields + config wiring + host permission, no other plumbing touched. Gated on email+key; appears as a locked chip until provided. Caveat to verify live: browsers may strip the `User-Agent` header on fetch, which USAJOBS uses for auth — confirm it returns results once keys are entered (otherwise we'd route it through declarativeNetRequest header rules).
   - Progress (2026-05-31, more sources + prefs): added The Muse as a fifth source (keyless, broadens beyond remote-only boards; fetches recent pages + client-filters by query). The user's source selection AND pay filter (mode/min/max) now persist across sessions in `chrome.storage.local` (`jobSearchPrefs`), seeded from saved salary memory only on first use.
   - Progress (2026-06-02, source expansion): added five more sources via the plug-and-play registry — three keyless (Remote OK, Jobicy, Working Nomads) and two BYOK keyed (Reed UK, Jooble global). Total active keyless sources: 6; keyed: 4. Host permissions added to manifest; AI settings panel has new Reed + Jooble key fields; `buildJobSearchConfig` in the SW wires them in. Added "hide unknown-salary jobs" toggle to the pay filter (`hideUnknown` flag in `payFilter` + persisted in `jobSearchPrefs`). All 63 tests passing.
-  - Remaining: LinkedIn/Indeed scraping, on-ATS-page detail parsing, fast tracker-side indexing, and an OAuth *job* source once a partner API is available.
+  - Progress (2026-06-02, more keyless + LinkedIn): added HN Who's Hiring (Algolia, no key), We Work Remotely (RSS), remote.co (RSS) as three more keyless sources (9 keyless total). Added LinkedIn session source — service worker reads JSESSIONID via `chrome.cookies`, relays query + CSRF token to content script on any open LinkedIn tab, content script fetches from Voyager API using page session. `cookies` + `tabs` permissions added. Added ✨/🧹 AI buttons to long preview-answer cards (same `SUMMARIZE_JD` backend). 71 tests passing.
+  - Remaining: on-ATS-page detail parsing depth, tracker-side indexing enhancements, OAuth job source once a partner API is available.
   - Integrate with public job APIs (e.g. Adzuna, USAJobs, or RapidAPI job endpoints) and/or scrape LinkedIn, Indeed, etc. via URL endpoint with generic app for auth initially or lazy 3l0 scraping after.
   - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link. [done]
   - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred). [done]
@@ -63,7 +64,8 @@ updated: 2026-06-02
 
 ### P3 - Exploratory
 
-- [ ] Begin to implement job search results by scraping and searching multiple job pages, starting with LinkedIn and Indeed, etc. and then expanding to a more general multi-site search and alerting capability.
+- [/] Begin to implement job search results by scraping and searching multiple job pages.
+  - Progress (2026-06-02): LinkedIn session scraping shipped via content-script relay (see job search aggregation progress above). HN/WWR/remote.co RSS/Algolia keyless. Remaining: Indeed scraping, broader page-scraping capability.
 - [/] Evaluate identity-based profile import paths.
   - Priority: P3
   - Context: Google sign-in, ID.me, or similar identity sources may help bootstrap profile fields later, but only after the local-first and consent-first path is stable.
@@ -79,7 +81,8 @@ updated: 2026-06-02
   - Progress (2026-05-31): structured manual audit written to `docs/a11y-audit.md`. Landed fixes: `popup/ux/a11y.js` derives accessible names from placeholders/titles for all unlabeled controls (run at init); icon-only Help button labeled; Enter/Space now toggles tracker card expand (the `role=button` summary); `prefers-reduced-motion` block disables non-essential animation. Remaining (documented): keyboard DnD alternative, color-contrast verification, focus-ring audit, live-region sweep, and wiring `axe-core` into Playwright e2e.
 - [/] Identify visual overload segments and have AI buttons to make detailed information more concise for consumption. For example, job descriptions can be very long and detailed, so having an option to summarize or highlight key points could be helpful. The scraping results may also have some noise that could be reduced with a "clean up" button in most circumstances.
   - Progress (2026-05-31): added BYOK Gemini "✨ Summarize" and "🧹 Clean up" buttons on both the Quick-add JD field and each tracker card's description (`transformJobText` in `lib/gemini.js`, `SUMMARIZE_JD` SW message). Summarize returns a scannable labeled-bullet brief; Clean up strips nav/cookie/boilerplate noise. On a card the result fills the textarea without auto-saving, so the original is preserved until the user clicks Save. Requires a Gemini key (clear error otherwise).
-  - Remaining: optional summarize/clean-up on long preview answers and on captured search-result descriptions.
+  - Progress (2026-06-02): ✨/🧹 buttons added to job search result cards (hover-reveal) and to preview answer cards with values > 120 chars.
+  - Remaining: none — all AI button surfaces now covered.
 
 ### Deferred / blocked (FE-pass follow-ups, 2026-05-31)
 
@@ -89,12 +92,12 @@ Captured so they aren't lost; pick up when prioritized.
 - [ ] **Wire `axe-core` into the Playwright e2e.** *Blocked here:* adding `@axe-core/playwright` needs an `npm install` to update `package-lock.json`, and the e2e Docker image runs `npm ci` (requires a matching lock); npm isn't available in the current dev environment.
 - [ ] **Refresh `screenshots/` gallery** for the new tracker/profile/job-search/AI/help UI. *Blocked here:* needs the extension loaded in a real Chrome to capture.
 - [ ] **a11y burndown (remaining from `docs/a11y-audit.md`):** keyboard alternative for bubble/card drag-and-drop (status `<select>` is the current path — document or enhance); automated color-contrast verification of muted text over tinted surfaces + small badges; focus-ring audit at popup vs. standalone widths.
-- [ ] **Separate "Availability" field** (distinct from Start date). Optional — Start date is now a dropdown + "Other" freeform, but it still feeds both the `start_date` and `availability` autofill answers. A true split needs profile-model plumbing (`forms.js`, `lib/gemini.js` deterministic answers/overrides/getProfileFromResume).
+- [x] **Separate "Availability" field**: added distinct `availability` text input to Profile (notice period / immediate status), wired through `applyProfileOverrides`, `getProfileFromResume`, and `buildDeterministicAnswers`; falls back to `start_date` when blank.
 - [x] **Pay filter — option to hide unknown-salary jobs**: added "Hide jobs without posted salary" checkbox; `hideUnknown` flag wired into `jobPassesPayFilter` and persisted in `jobSearchPrefs`.
 - [x] **Added keyed sources — Reed + Jooble** and three new keyless sources (Remote OK, Jobicy, Working Nomads) via the `JOB_SOURCES` registry. AI settings panel updated; SW config builder extended.
 - [x] **Optional summarize / clean-up on job search results**: added ✨/🧹 icon buttons on each result card's description area (appear on hover, same `SUMMARIZE_JD` SW message, updates card text in-place).
 - [x] **On-page detail capture polish — source confidence hint**: `enrichJobInfo` in `content.js` now sets `_dataSource: 'json-ld' | 'dom'`; the main-screen "Save Job to Tracker" status message notes when structured data was detected.
-- [ ] Optional summarize / clean-up on long preview answers (extends existing AI buttons to the answer-preview screen).
+- [x] Optional summarize / clean-up on long preview answers: ✨/🧹 buttons added to preview-card values > 120 chars.
 
 ## Done
 

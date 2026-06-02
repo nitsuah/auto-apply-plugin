@@ -84,6 +84,7 @@ export function readProfileForm() {
     why_role_default: $('default-why-role')?.value.trim() || '',
     additional_info_default: $('default-additional-info')?.value.trim() || '',
     start_date: readStartDate(),
+    availability: $('default-availability')?.value.trim() || '',
     requires_sponsorship: $('default-sponsorship')?.value || '',
     sensitive_optin: sensitiveOptin,
     gender: sensitiveOptin ? ($('profile-gender')?.value || '') : '',
@@ -119,6 +120,7 @@ export function fillProfileForm(profile = {}) {
   set('default-why-role', profile.why_role_default || '');
   set('default-additional-info', profile.additional_info_default || '');
   applyStartDateValue(profile.start_date || '');
+  set('default-availability', profile.availability || '');
   set('default-sponsorship', profile.requires_sponsorship || '');
 
   const sensitiveEnabled = !!profile.sensitive_optin;
