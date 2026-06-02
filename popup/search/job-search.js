@@ -281,7 +281,14 @@ export function renderJobSearchResults(results, sources = []) {
       `<span class="job-badge job-badge-source">${esc(j.source || 'Web')}</span>`,
     ].filter(Boolean).join('');
     const openLabel = j.atsLabel ? `Open ${esc(j.title || 'job')} (apply on ${esc(j.atsLabel)})` : `Open ${esc(j.title || 'job')} at ${esc(j.company || '')}`;
-    const desc = j.description ? `<p class="job-desc">${esc(j.description.slice(0, 180))}…</p>` : '';
+    const descBlock = j.description ? `
+      <div class="job-desc-row">
+        <p class="job-desc">${esc(j.description.slice(0, 180))}${j.description.length > 180 ? '…' : ''}</p>
+        <div class="job-ai-btns" role="group" aria-label="AI description tools">
+          <button type="button" class="job-ai-btn" data-job-id="${escAttr(j.id)}" data-ai-mode="summary" title="Summarize description with AI (requires Gemini key)">✨</button>
+          <button type="button" class="job-ai-btn" data-job-id="${escAttr(j.id)}" data-ai-mode="cleanup" title="Clean up description with AI (requires Gemini key)">🧹</button>
+        </div>
+      </div>` : '';
     const saved = savedJobIds.has(j.id);
     return `
     <div class="job-search-result" data-job-id="${escAttr(j.id)}" data-job-url="${escAttr(j.url)}" role="link" tabindex="0" aria-label="${escAttr(openLabel)}">
@@ -291,7 +298,7 @@ export function renderJobSearchResults(results, sources = []) {
         <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
       </div>
       <div class="job-badges">${badges}</div>
-      ${desc}
+      ${descBlock}
       <button type="button" class="job-save-btn${saved ? ' hidden' : ''}" data-job-id="${escAttr(j.id)}">💾 Save job</button>
     </div>`;
   }).join('');
@@ -444,9 +451,36 @@ export function initJobSearchHandlers(showScreen) {
     saveJobPrefs();
   });
 
-  // Card interactions: save / open-in-tracker / open-post (card body is a link).
+  // Card interactions: AI tools / save / open-in-tracker / open-post.
   if (resultsDiv) {
-    const handleResultActivate = (event) => {
+    const handleResultActivate = async (event) => {
+      // AI summarize / clean-up button
+      const aiBtn = event.target.closest('.job-ai-btn');
+      if (aiBtn) {
+        event.stopPropagation();
+        const jobId = aiBtn.dataset.jobId || '';
+        const mode = aiBtn.dataset.aiMode || 'summary';
+        const job = lastResultsById.get(jobId);
+        if (!job?.description) return;
+        const origLabel = aiBtn.textContent;
+        aiBtn.disabled = true;
+        aiBtn.textContent = '⏳';
+        try {
+          const resp = await sendMessage({ type: 'SUMMARIZE_JD', payload: { text: job.description, mode } });
+          if (!resp?.success) throw new Error(resp?.error || 'AI unavailable');
+          job.description = resp.text;
+          const card = aiBtn.closest('.job-search-result');
+          const descEl = card?.querySelector('.job-desc');
+          if (descEl) descEl.textContent = resp.text;
+        } catch (err) {
+          console.warn('[apply-bot] AI job desc action failed:', err.message);
+        } finally {
+          aiBtn.disabled = false;
+          aiBtn.textContent = origLabel;
+        }
+        return;
+      }
+
       const saveBtn = event.target.closest('.job-save-btn');
       if (saveBtn) {
         const jobId = saveBtn.dataset.jobId || '';
@@ -467,7 +501,7 @@ export function initJobSearchHandlers(showScreen) {
       if (event.key !== 'Enter') return;
       if (event.target.closest('.job-search-result') && !event.target.closest('button')) {
         event.preventDefault();
-        handleResultActivate(event);
+        void handleResultActivate(event);
       }
     });
   }

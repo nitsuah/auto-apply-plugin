@@ -25,6 +25,34 @@ Focuses on reducing manual effort during the application process.
 - **Supported ATS Platforms**: Works with supported applicant tracking systems used by common job portals and employer sites
 - **Receiver Auto-Recovery**: Retries content-script injection automatically when a supported page initially has no active receiver
 
+### 🤖 AI-Powered Writing Tools
+
+Optional Gemini-powered tools that augment the application workflow without requiring a key for core autofill.
+
+- **Resume Parsing**: Extracts structured profile data from uploaded PDF/DOCX/text using Gemini
+- **Answer Drafting**: Generates tailored answers to custom application questions aligned to the JD and your background
+- **JD Summarize**: Condenses long job descriptions into a scannable labeled-bullet brief
+- **JD Clean-up**: Strips nav/cookie/boilerplate noise from scraped job descriptions
+- **Search Result AI Tools**: Per-card ✨ Summarize and 🧹 Clean-up buttons on job search results apply the same transforms in-place
+- **Auto-detect Best Model**: Queries `models.list` at runtime and selects the best available Gemini model with a multi-step fallback chain
+
+### 🔒 Privacy & Consent
+
+Designed so the user stays in control of all data without relying on any external account.
+
+- **Local-First Storage**: All profile data, resume, memory, tracker, and settings live only in `chrome.storage.local` on the user's device
+- **Consent Gate**: Privacy consent must be accepted once before any profile data is stored; consent date is recorded
+- **Sensitive Data Opt-In**: Demographic fields (race, gender, veteran, disability) are off by default and never sent to AI models
+- **BYOK (Bring Your Own Key)**: Gemini and all optional job-board integrations use keys the user supplies; no shared credentials
+- **Full Reset Controls**: One-click "Delete all local data" wipes everything including consent; "Clear temp cache" removes only working state
+- **GDPR / CCPA Compliance**: Data export via CSV, in-app rectification, and right-to-erasure all available without contacting anyone
+
+### 🔗 Profile Import
+
+- **LinkedIn OAuth Import**: BYO LinkedIn app Client ID/Secret; launches OIDC sign-in to pre-fill name and email into the profile (local-only, consent-based)
+- **Resume Upload**: Supports PDF, DOCX, and plain-text paste; parsed locally via Gemini if a key is present
+- **CSV Tracker Import**: Import past applications from any spreadsheet export using flexible header matching
+
 ### 🔍 Multi-Source Job Search
 
 Aggregates listings from multiple job boards in one panel so you can discover, filter, and save jobs without leaving the extension.

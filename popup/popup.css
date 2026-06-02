@@ -436,6 +436,8 @@ body[data-standalone="true"] .label-full { display: inline; }
   border-color: rgba(74, 222, 128, 0.5);
 }
 
+.job-desc-row { position: relative; }
+
 .job-desc {
   font-size: 11px;
   color: var(--text-muted);
@@ -445,6 +447,38 @@ body[data-standalone="true"] .label-full { display: inline; }
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.job-ai-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.job-search-result:hover .job-ai-btns,
+.job-ai-btns:focus-within {
+  opacity: 1;
+}
+.job-ai-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 5px;
+  line-height: 1.5;
+  transition: background 0.12s, border-color 0.12s;
+}
+.job-ai-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--blue);
+  color: var(--text);
+}
+.job-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .job-source-note {

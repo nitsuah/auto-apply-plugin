@@ -1,6 +1,6 @@
 # TASKS
 ---
-updated: 2026-05-21 (qa-closeout)
+updated: 2026-06-02
 ---
 
 ## In Progress
@@ -49,7 +49,7 @@ updated: 2026-05-21 (qa-closeout)
   - If only a generic job board link is available, surface that as the main action. [done]
   - Add a "Save to Tracker" button for each result to capture the job into the user's board. [done]
   - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page. [done — main-screen "💾 Save Job to Tracker" button captures parsed details in one click; the content script now also parses schema.org JSON-LD `JobPosting` (very common, incl. custom career domains) for reliable salary / employment type / location / remote, preferring it over DOM scraping. Pure parser in `lib/jd-parser.js`, unit-tested in `tests/jsonld-parser.test.mjs`.]
-  - Index all captured jobs for fast search/filter in the tracker.
+  - Index all captured jobs for fast search/filter in the tracker. [done — tracker search input filters by company, role, notes, and all saved fields; jobs saved via "Save job" are immediately searchable]
   - (Optional) Add basic deduplication for jobs appearing on multiple boards. [done]
 
 - [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
@@ -92,8 +92,9 @@ Captured so they aren't lost; pick up when prioritized.
 - [ ] **Separate "Availability" field** (distinct from Start date). Optional — Start date is now a dropdown + "Other" freeform, but it still feeds both the `start_date` and `availability` autofill answers. A true split needs profile-model plumbing (`forms.js`, `lib/gemini.js` deterministic answers/overrides/getProfileFromResume).
 - [x] **Pay filter — option to hide unknown-salary jobs**: added "Hide jobs without posted salary" checkbox; `hideUnknown` flag wired into `jobPassesPayFilter` and persisted in `jobSearchPrefs`.
 - [x] **Added keyed sources — Reed + Jooble** and three new keyless sources (Remote OK, Jobicy, Working Nomads) via the `JOB_SOURCES` registry. AI settings panel updated; SW config builder extended.
-- [ ] **Optional summarize / clean-up** on long preview answers and on captured search-result descriptions (extends the existing JD AI buttons).
-- [ ] **On-page detail capture polish:** the content script now reads schema.org JSON-LD `JobPosting`; consider surfacing a confidence/source hint and handling multiple postings per page.
+- [x] **Optional summarize / clean-up on job search results**: added ✨/🧹 icon buttons on each result card's description area (appear on hover, same `SUMMARIZE_JD` SW message, updates card text in-place).
+- [x] **On-page detail capture polish — source confidence hint**: `enrichJobInfo` in `content.js` now sets `_dataSource: 'json-ld' | 'dom'`; the main-screen "Save Job to Tracker" status message notes when structured data was detected.
+- [ ] Optional summarize / clean-up on long preview answers (extends existing AI buttons to the answer-preview screen).
 
 ## Done
 
