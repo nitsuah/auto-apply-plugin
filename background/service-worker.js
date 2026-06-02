@@ -3,7 +3,7 @@
  * Handles storage, Gemini API calls, and message routing.
  */
 
-import { parseResumeWithGemini, generateAnswers } from '../lib/gemini.js';
+import { parseResumeWithGemini, generateAnswers, transformJobText } from '../lib/gemini.js';
 import {
   findLearnedAnswer,
   getLearnedMemoryKey,
@@ -11,6 +11,13 @@ import {
   shouldPersistLearnedValue,
 } from '../lib/form-filler.js';
 import { structureResume } from '../lib/resume-parser.js';
+import { searchJobs, listJobSources } from '../lib/job-search.js';
+import {
+  mapLinkedInProfileToFields,
+  buildLinkedInAuthUrl,
+  LINKEDIN_TOKEN_URL,
+  LINKEDIN_USERINFO_URL,
+} from '../lib/oauth.js';
 import {
   addApplication,
   deleteApplication,
@@ -34,6 +41,8 @@ async function handleMessage(msg) {
   switch (msg.type) {
     case 'SAVE_SETUP':
       return handleSaveSetup(msg.payload);
+    case 'SAVE_SETTINGS_ONLY':
+      return handleSaveSettingsOnly(msg.payload);
     case 'GET_STATE':
       return getState();
     case 'GET_RESUME_ATTACHMENT':
@@ -44,6 +53,16 @@ async function handleMessage(msg) {
       return handleGenerateAnswers(msg.payload);
     case 'GET_LAST_ANSWERS':
       return getLastAnswers();
+    case 'SEARCH_JOBS':
+      return handleSearchJobs(msg.payload);
+    case 'GET_JOB_SOURCES':
+      return handleGetJobSources();
+    case 'GET_OAUTH_INFO':
+      return handleGetOauthInfo();
+    case 'LINKEDIN_CONNECT':
+      return handleLinkedInConnect();
+    case 'SUMMARIZE_JD':
+      return handleSummarizeJd(msg.payload);
     case 'LOG_APPLICATION':
       return handleLogApplication(msg.payload);
     case 'PARSE_APPLICATION_DRAFT':
@@ -91,7 +110,27 @@ const MAX_RESUME_ATTACHMENT_PREVIEW_LENGTH = 1200;
 const MAX_RESUME_ATTACHMENT_DATA_LENGTH = 1_500_000;
 const MAX_RESUME_ATTACHMENT_TEXT_LENGTH = 200_000;
 
-async function handleSaveSetup({ resumeRaw, settings, profile, resumeMeta }) {
+/**
+ * Save only the settings (no resume parsing, no profile) — used by the AI
+ * settings panel which doesn't have access to the full profile form DOM.
+ */
+async function handleSaveSettingsOnly({ settings } = {}) {
+  if (!settings) throw new Error('No settings provided.');
+  const data = await chrome.storage.local.get('settings');
+  const existing = data.settings || {};
+  // Merge, preserving privacy_consent from the existing record so the AI panel
+  // (which doesn't render the consent checkbox) can't inadvertently clear it.
+  const next = {
+    ...existing,
+    ...settings,
+    privacy_consent: existing.privacy_consent === true,
+    privacy_consent_at: existing.privacy_consent_at || null,
+  };
+  await chrome.storage.local.set({ settings: next });
+  return { success: true };
+}
+
+async function handleSaveSetup({ resumeRaw, settings, profile = {}, resumeMeta }) {
   const data = await chrome.storage.local.get(['resume']);
   const existingResume = data.resume?.structured || null;
   const existingAttachment = sanitizeResumeAttachment(data.resume?.attachment || null);
@@ -341,6 +380,125 @@ async function handleRemoveResumeAttachment() {
   });
 
   return { success: true };
+}
+
+function buildJobSearchConfig(settings = {}) {
+  const config = {};
+  if (settings.adzuna_app_id && settings.adzuna_app_key) {
+    config.adzuna = {
+      appId: settings.adzuna_app_id,
+      appKey: settings.adzuna_app_key,
+      country: settings.adzuna_country || 'us',
+    };
+  }
+  if (settings.usajobs_email && settings.usajobs_api_key) {
+    config.usajobs = {
+      email: settings.usajobs_email,
+      apiKey: settings.usajobs_api_key,
+    };
+  }
+  return config;
+}
+
+async function handleSearchJobs({ query, sources } = {}) {
+  const data = await chrome.storage.local.get('settings');
+  const config = buildJobSearchConfig(data.settings || {});
+  const result = await searchJobs(query, { config, sources });
+  return { success: true, jobs: result.jobs, sources: result.sources };
+}
+
+async function handleGetJobSources() {
+  const data = await chrome.storage.local.get('settings');
+  const config = buildJobSearchConfig(data.settings || {});
+  return { success: true, sources: listJobSources(config) };
+}
+
+// ── OAuth (LinkedIn profile bootstrap) ────────────────────────────────────────
+
+function getOauthRedirectUri() {
+  try {
+    return chrome.identity?.getRedirectURL ? chrome.identity.getRedirectURL() : '';
+  } catch {
+    return '';
+  }
+}
+
+async function handleGetOauthInfo() {
+  const data = await chrome.storage.local.get('settings');
+  const settings = data.settings || {};
+  return {
+    success: true,
+    redirectUri: getOauthRedirectUri(),
+    linkedinConfigured: !!(settings.linkedin_client_id && settings.linkedin_client_secret),
+  };
+}
+
+async function handleLinkedInConnect() {
+  if (!chrome.identity?.launchWebAuthFlow) {
+    throw new Error('Browser identity API is unavailable in this context.');
+  }
+  const data = await chrome.storage.local.get('settings');
+  const settings = data.settings || {};
+  const clientId = settings.linkedin_client_id;
+  const clientSecret = settings.linkedin_client_secret;
+  if (!clientId || !clientSecret) {
+    throw new Error('Add your LinkedIn app Client ID and Client Secret in the AI panel first.');
+  }
+
+  const redirectUri = getOauthRedirectUri();
+  const state = crypto.randomUUID();
+  const authUrl = buildLinkedInAuthUrl({ clientId, redirectUri, state });
+
+  const redirectResponse = await chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true });
+  const responseUrl = new URL(redirectResponse);
+  const code = responseUrl.searchParams.get('code');
+  const returnedState = responseUrl.searchParams.get('state');
+  const oauthError = responseUrl.searchParams.get('error_description') || responseUrl.searchParams.get('error');
+  if (oauthError) throw new Error(`LinkedIn sign-in failed: ${oauthError}`);
+  if (returnedState !== state) throw new Error('OAuth state mismatch — please try again.');
+  if (!code) throw new Error('LinkedIn did not return an authorization code.');
+
+  const tokenRes = await fetch(LINKEDIN_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }).toString(),
+  });
+  if (!tokenRes.ok) {
+    throw new Error(`LinkedIn token exchange failed (${tokenRes.status}). Check your Client Secret and redirect URI.`);
+  }
+  const token = await tokenRes.json();
+  if (!token.access_token) throw new Error('LinkedIn did not return an access token.');
+
+  const userRes = await fetch(LINKEDIN_USERINFO_URL, {
+    headers: { Authorization: `Bearer ${token.access_token}` },
+  });
+  if (!userRes.ok) {
+    throw new Error(`Could not read LinkedIn profile (${userRes.status}).`);
+  }
+  const userinfo = await userRes.json();
+  return { success: true, profile: mapLinkedInProfileToFields(userinfo) };
+}
+
+async function handleSummarizeJd({ text, mode } = {}) {
+  const data = await chrome.storage.local.get('settings');
+  const settings = data.settings || {};
+  if (!settings.gemini_api_key) {
+    throw new Error('Add a Gemini API key in the AI panel to use AI summarize / clean-up.');
+  }
+  const result = await transformJobText({
+    text,
+    mode: mode === 'cleanup' ? 'cleanup' : 'summary',
+    apiKey: settings.gemini_api_key,
+    model: settings.gemini_model,
+  });
+  if (!result) throw new Error('The AI returned an empty result.');
+  return { success: true, text: result };
 }
 
 async function handleLogApplication(app) {

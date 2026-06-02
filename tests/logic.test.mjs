@@ -239,6 +239,7 @@ test('filterApplicationsForQuery narrows tracker results by search text and acti
 
   assert.equal(filterApplicationsForQuery(apps, 'okta').length, 1);
   assert.equal(filterApplicationsForQuery(apps, 'systems').length, 2);
-  assert.equal(filterApplicationsForQuery(apps, '', { activeOnly: true }).length, 1);
+  // Active = every stage except rejected/retired, so drafted + interview both count.
+  assert.equal(filterApplicationsForQuery(apps, '', { activeOnly: true }).length, 2);
   assert.equal(filterApplicationsForQuery(apps, 'cloud', { activeOnly: true }).length, 0);
 });

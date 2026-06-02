@@ -102,7 +102,6 @@ export function getTrackerLaneCount(applications, lane) {
 
 // ── Render tracker board ────────────────────────────────────────────────────
 
-const SECTION_VISIBLE_CARD_COUNT = 4;
 const expandedFinalStages = {
   rejected: false,
   retired: false,
@@ -111,6 +110,31 @@ const finalDockExpanded = {
   rejected: false,
   retired: false,
 };
+
+// On first open this session, the first few items of each active section are
+// expanded into cards by default. After that we respect whatever the user has
+// since collapsed/expanded.
+let bubbleDefaultsSeeded = false;
+const DEFAULT_EXPANDED_PER_SECTION = 3;
+const PRIMARY_SECTION_STATUS_GROUPS = [
+  ['drafted', 'filled'],
+  ['pending'],
+  ['submitted'],
+  ['interview'],
+  ['offer'],
+];
+
+function seedDefaultExpandedBubbles(apps = []) {
+  for (const statuses of PRIMARY_SECTION_STATUS_GROUPS) {
+    apps
+      .filter((app) => statuses.includes(normalizeApplicationStatus(app.status)))
+      .slice(0, DEFAULT_EXPANDED_PER_SECTION)
+      .forEach((app) => {
+        const id = String(app.id || '');
+        if (id) selectedFinalStageBubbleIds.add(id);
+      });
+  }
+}
 
 export function toggleFinalStageGroup(status) {
   const normalized = normalizeApplicationStatus(status);
@@ -138,6 +162,20 @@ export function clearFinalStageBubbleSelections() {
   selectedFinalStageBubbleIds.clear();
 }
 
+export function setBubblesExpanded(ids = [], expanded = true) {
+  ids.forEach((id) => {
+    const value = String(id || '').trim();
+    if (!value) return;
+    if (expanded) selectedFinalStageBubbleIds.add(value);
+    else selectedFinalStageBubbleIds.delete(value);
+  });
+}
+
+export function areAllBubblesExpanded(ids = []) {
+  const list = ids.map((id) => String(id || '').trim()).filter(Boolean);
+  return list.length > 0 && list.every((id) => selectedFinalStageBubbleIds.has(id));
+}
+
 export function toggleFinalDockLane(status) {
   const normalized = normalizeApplicationStatus(status);
   if (!Object.prototype.hasOwnProperty.call(finalDockExpanded, normalized)) return;
@@ -154,6 +192,12 @@ export async function renderTracker() {
 
   const { filterApplicationsForQuery } = await import('../../lib/tracker.js');
   const filteredApps = filterApplicationsForQuery(apps, trackerViewState.query, { activeOnly: trackerViewState.activeOnly });
+
+  if (!bubbleDefaultsSeeded) {
+    seedDefaultExpandedBubbles(filteredApps);
+    bubbleDefaultsSeeded = true;
+  }
+
   const tbody = $('tracker-body');
   if (!tbody) return;
   tbody.innerHTML = '';
@@ -237,14 +281,17 @@ export function renderTrackerLane(applications, lane) {
     const sections = lane.groups.map((group) => {
       const laneApps = applications.filter((app) => group.statuses.includes(normalizeApplicationStatus(app.status)));
       const statusTone = group.statuses[0] || group.key;
-      const cards = renderSectionCardsWithOverflow(laneApps, statusTone);
+      const bubbles = renderSectionBubbles(laneApps, statusTone);
+      const expanded = renderSectionExpandedCards(laneApps);
       return `
         <div class="tracker-lane-group" data-status-target="${escAttr(group.statuses[0])}">
           <div class="tracker-lane-subheader">
             <span class="tracker-lane-subtitle">${group.label}</span>
+            <div class="tracker-lane-inline-bubbles">${bubbles}</div>
+            ${renderSectionToggle(laneApps)}
             <span class="tracker-lane-count">${laneApps.length}</span>
           </div>
-          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${cards}</div>
+          <div class="tracker-lane-cards" data-status-target="${escAttr(group.statuses[0])}">${expanded}</div>
         </div>
       `;
     }).join('');
@@ -273,7 +320,7 @@ export function renderTrackerLane(applications, lane) {
 
     const expandedCards = laneApps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
     const expandedMarkup = expandedCards.length
-      ? `<div class="tracker-final-expanded">${expandedCards.map((app) => renderTrackerCard(app, { forceCollapsed: true })).join('')}</div>`
+      ? `<div class="tracker-final-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`
       : '';
 
     const hint = laneApps.length && isExpandedDock
@@ -296,97 +343,86 @@ export function renderTrackerLane(applications, lane) {
     `;
   }
   const statusTone = lane.statuses[0] || lane.key;
-  const cards = renderSectionCardsWithOverflow(laneApps, statusTone);
+  const bubbles = renderSectionBubbles(laneApps, statusTone);
+  const expanded = renderSectionExpandedCards(laneApps);
 
   return `
     <section class="tracker-lane${isFinalStageLane ? ` tracker-lane-final tracker-lane-final-${escAttr(statusTone)}` : ''}" data-status-target="${escAttr(lane.statuses[0])}">
       <div class="tracker-lane-header">
         <span class="tracker-lane-title">${lane.label}</span>
+        <div class="tracker-lane-inline-bubbles">${bubbles}</div>
+        ${renderSectionToggle(laneApps)}
         <span class="tracker-lane-count">${laneApps.length}</span>
       </div>
-      <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${cards}</div>
+      <div class="tracker-lane-cards" data-status-target="${escAttr(lane.statuses[0])}">${expanded}</div>
     </section>
   `;
 }
 
-function renderSectionCardsWithOverflow(apps = [], statusTone = '') {
-  if (!apps.length) {
-    return '<p class="empty-msg tracker-lane-empty">Nothing here yet.</p>';
-  }
+// Contracted, draggable bubbles for a section (shown inline with the subtitle).
+function renderSectionBubbles(apps = [], statusTone = '') {
+  if (!apps.length) return '';
+  return apps.map((app) => renderOverflowBubble(app, statusTone)).join('');
+}
 
-  const visible = apps.slice(0, SECTION_VISIBLE_CARD_COUNT);
-  const overflow = apps.slice(SECTION_VISIBLE_CARD_COUNT);
-  const cards = visible.map(renderTrackerCard).join('');
+// +/× toggle that expands or collapses every card in a section at once.
+function renderSectionToggle(apps = []) {
+  if (!apps.length) return '';
+  const allOpen = areAllBubblesExpanded(apps.map((app) => app.id));
+  return `<button class="tracker-section-toggle" type="button" title="${allOpen ? 'Collapse all in this section' : 'Expand all in this section'}" aria-label="${allOpen ? 'Collapse all' : 'Expand all'}">${allOpen ? '×' : '+'}</button>`;
+}
 
-  if (!overflow.length) {
-    return cards;
-  }
-
-  const bubbles = overflow.map((app) => renderOverflowBubble(app, statusTone)).join('');
-  return `${cards}<div class="tracker-overflow-bubbles">${bubbles}</div>`;
+// Expanded preview cards for whichever bubbles in this section are selected.
+function renderSectionExpandedCards(apps = []) {
+  const expandedCards = apps.filter((app) => selectedFinalStageBubbleIds.has(String(app.id || '')));
+  if (!expandedCards.length) return '';
+  return `<div class="tracker-overflow-expanded">${expandedCards.map((app) => renderTrackerCard(app)).join('')}</div>`;
 }
 
 function renderOverflowBubble(app, statusTone = '') {
   const initial = getCompanyInitial(app.company);
+  const isExpanded = selectedFinalStageBubbleIds.has(String(app.id || ''));
+  const normalizedStatus = normalizeApplicationStatus(app.status);
   const title = `${String(app.company || 'Unknown company')} — ${String(app.title || 'Untitled role')}`;
-  return `<span class="tracker-overflow-bubble" data-status-tone="${escAttr(statusTone)}" title="${escAttr(title)}" aria-label="Overflow card ${escAttr(title)}">${esc(initial)}</span>`;
+  return `<button class="tracker-overflow-bubble${isExpanded ? ' is-expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-expand-card-id="${escAttr(app.id)}" data-status-tone="${escAttr(statusTone)}" title="${escAttr(title)}" aria-label="Toggle preview for ${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
 }
 
 // ── Render card ─────────────────────────────────────────────────────────────
 
-export function renderTrackerCard(app, options = {}) {
-  const forceCollapsed = options.forceCollapsed === true;
-  const expanded = forceCollapsed ? false : expandedTrackerIds.has(app.id);
-  const summaryToggleClass = forceCollapsed ? '' : ' tracker-card-toggle';
-  const summaryRole = forceCollapsed ? '' : ' role="button" tabindex="0"';
+export function renderTrackerCard(app) {
+  const expanded = expandedTrackerIds.has(app.id);
+  const summaryToggleClass = ' tracker-card-toggle';
+  const summaryRole = ' role="button" tabindex="0"';
   const normalizedStatus = normalizeApplicationStatus(app.status);
+  // Drafts/pending show only the Updated date; everything else shows Submitted.
+  const showUpdatedOnly = ['drafted', 'filled', 'pending'].includes(normalizedStatus);
   const pay = resolvePayBand(app);
   const locationUi = getLocationUiState(app.location);
   const scoreUi = getScorecardUiState(app.scorecard);
-  const summaryMeta = [
-    app.location || 'Unknown',
-    app.employment_type || 'Full-time',
-    app.remote ? 'Remote' : 'On-site',
-  ].filter(Boolean).join(' · ');
-  const summaryNote = getVerdictLabel(app.verdict) || app.scorecard || (app.description ? 'Description cached' : 'Click to edit');
-  const salaryText = formatPayDisplay(pay.min, pay.max, app.salary_range);
-  const scoreDisplay = getScoreDisplay(app.scorecard);
   const companyLabel = app.url
     ? `<a class="tracker-summary-title-link" href="${escAttr(app.url)}" target="_blank" rel="noopener">${esc(app.company || 'Unknown company')}</a>`
     : esc(app.company || 'Unknown company');
 
   return `
-    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="${expanded ? 'false' : 'true'}" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+    <div class="tracker-card${expanded ? ' expanded' : ''}" draggable="false" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-sort-order="${escAttr(String(app.sort_order ?? ''))}">
+      <div class="tracker-card-grabber" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" title="Drag to move between lanes" aria-label="Drag to move this card">⠿</div>
       <div class="tracker-card-header">
         <div class="tracker-card-summary${summaryToggleClass}"${summaryRole} aria-expanded="${expanded ? 'true' : 'false'}">
           <div class="tracker-summary-copy">
             <div class="tracker-summary-title">${companyLabel}</div>
             <div class="tracker-summary-role">${esc(app.title || 'Untitled role')}</div>
-            <div class="tracker-summary-meta">${esc(summaryMeta)}</div>
-            <div class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || 'Pay range not saved yet')}</div>
-            <div class="tracker-summary-insights">
-              <div class="tracker-summary-insight">
-                <span class="tracker-summary-label">Sentiment</span>
-                <span class="tracker-summary-value">${esc(getVerdictLabel(app.verdict) || 'Neutral / maybe')}</span>
-              </div>
-              <div class="tracker-summary-insight">
-                <span class="tracker-summary-label">Score</span>
-                ${scoreDisplay
-                  ? `<span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" aria-label="Score ${escAttr(scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span><span class="tracker-score-raw${scoreDisplay.isZero ? ' is-zero' : ''}">${esc(scoreDisplay.raw)}</span>`
-                  : `<span class="tracker-summary-value">${esc(app.scorecard || 'Not scored')}</span>`}
-              </div>
-            </div>
+            <div class="tracker-summary-details">${renderCardSummaryDetailsInner(app)}</div>
           </div>
         </div>
         <div class="tracker-card-tools tracker-card-tools-right">
           <select class="tracker-status-select" data-field="status" data-status-tone="${escAttr(normalizedStatus)}" aria-label="Update application status">
             ${renderStatusOptions(app.status)}
           </select>
-          <div class="tracker-card-meta-row">
+          <div class="tracker-card-meta-row tracker-card-meta-submitted${showUpdatedOnly ? ' hidden' : ''}">
             <span class="tracker-card-date-label">Submitted:</span>
             <span class="tracker-card-date tracker-card-submitted">${esc(formatDate(app.date) || '—')}</span>
           </div>
-          <div class="tracker-card-meta-row">
+          <div class="tracker-card-meta-row tracker-card-meta-updated${showUpdatedOnly ? '' : ' hidden'}">
             <span class="tracker-card-date-label">Updated:</span>
             <span class="tracker-card-date tracker-card-updated">${esc(formatSavedTimestamp(app.updated_at) || '—')}</span>
           </div>
@@ -394,19 +430,18 @@ export function renderTrackerCard(app, options = {}) {
       </div>
       <div class="tracker-card-details">
         <div class="tracker-card-fields">
-          <div class="tracker-card-core-grid">
-            <label class="tracker-field-label">
-              <span>Company</span>
-              <input class="tracker-field-company" data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
-            </label>
-            <label class="tracker-field-label">
-              <span>Role</span>
-              <input class="tracker-field-title" data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
-            </label>
-          </div>
-
           <div class="tracker-card-groups-grid">
             <div class="tracker-context-box">
+              <div class="tracker-context-headline">
+                <label class="tracker-field-label">
+                  <span>Company</span>
+                  <input class="tracker-field-company" data-field="company" type="text" value="${escAttr(app.company || '')}" placeholder="Company name" />
+                </label>
+                <label class="tracker-field-label">
+                  <span>Role</span>
+                  <input class="tracker-field-title" data-field="title" type="text" value="${escAttr(app.title || '')}" placeholder="Role title" />
+                </label>
+              </div>
               <div class="location-editor tracker-field-location">
                 <select data-field="location_select" class="tracker-location-select" aria-label="Location">
                   ${renderLocationOptions(locationUi.selectValue)}
@@ -426,15 +461,20 @@ export function renderTrackerCard(app, options = {}) {
 
             <div class="pay-editor tracker-score-pay">
               <div class="pay-editor-row">
-                <label class="pay-label">Pay min</label>
-                <input type="range" data-pay-range="min" min="0" max="500000" step="5000" value="${escAttr(String(pay.min || 0))}" />
-                <input data-field="pay_min" type="number" min="0" step="5000" value="${escAttr(String(pay.min || ''))}" placeholder="0" />
+                <div class="pay-editor-top">
+                  <label class="pay-label">Pay min</label>
+                  <input data-field="pay_min" type="number" min="0" step="1000" inputmode="numeric" value="${escAttr(String(pay.min || ''))}" placeholder="0" />
+                </div>
+                <input type="range" class="pay-slider" data-pay-range="min" min="0" max="500000" step="5000" value="${escAttr(String(Math.min(500000, pay.min || 0)))}" aria-label="Pay min slider" />
               </div>
               <div class="pay-editor-row">
-                <label class="pay-label">Pay max</label>
-                <input type="range" data-pay-range="max" min="0" max="500000" step="5000" value="${escAttr(String(pay.max || Math.max(pay.min || 0, 0)))}" />
-                <input data-field="pay_max" type="number" min="0" step="5000" value="${escAttr(String(pay.max || ''))}" placeholder="0" />
+                <div class="pay-editor-top">
+                  <label class="pay-label">Pay max</label>
+                  <input data-field="pay_max" type="number" min="0" step="1000" inputmode="numeric" value="${escAttr(String(pay.max || ''))}" placeholder="0" />
+                </div>
+                <input type="range" class="pay-slider" data-pay-range="max" min="0" max="500000" step="5000" value="${escAttr(String(Math.min(500000, pay.max || Math.max(pay.min || 0, 0))))}" aria-label="Pay max slider" />
               </div>
+              <p class="pay-warning hidden" role="alert"></p>
             </div>
 
             <div class="tracker-score-verdict">
@@ -471,6 +511,11 @@ export function renderTrackerCard(app, options = {}) {
             </div>
           </div>
 
+          <div class="jd-ai-toolbar">
+            <button class="btn btn-ghost btn-xs jd-ai-btn tracker-jd-ai-btn" type="button" data-mode="summary" title="Summarize this description into key points">✨ Summarize</button>
+            <button class="btn btn-ghost btn-xs jd-ai-btn tracker-jd-ai-btn" type="button" data-mode="cleanup" title="Strip boilerplate / noise from this description">🧹 Clean up</button>
+            <span class="jd-ai-status helper-text tracker-jd-ai-status"></span>
+          </div>
           <textarea class="tracker-field-description" data-field="description" rows="4" placeholder="Stored job description / notes">${esc(app.description || app.jd_snippet || '')}</textarea>
         </div>
         <div class="tracker-card-actions">
@@ -515,41 +560,116 @@ export function syncTrackerCardSummary(card, patch = {}) {
   }
   const roleEl = card.querySelector('.tracker-summary-role');
   if (roleEl) roleEl.textContent = title;
-  const metaEl = card.querySelector('.tracker-summary-meta');
-  if (metaEl) metaEl.textContent = summaryMeta;
-  const salaryEl = card.querySelector('.tracker-summary-salary');
-  const salaryText = formatPayDisplay(patch.pay_min, patch.pay_max, patch.salary_range);
-  if (salaryEl) {
-    salaryEl.textContent = salaryText || 'Pay range not saved yet';
-    salaryEl.classList.toggle('hidden', !String(salaryText || '').trim());
-  }
-  const noteEl = card.querySelector('.tracker-card-note-right');
-  if (noteEl) noteEl.textContent = summaryNote;
 
-  const sentimentEl = card.querySelector('.tracker-summary-insight .tracker-summary-value');
-  if (sentimentEl) sentimentEl.textContent = getVerdictLabel(patch.verdict) || 'Neutral / maybe';
-
-  const scoreInsightEl = card.querySelector('.tracker-summary-insights .tracker-summary-insight:last-child');
-  if (scoreInsightEl) {
-    const scoreDisplay = getScoreDisplay(patch.scorecard);
-    if (scoreDisplay) {
-      scoreInsightEl.innerHTML = `<span class="tracker-summary-label">Score</span><span class="tracker-score-stars${scoreDisplay.isZero ? ' is-zero' : ''}" aria-label="Score ${escAttr(scoreDisplay.raw)}">${esc(scoreDisplay.stars)}</span><span class="tracker-score-raw${scoreDisplay.isZero ? ' is-zero' : ''}">${esc(scoreDisplay.raw)}</span>`;
-    } else {
-      scoreInsightEl.innerHTML = `<span class="tracker-summary-label">Score</span><span class="tracker-summary-value">${esc(patch.scorecard || 'Not scored')}</span>`;
-    }
-  }
+  const detailsEl = card.querySelector('.tracker-summary-details');
+  if (detailsEl) detailsEl.innerHTML = renderCardSummaryDetailsInner(patch);
 
   const submittedEl = card.querySelector('.tracker-card-submitted');
   if (submittedEl) submittedEl.textContent = formatDate(patch.date) || '—';
 
   const updatedEl = card.querySelector('.tracker-card-updated');
   if (updatedEl) updatedEl.textContent = formatSavedTimestamp(patch.updated_at) || '—';
+
+  const showUpdatedOnly = ['drafted', 'filled', 'pending'].includes(normalizeApplicationStatus(patch.status));
+  card.querySelector('.tracker-card-meta-submitted')?.classList.toggle('hidden', showUpdatedOnly);
+  card.querySelector('.tracker-card-meta-updated')?.classList.toggle('hidden', !showUpdatedOnly);
 }
 
 function getVerdictLabel(value = '') {
   const normalized = String(value || '').trim();
   const match = VERDICT_OPTIONS.find((option) => option.value === normalized);
   return match ? match.label : normalized;
+}
+
+// ── Emoji indicators (compact card meta) ────────────────────────────────────
+
+// More discernible than smileys: fire / thumbs / dash / thumbs-down / x / glass.
+const VERDICT_EMOJI = {
+  strong_yes: '🔥',
+  lean_yes: '👍',
+  neutral: '➖',
+  lean_no: '👎',
+  no: '❌',
+  research: '🔍',
+};
+const VERDICT_CYCLE = ['strong_yes', 'lean_yes', 'neutral', 'lean_no', 'no', 'research'];
+
+function getVerdictEmoji(value = '') {
+  return VERDICT_EMOJI[String(value || '').trim()] || '➖';
+}
+
+// Resolve a 0–5 integer star count from whatever scorecard text is stored.
+function getStarCount(scorecard) {
+  const ui = getScorecardUiState(scorecard);
+  if (ui.selectValue && ui.selectValue !== 'other') {
+    const n = Number(ui.selectValue);
+    return Number.isFinite(n) ? Math.max(0, Math.min(5, n)) : 0;
+  }
+  const display = getScoreDisplay(scorecard);
+  if (!display) return 0;
+  return (String(display.stars).match(/★/g) || []).length;
+}
+
+// Inline SVG US flag — Windows doesn't render the 🇺🇸 emoji (shows "US"), so we
+// draw a small recognizable flag (red field, white stripes, blue canton).
+const US_FLAG_SVG = '<svg class="flag-svg" viewBox="0 0 19 10" width="15" height="10" aria-hidden="true"><rect width="19" height="10" fill="#b22234"/><rect y="1.43" width="19" height="0.77" fill="#fff"/><rect y="2.97" width="19" height="0.77" fill="#fff"/><rect y="4.5" width="19" height="0.77" fill="#fff"/><rect y="6.04" width="19" height="0.77" fill="#fff"/><rect y="7.57" width="19" height="0.77" fill="#fff"/><rect width="8" height="5.38" fill="#3c3b6e"/></svg>';
+
+function getLocationIndicator(location = '') {
+  const loc = String(location || '').trim();
+  if (!loc || loc === 'Unknown') return { icon: '📍', label: 'Location not set' };
+  if (loc === 'United States' || USA_STATES.includes(loc)) return { icon: US_FLAG_SVG, label: loc };
+  if (/remote|anywhere|worldwide/i.test(loc)) return { icon: '🌐', label: loc };
+  return { icon: '📍', label: loc };
+}
+
+function getEmploymentIndicator(type = '') {
+  const t = String(type || '').toLowerCase();
+  if (t.includes('intern')) return { emoji: '🎓', label: 'Internship' };
+  if (t.includes('contract')) return { emoji: '✖️', label: 'Contract' };
+  if (t.includes('part')) return { emoji: '⚪', label: 'Part-time' };
+  if (t.includes('temp')) return { emoji: '⏳', label: 'Temporary' };
+  return { emoji: '🟢', label: 'Full-time' };
+}
+
+function getRemoteIndicator(remote) {
+  return remote ? { emoji: '🏠', label: 'Remote / WFH' } : { emoji: '🏢', label: 'On-site' };
+}
+
+/**
+ * Compact emoji-first summary details (location/type/remote indicators + a pay
+ * row carrying salary, the sentiment emoji, and score stars). Reused by both
+ * the initial card render and the live summary sync so they never drift.
+ */
+function renderCardSummaryDetailsInner(app = {}) {
+  const pay = resolvePayBand(app);
+  const salaryText = formatPayDisplay(pay.min, pay.max, app.salary_range);
+  const scoreDisplay = getScoreDisplay(app.scorecard);
+  const loc = getLocationIndicator(app.location);
+  const emp = getEmploymentIndicator(app.employment_type);
+  const rem = getRemoteIndicator(app.remote);
+  const verdictLabel = getVerdictLabel(app.verdict) || 'Neutral / maybe';
+  const verdictEmoji = getVerdictEmoji(app.verdict || 'neutral');
+  const verdictValue = String(app.verdict || 'neutral').trim() || 'neutral';
+
+  // Clickable stars (reverse DOM order enables a pure-CSS hover-fill).
+  const starCount = getStarCount(app.scorecard);
+  const scoreTitle = scoreDisplay ? `Score: ${scoreDisplay.raw} (click to set)` : 'Not scored (click to set)';
+  const starButtons = [5, 4, 3, 2, 1]
+    .map((n) => `<span class="tracker-star${n <= starCount ? ' is-filled' : ''}" data-star="${n}" title="Set score ${n}/5">★</span>`)
+    .join('');
+  const stars = `<span class="tracker-score-stars tracker-score-interactive${scoreDisplay && scoreDisplay.isZero ? ' is-zero' : ''}" title="${escAttr(scoreTitle)}" aria-label="${escAttr(scoreTitle)}">${starButtons}</span>`;
+
+  // All indicators on one inline row: pay · location · type · remote · sentiment · stars.
+  return `
+    <div class="tracker-summary-detailrow">
+      <span class="tracker-summary-salary${salaryText ? '' : ' hidden'}">${esc(salaryText || '')}</span>
+      <span class="meta-emoji meta-flag" title="${escAttr(loc.label)}" aria-label="${escAttr('Location: ' + loc.label)}">${loc.icon}</span>
+      <span class="meta-emoji" title="${escAttr(emp.label)}" aria-label="${escAttr('Type: ' + emp.label)}">${emp.emoji}</span>
+      <span class="meta-emoji" title="${escAttr(rem.label)}" aria-label="${escAttr(rem.label)}">${rem.emoji}</span>
+      <span class="tracker-summary-sentiment tracker-sentiment-interactive" data-sentiment-cycle="1" data-verdict="${escAttr(verdictValue)}" title="${escAttr('Sentiment: ' + verdictLabel + ' (click to change)')}" aria-label="${escAttr('Sentiment: ' + verdictLabel)}">${verdictEmoji}</span>
+      ${stars}
+    </div>
+  `;
 }
 
 function getScoreDisplay(value = '') {
@@ -591,8 +711,9 @@ function getScoreDisplay(value = '') {
 function renderFinalStageBubble(app) {
   const initial = getCompanyInitial(app.company);
   const isExpanded = selectedFinalStageBubbleIds.has(String(app.id || ''));
+  const normalizedStatus = normalizeApplicationStatus(app.status);
   const title = `${String(app.company || 'Unknown company')} — ${String(app.title || 'Untitled role')}`;
-  return `<button class="tracker-final-bubble${isExpanded ? ' is-expanded' : ''}" data-expand-card-id="${escAttr(app.id)}" title="${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
+  return `<button class="tracker-final-bubble${isExpanded ? ' is-expanded' : ''}" draggable="true" data-id="${escAttr(app.id)}" data-status="${escAttr(normalizedStatus)}" data-expand-card-id="${escAttr(app.id)}" title="${escAttr(title)}" aria-pressed="${isExpanded ? 'true' : 'false'}" type="button">${esc(initial)}</button>`;
 }
 
 function renderFinalStageClearBubble() {

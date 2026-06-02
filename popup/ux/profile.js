@@ -12,6 +12,7 @@ import {
   handleResumeFileDrop,
   downloadResumeAttachment,
   renderResumeAttachment,
+  syncDemoChips,
 } from '../forms/forms.js';
 
 // Re-export for consumers
@@ -38,6 +39,13 @@ export function applyStateToSetupForm(state = {}) {
   set('work-auth', settings.work_authorization || '');
   const preferRemote = $('prefer-remote');
   if (preferRemote) preferRemote.checked = settings.preferred_remote !== false;
+  set('adzuna-app-id', settings.adzuna_app_id || '');
+  set('adzuna-app-key', settings.adzuna_app_key || '');
+  if ($('adzuna-country')) $('adzuna-country').value = settings.adzuna_country || 'us';
+  set('usajobs-email', settings.usajobs_email || '');
+  set('usajobs-api-key', settings.usajobs_api_key || '');
+  set('linkedin-client-id', settings.linkedin_client_id || '');
+  set('linkedin-client-secret', settings.linkedin_client_secret || '');
   const privacyConsent = $('privacy-consent');
   if (privacyConsent) privacyConsent.checked = settings.privacy_consent === true;
 
@@ -145,6 +153,20 @@ export async function initSetupHandlers() {
     }
   });
 
+  // Reveal the custom start-date field only when "Other" is selected.
+  $('default-start-date')?.addEventListener('change', (event) => {
+    $('start-date-other-wrap')?.classList.toggle('hidden', event.target.value !== 'Other');
+  });
+
+  // Collapse / expand the saved resume preview (expanded by default — full copy
+  // without a scroll box).
+  $('toggle-resume-preview-btn')?.addEventListener('click', (event) => {
+    const preview = $('resume-attachment-preview');
+    if (!preview) return;
+    const collapsed = preview.classList.toggle('collapsed');
+    event.currentTarget.textContent = collapsed ? '⤢ Expand' : '⤡ Collapse';
+  });
+
   const sensitiveOptin = $('sensitive-optin');
   const sensitiveFields = $('sensitive-fields');
   if (sensitiveOptin && sensitiveFields) {
@@ -153,6 +175,27 @@ export async function initSetupHandlers() {
     };
     sensitiveOptin.addEventListener('change', syncSensitiveVisibility);
     syncSensitiveVisibility();
+
+    // Demographic chips: click a chip to reveal its control; collapse on
+    // change / blur with the chosen value reflected back into the chip.
+    sensitiveFields.addEventListener('click', (event) => {
+      const chip = event.target.closest('.demo-chip');
+      if (!chip) return;
+      const field = $(chip.dataset.demoFor);
+      if (!field) return;
+      chip.classList.add('hidden');
+      field.classList.remove('hidden');
+      field.focus();
+    });
+    const collapseDemoField = (event) => {
+      const field = event.target.closest('.demo-select');
+      if (!field) return;
+      syncDemoChips();
+      field.classList.add('hidden');
+      sensitiveFields.querySelector(`.demo-chip[data-demo-for="${field.id}"]`)?.classList.remove('hidden');
+    };
+    sensitiveFields.addEventListener('change', collapseDemoField);
+    sensitiveFields.addEventListener('focusout', collapseDemoField);
   }
 
   $('download-resume-attachment-btn')?.addEventListener('click', async () => {

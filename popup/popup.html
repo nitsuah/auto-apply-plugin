@@ -12,6 +12,7 @@
     <!-- Header -->
     <header class="header">
       <div class="header-top">
+        <button id="global-back-btn" class="icon-btn global-back-btn hidden" type="button" title="Back to Home" aria-label="Back to home">← Back</button>
         <button id="header-home-btn" class="logo-btn" type="button" title="Return to the workspace home">
           <span class="logo">🤖 Apply Workspace</span>
           <span id="header-screen-label" class="header-screen-label"></span>
@@ -27,7 +28,10 @@
           <button id="header-ai-btn" class="icon-btn" title="Open the AI settings panel">
             🧠 <span class="tracker-btn-label">AI</span>
           </button>
-          <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options">?</button>
+          <button id="header-profile-btn" class="icon-btn" title="Open your profile and memory" aria-label="Open profile">
+            👤 <span class="tracker-btn-label">Profile</span>
+          </button>
+          <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options" aria-label="Help, privacy, and reset options">?</button>
         </div>
       </div>
     </header>
@@ -39,7 +43,7 @@
           <h2 class="section-title">Profile</h2>
           <p class="helper-text">Your resume, settings, and memory all live here.</p>
         </div>
-        <p id="setup-status" class="status-msg profile-header-status"></p>
+        <p id="setup-status" class="status-msg profile-header-status" role="status" aria-live="polite"></p>
       </div>
 
       <div class="profile-workspace">
@@ -54,190 +58,255 @@
           </div>
 
           <div id="profile-consent-gated" class="profile-consent-gated consent-locked">
-            <div class="form-group profile-panel" id="profile-resume-section">
-              <label>Resume</label>
+            <details class="form-group profile-panel profile-section" id="profile-resume-section" open>
+              <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Resume</span></summary>
+              <div class="collapsible-body">
               <p class="helper-text">Upload or paste a resume here. New resume parsing uses the Gemini key from the AI panel.</p>
-              <div class="resume-tabs">
-                <button class="tab-btn active" data-tab="upload">Upload File</button>
-                <button class="tab-btn" data-tab="paste">Paste Text</button>
+              <div class="resume-grid">
+                <div class="resume-input-col">
+                  <div class="resume-tabs">
+                    <button class="tab-btn active" data-tab="upload">Upload File</button>
+                    <button class="tab-btn" data-tab="paste">Paste Text</button>
+                  </div>
+                  <div id="tab-upload" class="tab-content active">
+                    <label class="file-drop-zone" id="file-drop-zone">
+                      <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
+                      <span id="file-drop-label">📄 Drop PDF / DOCX / TXT here or click to browse</span>
+                    </label>
+                  </div>
+                  <div id="tab-paste" class="tab-content hidden">
+                    <textarea
+                      id="resume-text"
+                      rows="8"
+                      placeholder="Paste your resume text here…"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="resume-saved-col">
+                  <div id="resume-attachment-card" class="resume-attachment-card hidden">
+                    <div class="resume-attachment-header">
+                      <div>
+                        <span class="resume-attachment-title">Saved local copy</span>
+                        <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
+                      </div>
+                      <div class="resume-attachment-actions">
+                        <button type="button" id="toggle-resume-preview-btn" class="btn btn-ghost btn-sm">⤡ Collapse</button>
+                        <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
+                        <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
+                      </div>
+                    </div>
+                    <p id="resume-attachment-meta" class="helper-text">Stored locally only for this browser profile.</p>
+                    <pre id="resume-attachment-preview" class="resume-attachment-preview"></pre>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </details>
+
+            <!-- Lower half: two columns. Left = Core profile + Memory. Right = Sensitive + Preferences. -->
+            <div class="profile-two-col">
+              <div class="profile-col">
+              <details class="form-group profile-panel profile-section" id="core-profile-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Core profile details</span></summary>
+                <div class="collapsible-body">
+                <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
+                <div class="profile-grid">
+                  <label class="field-label"><span>Full name</span><input type="text" id="profile-full-name" placeholder="Full name" /></label>
+                  <label class="field-label"><span>Email</span><input type="text" id="profile-email" placeholder="Email" /></label>
+                  <label class="field-label"><span>Phone</span><input type="text" id="profile-phone" placeholder="Phone" /></label>
+                  <label class="field-label"><span>Current location</span><input type="text" id="profile-location" placeholder="Current location" /></label>
+                  <label class="field-label"><span>Street address</span><input type="text" id="profile-address-line1" placeholder="Street address" /></label>
+                  <div class="field-label field-group-span">
+                    <span>City / State / ZIP</span>
+                    <div class="inline-fields compact-fields">
+                      <input type="text" id="profile-city" placeholder="City" />
+                      <input type="text" id="profile-state-region" placeholder="State" />
+                      <input type="text" id="profile-postal-code" placeholder="ZIP" />
+                    </div>
+                  </div>
+                  <label class="field-label"><span>LinkedIn</span><input type="text" id="profile-linkedin" placeholder="LinkedIn URL" /></label>
+                  <label class="field-label"><span>GitHub</span><input type="text" id="profile-github" placeholder="GitHub URL" /></label>
+                  <label class="field-label"><span>Portfolio / website</span><input type="text" id="profile-portfolio" placeholder="Portfolio / website" /></label>
+                  <label class="field-label"><span>Current company</span><input type="text" id="profile-current-company" placeholder="Current company" /></label>
+                  <label class="field-label"><span>Current job title</span><input type="text" id="profile-current-title" placeholder="Current job title" /></label>
+                  <label class="field-label"><span>Years of experience</span><input type="number" id="profile-years-of-experience" placeholder="Years" min="0" step="1" /></label>
+                  <label class="field-label"><span>Pronouns (optional)</span><input type="text" id="profile-pronouns" placeholder="Pronouns" /></label>
+                </div>
+                <div class="profile-grid profile-grid-eligibility">
+                  <label class="field-label">
+                    <span>Start date / availability</span>
+                    <select id="default-start-date">
+                      <option value="">Select…</option>
+                      <option value="Immediately">Immediately</option>
+                      <option value="2 weeks">2 weeks</option>
+                      <option value="2–4 weeks">2–4 weeks</option>
+                      <option value="1 month">1 month</option>
+                      <option value="2 months">2 months</option>
+                      <option value="3+ months">3+ months</option>
+                      <option value="Other">Other (specify)</option>
+                    </select>
+                  </label>
+                  <label class="field-label">
+                    <span>Work authorization</span>
+                    <select id="work-auth">
+                      <option value="">Work authorization…</option>
+                      <option value="US Citizen">US Citizen</option>
+                      <option value="Green Card">Green Card</option>
+                      <option value="H-1B">H-1B</option>
+                      <option value="OPT">OPT</option>
+                      <option value="TN Visa">TN Visa</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+                  <label class="field-label">
+                    <span>Sponsorship</span>
+                    <select id="default-sponsorship">
+                      <option value="">Sponsorship need…</option>
+                      <option value="No">No sponsorship required</option>
+                      <option value="Yes">Will require sponsorship</option>
+                    </select>
+                  </label>
+                  <label class="field-label field-group-span field-start-other hidden" id="start-date-other-wrap">
+                    <span>Custom start date / availability</span>
+                    <input type="text" id="default-start-date-other" placeholder="e.g. mid-July, after notice period" />
+                  </label>
+                </div>
+                </div>
+              </details>
+
+              <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
+                <details class="profile-collapsible memory-collapsible" open>
+                  <summary class="collapsible-summary">
+                    <span class="report-title memory-title">Memory</span>
+                    <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
+                  </summary>
+                  <div class="collapsible-body">
+                    <p class="helper-text">Only non-sensitive reusable answers live here. Click a bubble to expand and edit it, or ignore outliers so they stop autofilling.</p>
+                    <div id="learned-defaults-list" class="memory-list">
+                      <p class="empty-msg">No memory saved yet.</p>
+                    </div>
+
+                    <details class="profile-collapsible ignored-collapsible">
+                      <summary class="collapsible-summary">
+                        <span class="report-title memory-title">Ignore list</span>
+                        <span id="ignored-memory-count" class="badge badge-memory">0 ignored</span>
+                      </summary>
+                      <div class="collapsible-body">
+                        <p class="helper-text">Ignored answers are archived here and will not autofill again until you delete them from this list.</p>
+                        <input type="search" id="ignore-search-input" placeholder="Filter ignored items…" aria-label="Search ignored memory" class="ignore-list-search" />
+                        <div id="ignored-memory-list" class="memory-list compact-memory-list">
+                          <p class="empty-msg">No ignored memory right now.</p>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                </details>
+              </div>
               </div>
 
-              <div id="tab-upload" class="tab-content active">
-                <label class="file-drop-zone" id="file-drop-zone">
-                  <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt" />
-                  <span id="file-drop-label">📄 Drop PDF / DOCX / TXT here or click to browse</span>
+              <div class="profile-col">
+              <details class="form-group sensitive-group profile-panel profile-section" id="sensitive-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title sensitive-section-label">🔒 Sensitive / Demographic — protected data</span></summary>
+                <div class="collapsible-body">
+                <label class="checkbox-row sensitive-check">
+                  <input type="checkbox" id="sensitive-optin" />
+                  Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
                 </label>
-              </div>
-
-              <div id="tab-paste" class="tab-content hidden">
-                <textarea
-                  id="resume-text"
-                  rows="8"
-                  placeholder="Paste your resume text here…"
-                ></textarea>
-              </div>
-
-              <div id="resume-attachment-card" class="resume-attachment-card hidden">
-                <div class="resume-attachment-header">
-                  <div>
-                    <span class="resume-attachment-title">Saved local copy</span>
-                    <p id="resume-attachment-name" class="resume-attachment-name">resume-preview.txt</p>
+                <div id="sensitive-fields" class="sensitive-fields hidden">
+                  <p class="helper-text" style="margin:0 0 6px">Click a label to set it; it collapses back to a chip when done.</p>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-gender"><span class="demo-chip-label">Gender</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-gender" class="demo-select hidden">
+                      <option value="">Gender…</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
                   </div>
-                  <div class="resume-attachment-actions">
-                    <button type="button" id="download-resume-attachment-btn" class="btn btn-ghost btn-sm">Download copy</button>
-                    <button type="button" id="remove-resume-attachment-btn" class="btn btn-ghost btn-sm btn-danger">Remove</button>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-race"><span class="demo-chip-label">Race / Ethnicity</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-race" class="demo-select hidden">
+                      <option value="">Race / Ethnicity…</option>
+                      <option value="White">White</option>
+                      <option value="Black or African American">Black or African American</option>
+                      <option value="Hispanic or Latino">Hispanic or Latino</option>
+                      <option value="Asian">Asian</option>
+                      <option value="Native American or Alaska Native">Native American or Alaska Native</option>
+                      <option value="Native Hawaiian or Pacific Islander">Native Hawaiian or Pacific Islander</option>
+                      <option value="Two or more races">Two or more races</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-veteran"><span class="demo-chip-label">Veteran status</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-veteran" class="demo-select hidden">
+                      <option value="">Veteran status…</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-disability"><span class="demo-chip-label">Disability status</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <select id="profile-disability" class="demo-select hidden">
+                      <option value="">Disability status…</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <div class="demo-field">
+                    <button type="button" class="demo-chip" data-demo-for="profile-pronouns-sensitive"><span class="demo-chip-label">Pronouns</span><span class="demo-chip-value" data-empty="true">Not set</span></button>
+                    <input type="text" id="profile-pronouns-sensitive" class="demo-select hidden" placeholder="Pronouns (optional)" />
                   </div>
                 </div>
-                <p id="resume-attachment-meta" class="helper-text">Stored locally only for this browser profile.</p>
-                <pre id="resume-attachment-preview" class="resume-attachment-preview"></pre>
-              </div>
-            </div>
-
-            <div class="form-group profile-panel">
-              <label>Saved answer defaults</label>
-              <p class="helper-text">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
-              <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
-              <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
-              <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
-              <div class="inline-fields" style="margin-top:8px">
-                <input type="text" id="default-start-date" placeholder="Start date / availability" />
-                <select id="default-sponsorship">
-                  <option value="">Sponsorship need…</option>
-                  <option value="No">No sponsorship required</option>
-                  <option value="Yes">Will require sponsorship</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group profile-panel" id="core-profile-section">
-              <label>Core profile details</label>
-              <p class="helper-text">These fields power deterministic autofill even when AI is unavailable.</p>
-              <div class="profile-grid">
-                <input type="text" id="profile-full-name" placeholder="Full name" />
-                <input type="text" id="profile-email" placeholder="Email" />
-                <input type="text" id="profile-phone" placeholder="Phone" />
-                <input type="text" id="profile-location" placeholder="Current location" />
-                <input type="text" id="profile-address-line1" placeholder="Street address" />
-                <div class="inline-fields compact-fields">
-                  <input type="text" id="profile-city" placeholder="City" />
-                  <input type="text" id="profile-state-region" placeholder="State" />
-                  <input type="text" id="profile-postal-code" placeholder="ZIP" />
+                <details class="profile-collapsible sensitive-collapsible">
+                  <summary class="collapsible-summary">
+                    <span class="report-title memory-title">Sensitive memory</span>
+                    <span id="sensitive-memory-count" class="badge badge-memory">0 guarded</span>
+                  </summary>
+                  <div class="collapsible-body">
+                    <p class="helper-text">Higher-sensitivity remembers stay grouped here for review. Legal acknowledgements are ignored by default.</p>
+                    <div id="sensitive-memory-list" class="memory-list compact-memory-list">
+                      <p class="empty-msg">No sensitive memory saved.</p>
+                    </div>
+                  </div>
+                </details>
+                <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
                 </div>
-                <input type="text" id="profile-linkedin" placeholder="LinkedIn URL" />
-                <input type="text" id="profile-github" placeholder="GitHub URL" />
-                <input type="text" id="profile-portfolio" placeholder="Portfolio / website" />
-                <input type="text" id="profile-current-company" placeholder="Current company" />
-                <input type="text" id="profile-current-title" placeholder="Current job title" />
-                <input type="number" id="profile-years-of-experience" placeholder="Years of experience" min="0" step="1" />
-                <input type="text" id="profile-pronouns" placeholder="Pronouns (optional)" />
-              </div>
-            </div>
+              </details>
 
-            <div class="form-group settings-group profile-panel">
-              <label>Preferences (optional)</label>
-              <div class="inline-fields">
-                <input type="number" id="salary-min" placeholder="Min salary" />
-                <span class="sep">–</span>
-                <input type="number" id="salary-max" placeholder="Max salary" />
-              </div>
-              <select id="work-auth">
-                <option value="">Work authorization…</option>
-                <option value="US Citizen">US Citizen</option>
-                <option value="Green Card">Green Card</option>
-                <option value="H-1B">H-1B</option>
-                <option value="OPT">OPT</option>
-                <option value="TN Visa">TN Visa</option>
-                <option value="Other">Other</option>
-              </select>
-              <label class="checkbox-row">
-                <input type="checkbox" id="prefer-remote" checked />
-                Prefer remote roles
-              </label>
-            </div>
-
-            <div class="help-card memory-card-shell profile-panel" id="profile-memory-section">
-              <div class="report-header">
-                <span class="report-title memory-title">Memory</span>
-                <span id="memory-count-badge" class="badge badge-memory">0 saved</span>
-              </div>
-              <p class="helper-text">Only non-sensitive reusable answers live here. Click a card to expand and edit it, or ignore outliers so they stop autofilling.</p>
-              <div id="learned-defaults-list" class="memory-list">
-                <p class="empty-msg">No memory saved yet.</p>
-              </div>
-
-              <div class="ignored-memory-block">
-                <div class="report-header">
-                  <span class="report-title memory-title">Ignore list</span>
-                  <span id="ignored-memory-count" class="badge badge-memory">0 ignored</span>
+              <details class="form-group settings-group profile-panel profile-section" id="preferences-section" open>
+                <summary class="collapsible-summary profile-section-summary"><span class="profile-section-title">Preferences &amp; answer defaults (optional)</span></summary>
+                <div class="collapsible-body">
+                <div class="pref-pay-row">
+                  <label class="field-label"><span>Min salary</span><input type="number" id="salary-min" placeholder="Min" /></label>
+                  <span class="sep">–</span>
+                  <label class="field-label"><span>Max salary</span><input type="number" id="salary-max" placeholder="Max" /></label>
+                  <label class="checkbox-row pref-remote-inline">
+                    <input type="checkbox" id="prefer-remote" checked />
+                    Prefer remote
+                  </label>
                 </div>
-                <p class="helper-text">Ignored answers are archived here and will not autofill again until you delete them from this list.</p>
-                <div id="ignored-memory-list" class="memory-list compact-memory-list">
-                  <p class="empty-msg">No ignored memory right now.</p>
+                <p class="helper-text" style="margin-top:10px">Reusable responses for the common prompts that show up across ATSes. We also remember safe manual answers from forms and store them in Memory for later reuse.</p>
+                <textarea id="default-why-company" rows="3" placeholder="Default answer for: Why this company?"></textarea>
+                <textarea id="default-why-role" rows="3" placeholder="Default answer for: Why this role / why are you a fit?" style="margin-top:8px"></textarea>
+                <textarea id="default-additional-info" rows="3" placeholder="Additional information / accommodations note (optional)" style="margin-top:8px"></textarea>
                 </div>
+              </details>
               </div>
-            </div>
-
-            <div class="form-group sensitive-group profile-panel">
-              <label>Sensitive / Demographic (optional)</label>
-              <label class="checkbox-row sensitive-check">
-                <input type="checkbox" id="sensitive-optin" />
-                Enable local autofill for demographic fields (race, gender, veteran, disability, pronouns)
-              </label>
-              <div id="sensitive-fields" class="sensitive-fields hidden">
-                <select id="profile-gender">
-                  <option value="">Gender…</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-race">
-                  <option value="">Race / Ethnicity…</option>
-                  <option value="White">White</option>
-                  <option value="Black or African American">Black or African American</option>
-                  <option value="Hispanic or Latino">Hispanic or Latino</option>
-                  <option value="Asian">Asian</option>
-                  <option value="Native American or Alaska Native">Native American or Alaska Native</option>
-                  <option value="Native Hawaiian or Pacific Islander">Native Hawaiian or Pacific Islander</option>
-                  <option value="Two or more races">Two or more races</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-veteran">
-                  <option value="">Veteran status…</option>
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <select id="profile-disability">
-                  <option value="">Disability status…</option>
-                  <option value="No">No</option>
-                  <option value="Yes">Yes</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                <input type="text" id="profile-pronouns-sensitive" placeholder="Pronouns (optional)" />
-              </div>
-              <div class="sensitive-memory-block">
-                <div class="report-header">
-                  <span class="report-title memory-title">Sensitive memory</span>
-                  <span id="sensitive-memory-count" class="badge badge-memory">0 guarded</span>
-                </div>
-                <p class="helper-text">Higher-sensitivity remembers stay grouped here for review. Legal acknowledgements are ignored by default.</p>
-                <div id="sensitive-memory-list" class="memory-list compact-memory-list">
-                  <p class="empty-msg">No sensitive memory saved.</p>
-                </div>
-              </div>
-              <p class="helper-text">Strictly local. These values are never sent to Gemini or any external service. You can clear them at any time.</p>
             </div>
 
             <div class="profile-save-bar">
               <div class="profile-save-actions">
-                <button id="save-profile-btn" class="btn btn-secondary btn-full">
+                <button id="save-profile-btn" class="btn btn-primary btn-full">
                   Save Profile
                 </button>
-                <button id="parse-resume-btn" class="btn btn-primary btn-full">
-                  Parse / Upload Resume ✨
+                <button id="parse-resume-btn" class="btn btn-secondary btn-full">
+                  Parse Resume with AI
                 </button>
               </div>
             </div>
@@ -254,43 +323,52 @@
             <button id="fill-btn" class="btn btn-primary btn-full">
               ⚡ Fill Form
             </button>
-            <button id="preview-btn" class="btn btn-secondary btn-full">
-              👁 Preview Answers
+            <div class="main-secondary-row">
+              <button id="edit-resume-btn" class="btn btn-ghost">
+                ✏️ Edit<span class="label-full"> Profile</span>
+              </button>
+              <button id="preview-btn" class="btn btn-ghost">
+                👁 Preview
+              </button>
+            </div>
+            <button id="save-job-btn" class="btn btn-ghost btn-full hidden">
+              💾 Save Job to Tracker
             </button>
-            <button id="edit-resume-btn" class="btn btn-ghost btn-full">
-              ✏️ Edit Profile
+            <button id="open-job-search-btn" class="btn btn-primary btn-full btn-search-jobs">
+              🔍 Job Search
             </button>
           </div>
-          <p id="fill-status" class="status-msg"></p>
+          <p id="fill-status" class="status-msg" role="status" aria-live="polite"></p>
         </div>
 
         <div class="main-status-panel">
           <div class="status-card">
-            <button type="button" id="resume-row" class="status-row status-nav" data-nav-target="resume" title="Open Profile to review your resume and defaults.">
-              <span class="status-label">Resume</span>
-              <span id="resume-status" class="badge badge-ok">Ready</span>
-            </button>
-            <button type="button" id="api-row" class="status-row status-nav" data-nav-target="api" title="Open the AI panel to update your Gemini key.">
-              <span class="status-label">AI</span>
-              <span id="api-status" class="badge badge-info">Optional</span>
-            </button>
-            <button type="button" id="profile-row" class="status-row status-nav" data-nav-target="profile" title="Open Profile to complete core fields.">
-              <span class="status-label">Core Profile</span>
-              <span id="profile-status" class="badge badge-info">—</span>
-            </button>
-            <button type="button" id="privacy-row" class="status-row status-nav" data-nav-target="privacy" title="Open Help and privacy details.">
-              <span class="status-label">Privacy</span>
-              <span id="privacy-status-badge" class="badge badge-ok">Local-first</span>
-            </button>
-            <button type="button" id="learned-row" class="status-row status-nav" data-nav-target="memory" title="Open Memory in Profile.">
-              <span class="status-label">Memory</span>
-              <span id="learned-status" class="badge badge-info">0 saved</span>
-            </button>
             <button type="button" class="status-row status-nav" id="ats-row" data-nav-target="ats" title="Open a quick explainer for applicant tracking systems.">
               <span class="status-label">Detected ATS</span>
               <span id="ats-status" class="badge badge-info">No job page</span>
             </button>
             <p id="ats-hint" class="helper-text hidden"></p>
+            <div class="status-divider"></div>
+            <button type="button" id="resume-row" class="status-row status-nav" data-nav-target="resume" title="Open Profile to review your resume and defaults.">
+              <span class="status-label">Resume</span>
+              <span id="resume-status" class="badge badge-ok">Ready</span>
+            </button>
+            <button type="button" id="profile-row" class="status-row status-nav" data-nav-target="profile" title="Open Profile to complete core fields.">
+              <span class="status-label">Core Profile</span>
+              <span id="profile-status" class="badge badge-info">—</span>
+            </button>
+            <button type="button" id="api-row" class="status-row status-nav" data-nav-target="api" title="Open the AI panel to update your Gemini key.">
+              <span class="status-label">AI</span>
+              <span id="api-status" class="badge badge-info">Optional</span>
+            </button>
+            <button type="button" id="learned-row" class="status-row status-nav" data-nav-target="memory" title="Open Memory in Profile.">
+              <span class="status-label">Memory</span>
+              <span id="learned-status" class="badge badge-info">0 saved</span>
+            </button>
+            <button type="button" id="privacy-row" class="status-row status-nav" data-nav-target="privacy" title="Open Help and privacy details.">
+              <span class="status-label">Privacy</span>
+              <span id="privacy-status-badge" class="badge badge-ok">Local-first</span>
+            </button>
           </div>
         </div>
       </div>
@@ -355,9 +433,14 @@
           </label>
           <input id="new-application-salary-range" type="text" placeholder="Salary range" />
         </div>
+        <div class="jd-ai-toolbar">
+          <button id="quickadd-summarize-btn" class="btn btn-ghost btn-xs jd-ai-btn" type="button" data-mode="summary" title="Summarize the pasted JD into key points">✨ Summarize</button>
+          <button id="quickadd-cleanup-btn" class="btn btn-ghost btn-xs jd-ai-btn" type="button" data-mode="cleanup" title="Strip boilerplate / noise from the pasted text">🧹 Clean up</button>
+          <span id="quickadd-ai-status" class="jd-ai-status helper-text"></span>
+        </div>
         <textarea id="new-application-description" rows="5" placeholder="Paste the JD or quick notes (optional)"></textarea>
         <div class="tracker-card-actions" style="margin-top:10px">
-          <span id="tracker-add-status" class="status-msg">Paste a JD or import the current page, then save.</span>
+          <span id="tracker-add-status" class="status-msg" role="status" aria-live="polite">Paste a JD or import the current page, then save.</span>
           <button id="save-new-application-btn" class="btn btn-primary btn-sm">Save to tracker</button>
         </div>
       </div>
@@ -395,16 +478,73 @@
 
     <!-- Job Search Screen -->
     <section id="job-search-screen" class="screen hidden">
-      <div class="tracker-header">
-        <h2 class="section-title" style="margin:0 auto;text-align:center;">Job Search</h2>
-        <button id="job-search-back-btn" class="btn-back" style="position:absolute;left:16px;bottom:16px;">← Back</button>
-      </div>
       <div class="job-search-panel">
-        <div class="job-search-bar">
-          <input id="job-search-input" type="search" placeholder="Search for jobs (e.g. engineer, designer)" aria-label="Search jobs" />
-          <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+        <div class="job-search-sticky">
+          <div class="job-search-header">
+            <h2 class="section-title">Job Search</h2>
+          </div>
+          <!-- Toolbar: [search input] [source chips] [Search] [Filters] -->
+          <div class="job-search-toolbar">
+            <input id="job-search-input" type="search" placeholder="Search jobs…" aria-label="Search jobs" />
+            <div id="job-source-filters" class="job-source-filters" role="group" aria-label="Job search sources"></div>
+            <button id="job-search-submit-btn" class="btn btn-primary btn-sm">Search</button>
+            <button id="job-filters-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-expanded="false" aria-controls="job-search-subbar">⚙ Filters</button>
+          </div>
+          <div id="job-search-subbar" class="job-search-subbar hidden">
+            <div class="job-filter-row">
+              <label class="job-filter-field">
+                <span>Remote</span>
+                <select id="filter-remote">
+                  <option value="any">Any</option>
+                  <option value="remote">Remote</option>
+                  <option value="onsite">On-site</option>
+                </select>
+              </label>
+              <label class="job-filter-field">
+                <span>Type</span>
+                <select id="filter-type">
+                  <option value="any">Any</option>
+                  <option value="full">Full-time</option>
+                  <option value="part">Part-time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Internship</option>
+                  <option value="temp">Temporary</option>
+                </select>
+              </label>
+              <label class="job-filter-field">
+                <span>Location</span>
+                <select id="filter-location">
+                  <option value="any">Anywhere</option>
+                  <option value="usa">USA</option>
+                  <option value="remote">Remote / global</option>
+                  <option value="europe">Europe</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <div class="job-filter-field job-pay-field">
+                <div class="job-pay-controls" id="pay-controls">
+                  <span class="job-pay-label-inline">Pay</span>
+                  <div class="job-pay-mode-toggle" role="group" aria-label="Pay rate mode">
+                    <button type="button" class="job-pay-mode is-active" data-mode="annual">Annual</button>
+                    <button type="button" class="job-pay-mode" data-mode="hourly">Hourly</button>
+                  </div>
+                  <!-- min-box | sliders (half width) | max-box K -->
+                  <div class="job-pay-inline-inputs">
+                    <input type="number" id="pay-min-num" class="job-pay-num" min="0" step="5" value="0" aria-label="Minimum pay value" />
+                    <div class="job-pay-sliders">
+                      <input type="range" id="pay-slider-min" min="0" max="500" step="5" value="0" aria-label="Minimum pay slider" />
+                      <input type="range" id="pay-slider-max" min="0" max="500" step="5" value="500" aria-label="Maximum pay slider" />
+                    </div>
+                    <input type="number" id="pay-max-num" class="job-pay-num" min="0" step="5" value="500" aria-label="Maximum pay value" />
+                    <span class="job-pay-unit" id="pay-unit-min">K</span>
+                  </div>
+                </div>
+                <span id="pay-filter-readout" class="job-pay-readout visually-hidden" aria-live="polite">Any pay</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="job-search-results" class="job-search-results">
+        <div id="job-search-results" class="job-search-results job-search-grid" aria-live="polite">
           <p class="empty-msg">No search yet. Enter a query above.</p>
         </div>
       </div>
@@ -413,7 +553,6 @@
     <!-- AI Screen -->
     <section id="ai-screen" class="screen hidden">
       <div class="tracker-header">
-        <button id="ai-back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">AI settings</h2>
       </div>
 
@@ -439,10 +578,7 @@
               target="_blank"
               rel="noopener"
             >Get a free key →</a>
-          </div>
-
-          <div class="form-group profile-panel ai-panel-group">
-            <label for="gemini-model">Gemini Model</label>
+            <label for="gemini-model" style="margin-top:12px">Gemini Model</label>
             <select id="gemini-model">
               <option value="auto" selected>Auto-detect best available (recommended)</option>
               <option value="gemini-2.5-flash">gemini-2.5-flash (best default)</option>
@@ -452,9 +588,49 @@
             </select>
           </div>
 
+          <div class="form-group profile-panel ai-panel-group" id="job-sources-section">
+            <label for="adzuna-app-id">Job search sources (optional)</label>
+            <p class="helper-text">Optional keyed sources fold extra listings into Job Search alongside the built-in free ones. Keys are stored locally only.</p>
+            <input type="text" id="adzuna-app-id" placeholder="Adzuna App ID" autocomplete="off" />
+            <input type="password" id="adzuna-app-key" placeholder="Adzuna App Key" autocomplete="off" style="margin-top:8px" />
+            <select id="adzuna-country" style="margin-top:8px" aria-label="Adzuna search country">
+              <option value="us">United States</option>
+              <option value="gb">United Kingdom</option>
+              <option value="ca">Canada</option>
+              <option value="au">Australia</option>
+              <option value="de">Germany</option>
+              <option value="fr">France</option>
+              <option value="nl">Netherlands</option>
+              <option value="in">India</option>
+            </select>
+            <a class="hint-link" href="https://developer.adzuna.com/signup" target="_blank" rel="noopener">Get free Adzuna keys →</a>
+
+            <p class="helper-text" style="margin-top:14px">USAJOBS (US federal jobs) — uses your registered account email + API key.</p>
+            <input type="email" id="usajobs-email" placeholder="USAJOBS account email" autocomplete="off" />
+            <input type="password" id="usajobs-api-key" placeholder="USAJOBS API Key" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://developer.usajobs.gov/apirequest/" target="_blank" rel="noopener">Request USAJOBS API access →</a>
+          </div>
+
+          <div class="form-group profile-panel ai-panel-group" id="linkedin-oauth-section">
+            <label for="linkedin-client-id">Profile import — Sign in with LinkedIn (optional)</label>
+            <p class="helper-text">Create a free LinkedIn app, add the redirect URL below to it, paste your Client ID + Secret, then connect to pre-fill your name &amp; email. BYO app, stored locally only. (LinkedIn's public API doesn't expose job listings, so this is profile-import only.)</p>
+            <div class="oauth-redirect-row">
+              <span class="oauth-redirect-label">Redirect URL</span>
+              <code id="oauth-redirect-uri" class="oauth-redirect-uri">—</code>
+              <button type="button" id="copy-redirect-uri-btn" class="btn btn-ghost btn-xs">Copy</button>
+            </div>
+            <input type="text" id="linkedin-client-id" placeholder="LinkedIn Client ID" autocomplete="off" />
+            <input type="password" id="linkedin-client-secret" placeholder="LinkedIn Client Secret" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://www.linkedin.com/developers/apps/new" target="_blank" rel="noopener">Create a LinkedIn app →</a>
+            <div class="linkedin-connect-row">
+              <button type="button" id="connect-linkedin-btn" class="btn btn-secondary btn-sm">🔗 Connect LinkedIn</button>
+              <span id="linkedin-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
-            <p id="ai-status" class="status-msg"></p>
+            <p id="ai-status" class="status-msg" role="status" aria-live="polite"></p>
           </div>
         </div>
       </div>
@@ -463,36 +639,82 @@
     <!-- Help Screen -->
     <section id="help-screen" class="screen hidden">
       <div class="tracker-header">
-        <button id="help-back-btn" class="btn-back">← Back</button>
         <h2 class="section-title">Help & privacy</h2>
       </div>
 
-      <div class="help-card" id="help-legal-section">
+      <div class="help-card help-grid" id="help-legal-section">
+        <div class="legal-meta">
+          <span class="legal-version">Apply Workspace · Terms &amp; Privacy v1.0</span>
+          <span class="legal-updated">Last updated May 31, 2026</span>
+          <a class="hint-link legal-canonical-link" href="https://github.com/nitsuah/auto-apply-plugin/blob/main/PRIVACY.md" target="_blank" rel="noopener">Full policy →</a>
+          <span id="consent-signed-date" class="legal-signed">Consent not recorded yet.</span>
+        </div>
+
         <div class="help-section" id="help-eula-section">
-          <h3>EULA / Terms</h3>
-          <p>`apply-bot` is a review-first helper. You control what gets filled and whether anything is submitted.</p>
+          <h3>Terms of Use (EULA)</h3>
+          <p>Apply Workspace ("the extension") is a local-first, review-first assistant that helps you draft and fill job-application forms. By accepting consent you agree to these terms.</p>
+          <ul class="legal-list">
+            <li><strong>Review before you submit.</strong> The extension only drafts and fills fields. It never submits an application for you — you review every field and click submit yourself.</li>
+            <li><strong>You are responsible for accuracy.</strong> Auto-filled and AI-drafted answers are suggestions. You are solely responsible for the truthfulness and content of anything you submit to an employer.</li>
+            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key. Your use of Gemini is governed by Google's terms, not ours.</li>
+            <li><strong>No warranty.</strong> The extension is provided "as is", without warranty of any kind. To the maximum extent permitted by law, the authors are not liable for any damages, lost opportunities, or rejected applications arising from its use.</li>
+            <li><strong>Acceptable use.</strong> Don't use the extension to submit fraudulent applications or to violate the terms of any job board or ATS.</li>
+            <li><strong>Open source.</strong> The extension is distributed under its repository license; that license governs the software itself.</li>
+          </ul>
         </div>
+
         <div class="help-section" id="help-privacy-section">
-          <h3>Privacy</h3>
-          <p>Your profile, tracker, and memory stay in local Chrome storage by default. Optional resume parsing / AI calls only use the data needed for that request.</p>
-          <p>Once you accept consent in Profile, that gate stays out of the way hereafter and this Help panel remains the place to review the privacy note.</p>
+          <h3>Privacy Policy</h3>
+          <p class="help-lead"><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
+          <ul class="legal-list">
+            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
+            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, autofill is fully on-device and sends nothing.</li>
+            <li><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</li>
+            <li><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key.</li>
+            <li><strong>No tracking.</strong> No analytics, advertising, tracking, or telemetry of any kind.</li>
+          </ul>
         </div>
-        <div class="help-section" id="help-ats-section">
-          <h3>What is an ATS?</h3>
-          <p>An applicant tracking system is the hiring software behind many job forms. `apply-bot` uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
+
+        <div class="help-col-stack">
+          <div class="help-section" id="help-gdpr-section">
+            <h3>GDPR &amp; CCPA / your rights</h3>
+            <p>Because all data lives locally on your device and we never receive it, you remain the sole controller of your information and can exercise every right directly from this panel:</p>
+            <ul class="legal-list">
+              <li><strong>Access &amp; portability:</strong> Export your tracker to CSV from the Pipeline screen; your profile and memory are visible and editable in the Profile screen.</li>
+              <li><strong>Rectification:</strong> Edit any saved field at any time in Profile.</li>
+              <li><strong>Erasure ("right to be forgotten"):</strong> Use <em>Delete all local data</em> below to wipe everything instantly. No request to us is needed because we hold nothing.</li>
+              <li><strong>Withdraw consent:</strong> Re-open privacy settings to review or revoke. Deleting local data clears your recorded consent.</li>
+            </ul>
+          </div>
+
+          <div class="help-section" id="help-ats-section">
+            <h3>What is an ATS?</h3>
+            <p>An applicant tracking system is the hiring software behind many job forms. Apply Workspace uses ATS detection to decide how safely it can fill fields and how much review to keep in the loop.</p>
+          </div>
         </div>
-        <div class="help-section">
-          <h3>GDPR / data control</h3>
-          <p>Use the actions below to clear temporary cache or fully delete your local extension data.</p>
+
+        <div class="help-col-stack">
+          <div class="help-section" id="help-data-controls-section">
+            <h3>Data controls — what each action removes</h3>
+            <div class="data-control-explainer">
+              <p class="data-control-title">🧹 Clear temp cache</p>
+              <p class="helper-text">Removes only short-lived working data and keeps everything you set up. Specifically it deletes: cached page drafts (in-progress form values), the last generated answer set, the last fill report, and the "recently filled" pointer. <strong>Your profile, resume, saved memory, tracker, settings, and Gemini key are kept.</strong></p>
+            </div>
+            <div class="data-control-explainer">
+              <p class="data-control-title">🗑 Delete all local data</p>
+              <p class="helper-text">Wipes <strong>everything</strong> this extension stores on your device — profile and resume, saved answer defaults &amp; ignore list, the entire application tracker, all settings <strong>including your Gemini API key and your recorded consent</strong>, plus everything the temp cache covers. This cannot be undone.</p>
+            </div>
+          </div>
+
+          <div class="action-btns help-actions">
+            <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
+            <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
+            <button id="reset-data-btn" class="btn btn-ghost btn-full btn-danger">🗑 Delete all local data</button>
+          </div>
         </div>
       </div>
 
-      <div class="action-btns">
-        <button id="clear-cache-btn" class="btn btn-secondary btn-full">🧹 Clear temp cache</button>
-        <button id="open-privacy-setup-btn" class="btn btn-ghost btn-full">⚙️ Review privacy settings</button>
-        <button id="reset-data-btn" class="btn btn-ghost btn-full">🗑 Delete all local data</button>
-      </div>
-      <p id="help-status" class="status-msg"></p>
+      <p id="help-status" class="status-msg" role="status" aria-live="polite"></p>
     </section>
 
   </div>

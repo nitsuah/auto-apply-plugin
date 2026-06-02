@@ -6,10 +6,17 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "identity"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
+    "https://remotive.com/*",
+    "https://www.arbeitnow.com/*",
+    "https://www.themuse.com/*",
+    "https://api.adzuna.com/*",
+    "https://data.usajobs.gov/*",
+    "https://api.linkedin.com/*",
     "https://*.greenhouse.io/*",
     "https://*.ashbyhq.com/*",
     "https://*.lever.co/*",
@@ -51,10 +58,16 @@
         "https://*.icims.com/*",
         "https://*.jobvite.com/*",
         "https://*.circle.com/*",
-        "https://*.phenompeople.com/*"
+        "https://*.phenompeople.com/*",
+        "https://*/careers",
+        "https://*/careers/*",
+        "https://*/jobs",
+        "https://*/jobs/*",
+        "https://*/job/*"
       ],
       "js": ["content/content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [

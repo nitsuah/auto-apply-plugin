@@ -31,25 +31,285 @@
   cursor: pointer;
 }
 /* --- Job Search Panel --- */
+/* Centered job-search column; results inside lay out as a grid. */
 #job-search-screen .job-search-panel {
-  max-width: 480px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 16px 0;
+  padding: 0;
 }
-#job-search-screen .job-search-bar {
+#job-search-input { flex: 1; }
+#job-search-submit-btn { min-width: 80px; }
+
+/* Pinned header + controls (tracker-toolbar style). */
+.job-search-sticky {
+  position: sticky;
+  top: 56px;
+  z-index: 6;
+  background: var(--bg);
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.job-search-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.job-search-header .section-title { margin: 0; }
+.job-search-back { position: static; }
+
+.job-search-toolbar {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  flex-wrap: nowrap;
 }
+
+/* Input shrinks to share the row with chips + buttons */
 #job-search-input {
-  flex: 1;
-  padding: 6px 10px;
-  font-size: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  flex: 1 1 140px;
+  min-width: 100px;
 }
-#job-search-submit-btn {
-  min-width: 80px;
+
+/* Source chips sit inline between the input and the Search/Filters buttons */
+#job-source-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  flex-shrink: 0;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#job-source-filters::-webkit-scrollbar { display: none; }
+
+.job-search-subbar {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: grid;
+  gap: 10px;
+}
+
+/* Results grid — fixed column width for consistent card dimensions. */
+.job-search-results.job-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.job-search-grid .job-source-note,
+.job-search-grid .empty-msg {
+  grid-column: 1 / -1;
+}
+
+.job-source-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.job-source-filter-label,
+.job-pay-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 52px;
+}
+
+/* Pay filter */
+.job-pay-filter { display: grid; gap: 8px; }
+
+.job-pay-filter-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.job-pay-mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.job-pay-mode {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+}
+
+.job-pay-mode.is-active {
+  background: rgba(74, 222, 128, 0.14);
+  color: var(--accent);
+}
+
+.job-pay-readout {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Inline filter row (remote / type / location / pay) */
+.job-filter-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.job-filter-field {
+  display: grid;
+  gap: 3px;
+}
+
+.job-filter-field > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.job-filter-field select {
+  min-width: 120px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* "Edit" in popup, "Edit Profile" in standalone tab. */
+.label-full { display: none; }
+body[data-standalone="true"] .label-full { display: inline; }
+
+/* Pay filter — all controls on one row. */
+.job-pay-field {
+  min-width: 260px;
+}
+
+.job-pay-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+/* Inline "Pay" label before the Annual/Hourly toggle. */
+.job-pay-label-inline {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* min-box | sliders (half-width) | max-box K — all on one line */
+.job-pay-inline-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.job-pay-sliders {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 90px; /* half of the previous flex:1 target */
+  flex-shrink: 0;
+}
+
+.job-pay-sliders input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent); /* green */
+}
+
+.job-pay-inline-inputs .job-pay-num {
+  width: 60px;
+  text-align: center;
+}
+
+/* Remove spinner arrows on pay number inputs */
+.job-pay-num::-webkit-outer-spin-button,
+.job-pay-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.job-pay-num[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.job-pay-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.job-pay-inline .job-pay-filter-label {
+  min-width: 0;
+}
+
+.job-pay-inline .job-pay-num {
+  width: 60px;
+}
+
+.job-pay-dash {
+  color: var(--text-muted);
+}
+
+.job-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-pay-row-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 28px;
+}
+
+.job-pay-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  min-width: 120px;
+}
+
+.job-pay-num {
+  width: 66px;
+  text-align: right;
+}
+
+.job-pay-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  width: 34px;
 }
 .job-search-results {
   display: flex;
@@ -57,28 +317,374 @@
   gap: 12px;
 }
 .job-search-result {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px 18px;
+  /* min-height so short cards don't feel tiny; the grid row stretch does the rest */
+  min-height: 180px;
+  padding: 12px 14px 40px;
   background: var(--surface-2);
   color: var(--text);
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.12s;
 }
+
+.job-search-result:hover {
+  border-color: var(--blue);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+  transition: border-color 0.12s, box-shadow 0.15s, transform 0.15s;
+}
+
+/* Saved indicator (top-right) — links to the Pipeline. */
+.job-saved-link {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+  cursor: pointer;
+}
+
+.job-saved-link:hover {
+  background: rgba(74, 222, 128, 0.22);
+}
+
+/* Save button (bottom-right) — green, appears on hover. */
+.job-save-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  background: rgba(74, 222, 128, 0.14);
+  color: #86efac;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.job-search-result:hover .job-save-btn,
+.job-save-btn:focus-visible {
+  opacity: 1;
+}
+
+.job-save-btn:hover {
+  background: rgba(74, 222, 128, 0.24);
+}
+
+.job-result-headline { min-width: 0; }
+
 .job-title {
   font-weight: 600;
-  font-size: 17px;
+  font-size: 14px;
   margin-bottom: 2px;
   color: var(--text);
+  line-height: 1.3;
 }
 .job-meta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-bottom: 6px;
 }
-.job-link {
+
+.job-result-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.job-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.job-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.job-icon-btn.is-saved {
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+.job-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.job-source-note {
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--text-muted);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.job-source-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.job-source-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.job-source-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.job-source-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.job-source-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.job-source-chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(74, 222, 128, 0.12);
+}
+
+/* Source chip heatmap — applied after search, overrides is-active. */
+.job-source-chip.chip-count-zero {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: var(--text-muted) !important;
+  background: rgba(148, 163, 184, 0.06) !important;
+  opacity: 0.65;
+}
+.job-source-chip.chip-count-low {
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: #fca5a5 !important;
+  background: rgba(248, 113, 113, 0.1) !important;
+}
+.job-source-chip.chip-count-mid {
+  border-color: rgba(251, 146, 60, 0.55) !important;
+  color: #fdba74 !important;
+  background: rgba(251, 146, 60, 0.1) !important;
+}
+.job-source-chip.chip-count-high {
+  border-color: rgba(74, 222, 128, 0.6) !important;
+  color: #86efac !important;
+  background: rgba(74, 222, 128, 0.14) !important;
+}
+
+.job-source-chip.is-unavailable {
+  opacity: 0.55;
+  /* Clickable — routes to AI settings to add credentials. */
+  cursor: pointer;
+}
+
+.job-source-chip.is-unavailable:hover {
+  opacity: 0.8;
+  border-color: var(--blue);
   color: var(--blue);
-  text-decoration: underline;
+}
+
+.job-badges {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.job-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.job-badge-remote {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.job-badge-salary {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.job-badge-source {
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.4);
+  background: rgba(167, 139, 250, 0.1);
+}
+
+.job-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.job-result-actions .job-link {
+  text-decoration: none;
+}
+
+.job-save-btn.is-saved {
+  opacity: 0.7;
+}
+
+/* ── UX audit fixes (batch) ──────────────────────────────────────────────── */
+
+/* #4 — Green overuse: neutralize metadata tags so green signals CTAs/status.
+   "Remote" was green; now a neutral slate, salary stays blue. */
+.job-badge-remote {
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+/* #8 — Card tag rows: single-line, source badge always last on its own row. */
+.job-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  max-height: 52px; /* ~2 rows cap so grid rows stay even */
+}
+
+/* #10 — Results meta-bar: anchored, styled, not floating text. */
+.job-source-note {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+/* #12 — Pipeline column header separation (additive to existing layout rule). */
+#tracker-body .tracker-lane-header,
+#tracker-body .tracker-lane-subheader {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+/* #13 — Drafted gets a blue hue; Pending stays amber so they're distinct. */
+.tracker-overflow-bubble[data-status-tone="drafted"] {
+  border-color: rgba(147, 197, 253, 0.45) !important;
+  color: #93c5fd !important;
+  background: rgba(147, 197, 253, 0.1) !important;
+}
+
+/* #17 — Import/Export CSV button parity with Add manually. */
+#import-csv-btn, #export-csv-btn {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+#import-csv-btn:hover, #export-csv-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+
+/* #21 — Save AI Settings: less whitespace between cards and button. */
+.ai-save-bar {
+  padding-top: 12px;
+  margin-top: 0;
+}
+
+/* #29 — Upload drop zone: larger, higher-contrast border. */
+.file-drop-zone {
+  min-height: 120px;
+  border-color: rgba(148, 163, 184, 0.5);
+  font-size: 12px;
+}
+
+/* #32 — Ignore list search: added by JS, styled here. */
+.ignore-list-search {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+/* ── End UX audit batch ──────────────────────────────────────────────────── */
+
+/* AI summarize / clean-up toolbar (quick-add + tracker card descriptions) */
+.jd-ai-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.jd-ai-btn {
+  white-space: nowrap;
+}
+
+.jd-ai-status {
+  font-size: 10px;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* ============================================================
    apply-bot — popup styles
@@ -91,10 +697,11 @@
 }
 
 :root {
-  --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface-2: #22263a;
-  --border: #2e3347;
+  --bg: #0b0f19;
+  --bg-base: #0b0f19;
+  --surface: #141720;
+  --surface-2: #1d2133;
+  --border: #272b3e;
   --accent: #4ade80;
   --accent-dark: #16a34a;
   --blue: #60a5fa;
@@ -114,11 +721,12 @@ body {
 }
 
 body {
-  background: var(--bg);
+  background: var(--bg-base);
   color: var(--text);
   width: 440px;
   min-width: 440px;
-  min-height: 520px;
+  /* Compact floor; Chrome grows the popup to fit content (up to ~600px). */
+  min-height: 300px;
   overflow-x: hidden;
   overflow-y: auto;
   font-size: 13px;
@@ -177,8 +785,12 @@ body[data-standalone="true"] #app {
 /* ── Header ── */
 .header {
   background: var(--surface);
-  padding: 12px 16px 10px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
+  /* Keep the top nav pinned across all screens. */
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 body[data-standalone="true"] .header {
@@ -250,11 +862,45 @@ body[data-screen="main"] .header-screen-label {
   font-weight: 600;
   padding: 5px 10px;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .icon-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Nav labels: hidden in the narrow popup, visible in the standalone tab. */
+.tracker-btn-label {
+  display: none;
+}
+
+body[data-standalone="true"] .tracker-btn-label {
+  display: inline;
+}
+
+/* Active nav tab — glowing green pill */
+.icon-btn.active-tab {
+  background: rgba(74, 222, 128, 0.13);
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.55);
+  font-weight: 700;
+}
+
+/* Global back button in header */
+.global-back-btn {
+  border-radius: 999px;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 10px;
+  margin-right: 4px;
+}
+
+.global-back-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .count-pill {
@@ -336,6 +982,7 @@ input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="url"],
+input[type="email"],
 input[type="search"],
 textarea,
 select {
@@ -350,6 +997,7 @@ select {
   transition: border-color 0.15s;
 }
 
+input[type="email"]:focus,
 input[type="text"]:focus,
 input[type="password"]:focus,
 input[type="number"]:focus,
@@ -358,6 +1006,33 @@ input[type="search"]:focus,
 textarea:focus,
 select:focus {
   border-color: var(--accent);
+}
+
+/* ── Keyboard focus visibility ──
+   Custom-styled controls suppress the default ring, so give every interactive
+   element a clear, consistent focus indicator for keyboard users only. */
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+.tracker-overflow-bubble:focus-visible,
+.tracker-final-bubble:focus-visible,
+.tracker-card-grabber:focus-visible,
+.memory-bubble:focus-visible,
+.collapsible-summary:focus-visible,
+.tracker-card-summary:focus-visible,
+.status-nav:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.7);
+  outline-offset: 1px;
 }
 
 select {
@@ -388,6 +1063,38 @@ textarea {
 
 .hint-link:hover {
   text-decoration: underline;
+}
+
+/* LinkedIn OAuth / redirect URL */
+.oauth-redirect-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.oauth-redirect-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.oauth-redirect-uri {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 3px 6px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.linkedin-connect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 /* ── Resume tabs ── */
@@ -422,8 +1129,14 @@ textarea {
 /* ── File drop zone ── */
 .file-drop-zone {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  /* Larger drop zone for better usability */
+  width: 100%;
+  max-width: 360px;
+  min-height: 120px;
   background: var(--surface);
   border: 2px dashed var(--border);
   border-radius: var(--radius);
@@ -493,6 +1206,119 @@ textarea {
   padding: 12px;
 }
 
+/* Two-up rows on wide layouts; stacks on the narrow popup. */
+.profile-row-2col {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (min-width: 760px) {
+  .profile-row-2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Memory row: protected/sensitive (red) on the left, regular memory on the right. */
+.profile-row-2col .sensitive-group {
+  order: 1;
+}
+
+.profile-row-2col #profile-memory-section {
+  order: 2;
+}
+
+.profile-row-2col > * {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* Lower-half two-column layout — stacked single column for less whitespace asymmetry. */
+.profile-two-col {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+  grid-template-columns: 1fr;
+  max-width: 720px;
+}
+
+@media (min-width: 900px) {
+  .profile-two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.profile-col {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* Every profile panel is a collapsible <details> section. */
+.profile-section {
+  margin-bottom: 0;
+}
+
+.profile-section > .collapsible-body {
+  padding-top: 10px;
+}
+
+.profile-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Collapsible <details> sections (click summary to expand). */
+.profile-collapsible {
+  border-radius: var(--radius-sm);
+}
+
+.collapsible-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary .badge {
+  margin-left: auto;
+}
+
+.collapsible-summary::after {
+  content: '▸';
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+details[open] > .collapsible-summary::after {
+  transform: rotate(90deg);
+}
+
+.collapsible-body {
+  padding-top: 10px;
+}
+
+.ignored-collapsible,
+.sensitive-collapsible {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
 .profile-panel .helper-text:last-child {
   margin-bottom: 0;
 }
@@ -538,8 +1364,7 @@ textarea {
 .resume-attachment-preview {
   margin: 8px 0 0;
   padding: 10px;
-  max-height: 168px;
-  overflow: auto;
+  /* Expanded by default; the toggle collapses it to a scroll box. */
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -548,6 +1373,11 @@ textarea {
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.resume-attachment-preview.collapsed {
+  max-height: 168px;
+  overflow: auto;
 }
 
 .profile-save-bar {
@@ -561,6 +1391,8 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  /* Compact, fixed max width rather than spanning the whole workspace. */
+  max-width: 440px;
 }
 
 .profile-save-bar .status-msg {
@@ -661,24 +1493,95 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   margin-top: 2px;
 }
 
+/* Demographic / sensitive data — neutral styling (not alarming red) */
 .sensitive-group {
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(251, 191, 36, 0.06);
+  background: var(--surface);
   margin-bottom: 12px;
+}
+.sensitive-section-label {
+  color: var(--text-muted) !important;
+}
+.sensitive-group .memory-title {
+  color: var(--text-muted);
+}
+.sensitive-group .memory-bubble {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.07);
+}
+.sensitive-group .memory-bubble:hover {
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #e2e8f0;
 }
 .sensitive-check {
   align-items: flex-start;
 }
+/* Demographic chips flow as a fill grid (like the sensitive memory chips). */
 .sensitive-fields {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 8px;
   margin-bottom: 4px;
 }
 .sensitive-fields.hidden {
+  display: none;
+}
+.sensitive-fields > .helper-text {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Demographic fields as expandable red "bubble" labels. */
+.demo-field {
+  display: inline-flex;
+}
+
+.demo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.demo-select {
+  min-width: 150px;
+}
+
+.demo-chip:hover {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(248, 113, 113, 0.14);
+}
+
+.demo-chip-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fca5a5;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.demo-chip-value {
+  font-size: 12px;
+}
+
+.demo-chip-value[data-empty="true"] {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.demo-select.hidden {
   display: none;
 }
 
@@ -783,10 +1686,44 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 /* ── Status card ── */
 .main-top-grid {
   display: grid;
-  grid-template-columns: minmax(124px, 1fr) minmax(0, 2fr);
-  gap: 8px;
+  grid-template-columns: minmax(150px, 1.25fr) minmax(0, 2fr);
+  gap: 10px;
   align-items: stretch;
   margin-bottom: 12px;
+}
+
+/* Main action button palette */
+/* Fill Form — deep dark purple */
+#fill-btn {
+  background: #5b21b6;
+  border-color: #5b21b6;
+  color: #f5f3ff;
+}
+
+#fill-btn:hover:not(:disabled) {
+  background: #4c1d95;
+  border-color: #4c1d95;
+}
+
+/* Edit Profile + Preview side-by-side row */
+.main-secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.main-secondary-row .btn {
+  width: 100%;
+}
+
+#edit-resume-btn {
+  border-color: #7c3aed;
+  color: #c4b5fd;
+}
+
+#edit-resume-btn:hover:not(:disabled) {
+  border-color: #8b5cf6;
+  background: rgba(124, 58, 237, 0.14);
 }
 
 .main-actions-panel,
@@ -876,6 +1813,225 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   background: rgba(192, 132, 252, 0.16);
   color: var(--purple);
 }
+
+/* ── Field labels (core profile / preferences) ── */
+/* `label.field-label` / the 2-class selector beat `.form-group > label`. */
+label.field-label,
+.field-label.field-group-span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.field-label > span {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.field-label > input,
+.field-label > select,
+.field-label > textarea {
+  width: 100%;
+}
+
+.field-group-span {
+  grid-column: 1 / -1;
+}
+
+.pref-pay-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pref-pay-row .field-label {
+  flex: 1 1 80px;
+}
+
+.pref-pay-row .sep {
+  align-self: center;
+  padding-bottom: 8px;
+}
+
+.pref-remote-inline {
+  flex: 2 1 120px;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.pref-bottom-fields .field-label {
+  flex: 1;
+}
+
+/* ── Resume two-column (narrow input | wide saved copy, 1:3) ── */
+.resume-grid {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.resume-saved-col .resume-attachment-card {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .resume-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Expandable resume preview — collapsed by default, click to show all. */
+
+/* ── Smarter field sizing in Core Profile ── */
+.profile-grid-eligibility {
+  margin-top: 8px;
+}
+
+.field-group-span .inline-fields #profile-state-region {
+  max-width: 90px;
+}
+
+.field-group-span .inline-fields #profile-postal-code {
+  max-width: 120px;
+}
+
+#profile-years-of-experience {
+  max-width: 140px;
+}
+
+/* ── Memory accents: ignore list = grey, sensitive memory = red ── */
+.ignored-collapsible .memory-title {
+  color: var(--text-muted);
+}
+
+.ignored-collapsible .badge-memory {
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.ignored-collapsible .memory-bubble {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+}
+
+.ignored-collapsible .memory-bubble:hover {
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #e2e8f0;
+}
+
+.sensitive-group .badge-memory {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.14);
+}
+
+/* ── Standalone "home" main view should feel compact, not sprawling ── */
+body[data-standalone="true"][data-screen="main"] .screen > * {
+  max-width: 860px;
+}
+
+.btn-search-jobs {
+  margin-top: 2px;
+}
+
+/* ── AI panel: cards in a content-sized grid instead of full-width stacks ── */
+#ai-consent-gated {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+#ai-consent-gated .ai-panel-group {
+  margin-bottom: 0;
+}
+
+#ai-consent-gated .ai-save-bar {
+  grid-column: 1 / -1;
+  position: static;
+  background: transparent;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* Per-card flair (colored left accent + heading), like the Help panel. */
+#ai-consent-gated .ai-panel-group {
+  border-left-width: 3px;
+}
+
+/* AI card labels match Help section h3 size (12px) for visual consistency. */
+#profile-api-section { border-left-color: var(--accent); }
+#profile-api-section > label:first-of-type { color: var(--accent); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+#job-sources-section { border-left-color: var(--blue); }
+#job-sources-section > label:first-of-type { color: var(--blue); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+#linkedin-oauth-section { border-left-color: var(--purple); }
+#linkedin-oauth-section > label:first-of-type { color: var(--purple); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Help: legal sections as content-sized cards ── */
+.help-card.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.help-card.help-grid .legal-meta {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.help-card.help-grid .help-section {
+  margin: 0;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* Stacked cards (GDPR+ATS, Data-controls+actions) share a column. */
+.help-col-stack {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+/* Help action buttons live in the last column (column-width, not full-width). */
+.help-actions {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  margin: 0;
+}
+
+.help-lead {
+  margin-bottom: 8px;
+}
+
+/* Per-section flair: colored left accent + heading. */
+#help-eula-section { border-left-color: var(--blue); }
+#help-eula-section h3 { color: var(--blue); }
+#help-privacy-section { border-left-color: var(--accent); }
+#help-privacy-section h3 { color: var(--accent); }
+#help-gdpr-section { border-left-color: var(--purple); }
+#help-gdpr-section h3 { color: var(--purple); }
+#help-ats-section { border-left-color: var(--text-muted); }
+#help-data-controls-section { border-left-color: var(--red); }
+#help-data-controls-section h3 { color: #fca5a5; }
 
 /* ── Action buttons ── */
 .action-btns {
@@ -1065,6 +2221,10 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  /* Pin the tracker toolbar just below the top nav. */
+  position: sticky;
+  top: 56px;
+  z-index: 12;
 }
 
 .tracker-toolbar-actions {
@@ -1241,7 +2401,8 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-lane {
 }
 
 body[data-standalone="true"][data-screen="tracker"] .tracker-card {
-  padding: 7px;
+  /* Keep the reserved left gutter so the drag rail never overlaps content. */
+  padding: 7px 7px 7px 24px;
 }
 
 body[data-standalone="true"][data-screen="tracker"] .tracker-card-header {
@@ -1353,6 +2514,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .tracker-overflow-bubble {
   width: 24px;
   height: 24px;
+  padding: 0;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
@@ -1362,6 +2524,25 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   border: 1px solid rgba(148, 163, 184, 0.35);
   color: #d8deed;
   background: rgba(15, 23, 42, 0.88);
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.tracker-overflow-bubble:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #bfdbfe;
+}
+
+.tracker-overflow-bubble.is-expanded {
+  border-color: rgba(96, 165, 250, 0.85);
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.55);
+  transform: translateY(-1px);
+}
+
+.tracker-overflow-expanded {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .tracker-overflow-bubble[data-status-tone="drafted"] {
@@ -1520,6 +2701,24 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.32);
 }
 
+.tracker-lane-group.drag-target {
+  background: rgba(74, 222, 128, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.28);
+  border-radius: var(--radius-sm);
+}
+
+/* Draggable bubbles */
+.tracker-overflow-bubble,
+.tracker-final-bubble {
+  cursor: grab;
+}
+
+.tracker-overflow-bubble.dragging,
+.tracker-final-bubble.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
 .tracker-lane-group + .tracker-lane-group {
   margin-top: 10px;
   padding-top: 10px;
@@ -1538,6 +2737,42 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Section bubbles sit inline with the (sub)title to save vertical space. */
+.tracker-lane-inline-bubbles {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tracker-lane-inline-bubbles .tracker-overflow-bubble {
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+
+.tracker-section-toggle {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tracker-section-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .tracker-lane-empty {
@@ -1545,13 +2780,55 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-card {
+  position: relative;
   min-width: 0;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px;
+  /* Reserved left gutter so the corner grip never sits on top of content. */
+  padding: 8px 8px 8px 24px;
+  cursor: default;
+}
+
+/* Full-height drag rail on the left, living entirely inside the reserved
+   gutter so it never covers the card text. Revealed on hover; the card body
+   itself isn't draggable, so a plain click still expands the card. */
+.tracker-card-grabber {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: -1px;
   cursor: grab;
+  border-right: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: var(--radius) 0 0 var(--radius);
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.tracker-card:hover .tracker-card-grabber,
+.tracker-card-grabber.dragging {
+  opacity: 1;
+}
+
+.tracker-card-grabber:hover {
+  color: var(--text);
+  background: rgba(96, 165, 250, 0.16);
+}
+
+.tracker-card-grabber:active,
+.tracker-card-grabber.dragging {
+  cursor: grabbing;
 }
 
 .tracker-card.expanded {
@@ -1561,7 +2838,6 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 .tracker-card.dragging {
   opacity: 0.6;
   border-style: dashed;
-  cursor: grabbing;
 }
 
 .tracker-card-summary {
@@ -1662,6 +2938,87 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   font-weight: 700;
 }
 
+.tracker-score-stars.is-empty {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+/* Compact emoji-first summary details — one inline row */
+.tracker-summary-details {
+  margin-top: 5px;
+}
+
+.tracker-summary-detailrow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tracker-summary-detailrow .tracker-summary-salary {
+  margin-top: 0;
+}
+
+.meta-emoji {
+  font-size: 13px;
+  line-height: 1;
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+}
+
+.flag-svg {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.tracker-summary-sentiment {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Click the sentiment emoji to cycle the verdict. */
+.tracker-sentiment-interactive {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 2px;
+  transition: filter 0.1s, background 0.1s;
+}
+
+.tracker-sentiment-interactive:hover {
+  filter: brightness(1.25);
+  background: rgba(148, 163, 184, 0.16);
+}
+
+/* Interactive star rating — reverse flex so :hover fills hovered + earlier. */
+.tracker-score-interactive {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.tracker-score-interactive .tracker-star {
+  color: #4b5563;
+  transition: color 0.1s, transform 0.1s;
+}
+
+.tracker-score-interactive .tracker-star.is-filled {
+  color: #f5d56d;
+}
+
+.tracker-score-interactive:hover .tracker-star {
+  color: #4b5563;
+}
+
+.tracker-score-interactive .tracker-star:hover,
+.tracker-score-interactive .tracker-star:hover ~ .tracker-star {
+  color: #f5d56d;
+  transform: scale(1.12);
+}
+
 .tracker-card-note-right {
   font-size: 10px;
   color: var(--blue);
@@ -1683,9 +3040,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   display: block;
 }
 
-.tracker-card.expanded .tracker-summary-meta,
-.tracker-card.expanded .tracker-summary-salary,
-.tracker-card.expanded .tracker-summary-insights,
+.tracker-card.expanded .tracker-summary-details,
 .tracker-card.expanded .tracker-card-meta-row {
   display: none;
 }
@@ -1843,8 +3198,8 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 
 .tracker-scorecard-editor {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(150px, 1fr);
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .tracker-scorecard-other.hidden {
@@ -1883,6 +3238,48 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--text-muted);
 }
 
+/* Keep editor boxes + fields from bleeding into the next column. */
+.tracker-card-groups-grid > * {
+  min-width: 0;
+}
+
+.tracker-field-label {
+  min-width: 0;
+}
+
+.tracker-field-label > input,
+.tracker-field-label > select,
+.tracker-field-label > textarea,
+.tracker-field-url,
+.tracker-location-select,
+.tracker-scorecard-editor select,
+.tracker-scorecard-editor input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Company + Role at the top of the context box. */
+.tracker-context-headline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+
+.tracker-context-headline .tracker-field-label {
+  min-width: 0;
+}
+
+/* Tighter submitted / last-updated cells. */
+.tracker-date-box {
+  gap: 4px;
+}
+
+.tracker-date-box input {
+  padding: 5px 8px;
+}
+
 .tracker-field-description {
   grid-column: 1 / -1;
   min-height: 110px;
@@ -1911,7 +3308,12 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 
 .pay-editor-row {
   display: grid;
-  grid-template-columns: 56px 1fr 92px;
+  gap: 6px;
+}
+
+.pay-editor-top {
+  display: grid;
+  grid-template-columns: 1fr 116px;
   align-items: center;
   gap: 8px;
 }
@@ -1923,8 +3325,45 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--text-muted);
 }
 
-.pay-editor input[type="range"] {
+/* Keep the native up/down spinners on the pay number boxes so values can be
+   nudged by hand even when the slider snaps to coarse steps. */
+.pay-editor input[type="number"] {
+  text-align: right;
+}
+
+.pay-editor input[type="range"],
+.pay-editor .pay-slider {
+  width: 100%;
   accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Invalid pay box — neon red border + a quick attention nudge. */
+.pay-editor input.pay-invalid {
+  border-color: #f87171;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.5), 0 0 8px rgba(248, 113, 113, 0.45);
+  animation: pay-nudge 0.3s ease;
+}
+
+@keyframes pay-nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.pay-warning {
+  font-size: 10px;
+  color: #fca5a5;
+  margin: 0;
+}
+
+.pay-warning.hidden {
+  display: none;
+}
+
+.tracker-save-btn.is-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {
@@ -2089,6 +3528,68 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--text-muted);
 }
 
+.help-section code {
+  font-size: 10px;
+  background: rgba(148, 163, 184, 0.14);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legal-version {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.legal-signed {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.legal-signed.is-signed {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.legal-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: grid;
+  gap: 4px;
+}
+
+.legal-list li strong {
+  color: var(--text);
+}
+
+.data-control-explainer + .data-control-explainer {
+  margin-top: 8px;
+}
+
+.data-control-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text) !important;
+  margin-bottom: 2px;
+}
+
 .memory-card-shell {
   border-color: rgba(192, 132, 252, 0.35);
 }
@@ -2097,17 +3598,42 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   color: var(--purple);
 }
 
+/* Bubble layout: contracted chips flow inline; expanded cards take a full row. */
 .memory-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .compact-memory-list {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.memory-bubble {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  background: rgba(192, 132, 252, 0.08);
+  color: #d8deed;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.memory-bubble:hover {
+  border-color: rgba(192, 132, 252, 0.65);
+  color: #e9d5ff;
 }
 
 .memory-item {
+  flex: 1 1 100%;
   border: 1px solid rgba(192, 132, 252, 0.28);
   border-radius: var(--radius-sm);
   background: rgba(192, 132, 252, 0.05);
@@ -2339,5 +3865,218 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   .tracker-toolbar .btn {
     font-size: 11px;
     padding: 5px 8px;
+  }
+}
+
+/* ── Pipeline card: expanded as floating modal overlay ── */
+.tracker-card.expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  width: min(860px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(96, 165, 250, 0.2);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+/* Blurred backdrop when a card is expanded */
+body.modal-open::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(5, 8, 16, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Pipeline lane header: distinct visual separation from cards ── */
+.tracker-lane-header {
+  margin: -10px -10px 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* ── Pipeline "Drafted" status: distinct from generic "Pending" ── */
+.tracker-status-select[data-status-tone="drafted"] {
+  background: rgba(96, 165, 250, 0.09);
+  border-color: rgba(96, 165, 250, 0.22);
+  color: #93c5fd;
+}
+
+/* ── Secondary pipeline action buttons (Import/Export CSV) ── */
+#import-csv-btn,
+#export-csv-btn {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+#import-csv-btn:hover:not(:disabled),
+#export-csv-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Preview screen: dense key-value list for scalar answers ── */
+.preview-key-value-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0;
+  font-size: 12px;
+}
+
+.preview-kv-row {
+  display: contents;
+}
+
+.preview-kv-label {
+  padding: 5px 10px 5px 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.preview-kv-value {
+  padding: 5px 0;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  word-break: break-word;
+}
+
+/* Narrative cards with overflow fade and Show more toggle */
+.preview-card.is-collapsible .preview-card-value {
+  position: relative;
+  max-height: 72px;
+  overflow: hidden;
+}
+
+.preview-card.is-collapsible .preview-card-value::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(transparent, rgba(15, 23, 42, 0.95));
+  pointer-events: none;
+}
+
+.preview-card.is-expanded .preview-card-value {
+  max-height: none;
+  overflow: visible;
+}
+
+.preview-card.is-expanded .preview-card-value::after {
+  display: none;
+}
+
+.preview-show-more-btn {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--blue);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  display: block;
+}
+
+.preview-show-more-btn:hover {
+  text-decoration: underline;
+}
+
+/* ── Memory: bubble active state and connector to expanded card ── */
+.memory-bubble.is-active {
+  background: rgba(192, 132, 252, 0.18);
+  border-color: rgba(192, 132, 252, 0.65);
+  color: #e9d5ff;
+  border-radius: 999px 999px 6px 6px;
+}
+
+.memory-item.expanded {
+  border-left: 2px solid rgba(192, 132, 252, 0.5);
+  margin-left: 4px;
+}
+
+/* Memory action buttons — adequate padding, delete = danger */
+.memory-item-actions .btn-xs {
+  padding: 5px 12px;
+}
+
+.memory-delete-btn {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.memory-delete-btn:hover:not(:disabled) {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.65);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Ignore list filter search input */
+.ignore-list-search {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+/* ── Status card: ATS divider ── */
+.status-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 4px;
+  opacity: 0.6;
+}
+
+/* ── API key validation badge ── */
+.api-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.1);
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.api-key-badge.is-connected {
+  color: var(--accent);
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.api-key-badge.is-invalid {
+  color: var(--red);
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* Respect users who prefer reduced motion — disable non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

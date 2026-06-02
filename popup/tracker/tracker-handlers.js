@@ -4,7 +4,7 @@
 import { $, sendMessage, sendToActiveTab, renderStatusOptions } from '../../lib/utils.js';
 import { normalizeApplicationStatus } from '../../lib/tracker.js';
 import { trackerDragState, trackerViewState, trackerSaveTimers, expandedTrackerIds } from './tracker-state.js';
-import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup, toggleFinalStageBubbleSelection, clearFinalStageBubbleSelections, toggleFinalDockLane } from './tracker-ui.js';
+import { renderTracker, syncTrackerCardSummary, getTrackerLaneCount, toggleFinalStageGroup, toggleFinalStageBubbleSelection, clearFinalStageBubbleSelections, toggleFinalDockLane, setBubblesExpanded, areAllBubblesExpanded } from './tracker-ui.js';
 import { getTrackingStatusMeta } from './tracker-meta.js';
 import { exportCsv, importTrackerCsvFile } from './tracker-csv.js';
 import { showScreen } from '../ux/navigation.js';
@@ -36,6 +36,31 @@ function setTrackerAddStatus(msg, type = '') {
   el.className = 'status-msg' + (type ? ' ' + type : '');
 }
 
+// ── AI summarize / clean-up for long descriptions ───────────────────────────
+
+/**
+ * Run an AI summarize/clean-up pass over description text via the service
+ * worker. Returns the transformed text, or null on empty input / failure
+ * (status is reflected in statusEl).
+ */
+async function runJdTransform(text, mode, statusEl) {
+  const value = String(text || '').trim();
+  if (!value) {
+    if (statusEl) statusEl.textContent = 'Paste a description first.';
+    return null;
+  }
+  if (statusEl) statusEl.textContent = mode === 'cleanup' ? '🧹 Cleaning up…' : '✨ Summarizing…';
+  try {
+    const resp = await sendMessage({ type: 'SUMMARIZE_JD', payload: { text: value, mode } });
+    if (!resp?.success) throw new Error(resp?.error || 'AI request failed.');
+    if (statusEl) statusEl.textContent = '✅ Done — review and Save.';
+    return resp.text;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '❌ ' + (err?.message || 'AI request failed.');
+    return null;
+  }
+}
+
 // ── Lazy reference to loadMainScreen (avoids circular imports) ──────────────
 
 let _loadMainScreen = null;
@@ -61,6 +86,22 @@ export function initTrackerHandlers() {
   $('add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm());
   $('cancel-add-application-btn')?.addEventListener('click', () => toggleTrackerAddForm(false));
   $('import-current-job-btn')?.addEventListener('click', importCurrentPageIntoTrackerForm);
+
+  // Quick-add AI summarize / clean-up
+  const wireQuickAddAi = (btnId) => {
+    $(btnId)?.addEventListener('click', async (event) => {
+      const btn = event.currentTarget;
+      const mode = btn.dataset.mode || 'summary';
+      const textarea = $('new-application-description');
+      if (!textarea) return;
+      btn.disabled = true;
+      const result = await runJdTransform(textarea.value, mode, $('quickadd-ai-status'));
+      btn.disabled = false;
+      if (result) textarea.value = result;
+    });
+  };
+  wireQuickAddAi('quickadd-summarize-btn');
+  wireQuickAddAi('quickadd-cleanup-btn');
   $('save-new-application-btn')?.addEventListener('click', saveNewApplicationFromForm);
   $('import-csv-btn')?.addEventListener('click', () => $('import-csv-input')?.click());
   $('import-csv-input')?.addEventListener('change', (e) => importTrackerCsvFile(e));
@@ -83,7 +124,8 @@ export function initTrackerHandlers() {
   });
   $('tracker-clear-filters-btn')?.addEventListener('click', async () => {
     trackerViewState.query = '';
-    trackerViewState.activeOnly = false;
+    // Clearing returns to the default Active view, not an unfiltered "All".
+    trackerViewState.activeOnly = true;
     if ($('tracker-search-input')) $('tracker-search-input').value = '';
     await renderTracker();
     showScreen('tracker');
@@ -104,6 +146,50 @@ export function initTrackerHandlers() {
 
   // Delegated click handlers on tracker body
   $('tracker-body')?.addEventListener('click', async (event) => {
+    // Interactive score stars on the collapsed card — set the score without
+    // expanding the card.
+    const starEl = event.target.closest('.tracker-star[data-star]');
+    if (starEl) {
+      const card = starEl.closest('.tracker-card');
+      const id = card?.dataset.id;
+      if (id) {
+        const value = Number(starEl.dataset.star) || 0;
+        const resp = await sendMessage({ type: 'UPDATE_APPLICATION', payload: { id, patch: { scorecard: value ? `${value}/5` : '' } } });
+        if (resp?.success && resp.entry) syncTrackerCardSummary(card, resp.entry);
+      }
+      return;
+    }
+
+    // Click the sentiment emoji to cycle the verdict — also without expanding.
+    const sentEl = event.target.closest('[data-sentiment-cycle]');
+    if (sentEl) {
+      const card = sentEl.closest('.tracker-card');
+      const id = card?.dataset.id;
+      if (id) {
+        const order = ['strong_yes', 'lean_yes', 'neutral', 'lean_no', 'no', 'research'];
+        const cur = sentEl.dataset.verdict || 'neutral';
+        const next = order[(order.indexOf(cur) + 1 + order.length) % order.length];
+        const resp = await sendMessage({ type: 'UPDATE_APPLICATION', payload: { id, patch: { verdict: next } } });
+        if (resp?.success && resp.entry) syncTrackerCardSummary(card, resp.entry);
+      }
+      return;
+    }
+
+    // AI summarize / clean-up on a card's description (sets the textarea without
+    // auto-saving, so the original is preserved until the user clicks Save).
+    const jdAiBtn = event.target.closest('.tracker-jd-ai-btn');
+    if (jdAiBtn) {
+      const card = jdAiBtn.closest('.tracker-card');
+      const textarea = card?.querySelector('.tracker-field-description');
+      if (!textarea) return;
+      const mode = jdAiBtn.dataset.mode || 'summary';
+      jdAiBtn.disabled = true;
+      const result = await runJdTransform(textarea.value, mode, card.querySelector('.tracker-jd-ai-status'));
+      jdAiBtn.disabled = false;
+      if (result) textarea.value = result;
+      return;
+    }
+
     const laneToggleBtn = event.target.closest('.tracker-lane-toggle');
     if (laneToggleBtn) {
       const status = laneToggleBtn.dataset.finalStatus || '';
@@ -122,16 +208,36 @@ export function initTrackerHandlers() {
       return;
     }
 
-    const finalBubbleBtn = event.target.closest('.tracker-final-bubble');
-    if (finalBubbleBtn) {
-      if (finalBubbleBtn.dataset.clearFinalBubbles === 'true') {
-        clearFinalStageBubbleSelections();
-        await renderTracker();
-        showScreen('tracker');
-        return;
-      }
+    // Expand/collapse every card in one section at once.
+    const sectionToggle = event.target.closest('.tracker-section-toggle');
+    if (sectionToggle) {
+      const wrap = sectionToggle.closest('.tracker-lane-subheader, .tracker-lane-header');
+      const ids = [...(wrap?.querySelectorAll('.tracker-overflow-bubble[data-id]') || [])]
+        .map((b) => b.dataset.id).filter(Boolean);
+      setBubblesExpanded(ids, !areAllBubblesExpanded(ids));
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
 
-      const id = finalBubbleBtn.dataset.expandCardId || '';
+    // Clear (×) on a final-stage dock only collapses that lane's previews.
+    const clearBubblesBtn = event.target.closest('[data-clear-final-bubbles="true"]');
+    if (clearBubblesBtn) {
+      const lane = clearBubblesBtn.closest('.tracker-lane-final');
+      const ids = [...(lane?.querySelectorAll('[data-expand-card-id]') || [])]
+        .map((b) => b.dataset.expandCardId).filter(Boolean);
+      if (ids.length) setBubblesExpanded(ids, false);
+      else clearFinalStageBubbleSelections();
+      await renderTracker();
+      showScreen('tracker');
+      return;
+    }
+
+    // Both final-stage bubbles and primary-lane overflow bubbles expand to a
+    // read-only preview card via the same selection set.
+    const expandBubbleBtn = event.target.closest('[data-expand-card-id]');
+    if (expandBubbleBtn) {
+      const id = expandBubbleBtn.dataset.expandCardId || '';
       if (id) {
         toggleFinalStageBubbleSelection(id);
         await renderTracker();
@@ -153,7 +259,6 @@ export function initTrackerHandlers() {
       if (card) {
         const expanded = card.classList.toggle('expanded');
         toggleBtn.setAttribute('aria-expanded', String(expanded));
-        card.setAttribute('draggable', expanded ? 'false' : 'true');
         const id = card.dataset.id;
         if (expanded) expandedTrackerIds.add(id);
         else expandedTrackerIds.delete(id);
@@ -177,6 +282,15 @@ export function initTrackerHandlers() {
     const card = saveBtn.closest('.tracker-card');
     if (!card) return;
     await saveTrackerCard(card, { showMessage: true });
+  });
+
+  // Keyboard support for the expand/collapse card summary (role="button").
+  $('tracker-body')?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+    const toggle = event.target.closest('.tracker-card-toggle');
+    if (!toggle) return;
+    event.preventDefault();
+    toggle.click();
   });
 
   // Auto-save on field change/blur
@@ -212,9 +326,20 @@ export function initTrackerHandlers() {
       }
     }
 
-    if (event.type === 'input' || event.type === 'change') {
-      syncPayInputs(card, field);
+    const isPayField = field.matches?.('[data-pay-range]')
+      || field.dataset.field === 'pay_min'
+      || field.dataset.field === 'pay_max';
+
+    if (isPayField && (event.type === 'input' || event.type === 'change')) {
+      syncPayInputs(card, field, event.type);
     }
+
+    // Re-validate pay on any interaction so the Save button reflects validity.
+    const payValid = validatePayInputs(card);
+
+    // Don't quietly persist a bad pay range — keep the highlight up and let the
+    // user fix it (or hit Save, which stays blocked while invalid).
+    if (isPayField && !payValid) return;
 
     scheduleTrackerSave(card);
   };
@@ -324,6 +449,15 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
       ...patch,
       ...(resp?.entry || {}),
     });
+
+    // An explicit Save collapses the card one level — hide the edit details and
+    // fall back to the summary view. Auto-saves (on blur) leave it open.
+    if (showMessage && id && expandedTrackerIds.has(id)) {
+      expandedTrackerIds.delete(id);
+      card.classList.remove('expanded');
+      card.querySelector('.tracker-card-toggle')?.setAttribute('aria-expanded', 'false');
+    }
+
     await loadMainScreen({ showMain: false });
 
     if (nextStatus !== normalizeApplicationStatus(previousStatus)) {
@@ -348,6 +482,8 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save';
     }
+    // Re-assert the blocked state if the pay range is still invalid.
+    validatePayInputs(card);
   }
 }
 
@@ -479,6 +615,21 @@ async function saveNewApplicationFromForm() {
 // ── Drag & drop ─────────────────────────────────────────────────────────────
 
 export function handleTrackerDragStart(event) {
+  // Bubbles and the card grabber handle both move an application between lanes.
+  const handle = event.target.closest('.tracker-overflow-bubble[draggable="true"], .tracker-final-bubble[draggable="true"], .tracker-card-grabber[draggable="true"]');
+  if (handle) {
+    trackerDragState.id = handle.dataset.id || '';
+    trackerDragState.status = normalizeApplicationStatus(handle.dataset.status || 'drafted');
+    trackerDragState.kind = 'bubble';
+    handle.classList.add('dragging');
+    handle.closest('.tracker-card')?.classList.add('dragging');
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', trackerDragState.id);
+    }
+    return;
+  }
+
   const card = event.target.closest('.tracker-card');
   if (!card) return;
   if (card.classList.contains('expanded') || card.getAttribute('draggable') === 'false') {
@@ -488,6 +639,7 @@ export function handleTrackerDragStart(event) {
 
   trackerDragState.id = card.dataset.id || '';
   trackerDragState.status = card.dataset.status || 'drafted';
+  trackerDragState.kind = 'card';
   card.classList.add('dragging');
 
   if (event.dataTransfer) {
@@ -506,49 +658,101 @@ function getLocationValueFromCard(card) {
   return String(select.value || '').trim() || 'Unknown';
 }
 
-function syncPayInputs(card, changedField) {
+const PAY_SLIDER_MAX = 500000;
+const PAY_SLIDER_STEP = 5000;
+
+// Map an arbitrary number onto the slider's stepped 0–500k track for display.
+// The number box keeps the user's exact value; the slider just visualizes it.
+function payToSlider(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return Math.min(PAY_SLIDER_MAX, Math.round(num / PAY_SLIDER_STEP) * PAY_SLIDER_STEP);
+}
+
+// Gentle correction applied only on blur/change: clamp negatives to 0, drop
+// junk, but otherwise preserve the exact figure the user typed.
+function normalizePayOnBlur(raw) {
+  const text = String(raw ?? '').trim();
+  if (text === '') return '';
+  const num = Number(text);
+  if (!Number.isFinite(num) || num < 0) return '0';
+  return String(Math.round(num));
+}
+
+function syncPayInputs(card, changedField, eventType) {
   const minRange = card.querySelector('[data-pay-range="min"]');
   const maxRange = card.querySelector('[data-pay-range="max"]');
   const minNumber = card.querySelector('[data-field="pay_min"]');
   const maxNumber = card.querySelector('[data-field="pay_max"]');
   if (!minRange || !maxRange || !minNumber || !maxNumber) return;
 
-  const PAY_STEP = 5000;
-
-  const clamp = (value) => {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) return 0;
-    return Math.round(num / PAY_STEP) * PAY_STEP;
-  };
-
-  let min = clamp(minNumber.value || minRange.value);
-  let max = clamp(maxNumber.value || maxRange.value);
-
-  if (changedField?.matches?.('[data-pay-range="min"]')) {
-    min = clamp(changedField.value);
-  } else if (changedField?.matches?.('[data-pay-range="max"]')) {
-    max = clamp(changedField.value);
-  } else if (changedField?.dataset?.field === 'pay_min') {
-    min = clamp(changedField.value);
-  } else if (changedField?.dataset?.field === 'pay_max') {
-    max = clamp(changedField.value);
+  if (changedField === minRange) {
+    // Dragging a slider writes its (already stepped) value into the number box.
+    minNumber.value = String(Number(minRange.value));
+  } else if (changedField === maxRange) {
+    maxNumber.value = String(Number(maxRange.value));
+  } else if (changedField?.dataset?.field === 'pay_min' && eventType === 'change') {
+    minNumber.value = normalizePayOnBlur(minNumber.value);
+  } else if (changedField?.dataset?.field === 'pay_max' && eventType === 'change') {
+    maxNumber.value = normalizePayOnBlur(maxNumber.value);
   }
 
-  if (min > max) {
-    if (changedField?.matches?.('[data-pay-range="min"]') || changedField?.dataset?.field === 'pay_min') {
-      max = min;
-    } else {
-      min = max;
-    }
+  // Keep the slider thumbs mirrored to the current numbers without ever
+  // rewriting what the user typed (so manual fine-tuning still works).
+  minRange.value = String(payToSlider(minNumber.value));
+  maxRange.value = String(payToSlider(maxNumber.value));
+}
+
+// Flag a bad pay range (negative, non-numeric, or min > max), highlight the
+// offending boxes, surface a nudge, and block Save until it's resolved.
+function validatePayInputs(card) {
+  const minNumber = card.querySelector('[data-field="pay_min"]');
+  const maxNumber = card.querySelector('[data-field="pay_max"]');
+  const warning = card.querySelector('.pay-warning');
+  const saveBtn = card.querySelector('.tracker-save-btn');
+  if (!minNumber || !maxNumber) return true;
+
+  const minText = minNumber.value.trim();
+  const maxText = maxNumber.value.trim();
+  const min = Number(minText);
+  const max = Number(maxText);
+
+  const minBad = minText !== '' && (!Number.isFinite(min) || min < 0);
+  const maxBad = maxText !== '' && (!Number.isFinite(max) || max < 0);
+  const orderBad = minText !== '' && maxText !== ''
+    && Number.isFinite(min) && Number.isFinite(max) && min > max;
+
+  minNumber.classList.toggle('pay-invalid', minBad || orderBad);
+  maxNumber.classList.toggle('pay-invalid', maxBad || orderBad);
+
+  const valid = !minBad && !maxBad && !orderBad;
+  if (warning) {
+    warning.textContent = valid
+      ? ''
+      : orderBad
+        ? 'Min pay is higher than max — fix the range before saving.'
+        : 'Pay must be a positive number.';
+    warning.classList.toggle('hidden', valid);
+  }
+  if (saveBtn) {
+    saveBtn.disabled = !valid;
+    saveBtn.classList.toggle('is-blocked', !valid);
   }
 
-  minRange.value = String(min);
-  maxRange.value = String(max);
-  minNumber.value = String(min);
-  maxNumber.value = String(max);
+  return valid;
 }
 
 function handleTrackerDragOver(event) {
+  // Bubble / card-grabber moves: highlight the destination lane.
+  if (trackerDragState.kind === 'bubble') {
+    const dropZone = event.target.closest('[data-status-target]');
+    if (!dropZone) return;
+    event.preventDefault();
+    document.querySelectorAll('.drag-target').forEach((el) => el.classList.remove('drag-target'));
+    dropZone.classList.add('drag-target');
+    return;
+  }
+
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
   const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
@@ -574,6 +778,40 @@ function handleTrackerDragOver(event) {
 }
 
 export async function handleTrackerDrop(event) {
+  // Bubble / card-grabber drop → change the application's status to the lane.
+  if (trackerDragState.kind === 'bubble') {
+    const dropZone = event.target.closest('[data-status-target]');
+    if (!dropZone) {
+      clearTrackerDragState();
+      return;
+    }
+    event.preventDefault();
+    const movedId = trackerDragState.id;
+    const destinationStatus = normalizeApplicationStatus(dropZone.dataset.statusTarget || trackerDragState.status || 'drafted');
+
+    try {
+      if (movedId && destinationStatus !== trackerDragState.status) {
+        const resp = await sendMessage({
+          type: 'UPDATE_APPLICATION',
+          payload: { id: movedId, patch: { status: destinationStatus } },
+        });
+        if (!resp?.success) {
+          throw new Error(resp?.error || 'Could not move that card.');
+        }
+        await renderTracker();
+        await loadMainScreen({ showMain: false });
+        showScreen('tracker');
+        const movedStatusMeta = getTrackingStatusMeta(destinationStatus);
+        setTrackerScreenStatus(`✅ Moved card to ${movedStatusMeta.label} — ${movedStatusMeta.optionHint}.`, 'success');
+      }
+    } catch (err) {
+      setTrackerScreenStatus('❌ ' + err.message, 'error');
+    } finally {
+      clearTrackerDragState();
+    }
+    return;
+  }
+
   const dragging = $('tracker-body')?.querySelector('.tracker-card.dragging');
   const container = event.target.closest('.tracker-lane-cards');
   const finalLane = event.target.closest('.tracker-lane-final[data-status-target]');
@@ -618,9 +856,9 @@ export function handleTrackerDragEnd() {
 function clearTrackerDragState() {
   trackerDragState.id = '';
   trackerDragState.status = '';
-  document.querySelectorAll('.tracker-card.dragging').forEach((card) => card.classList.remove('dragging'));
-  document.querySelectorAll('.tracker-lane-cards.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
-  document.querySelectorAll('.tracker-lane-final.drag-target').forEach((lane) => lane.classList.remove('drag-target'));
+  trackerDragState.kind = '';
+  document.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-target').forEach((el) => el.classList.remove('drag-target'));
 }
 
 function getTrackerDragAfterElement(container, y) {

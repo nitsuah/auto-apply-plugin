@@ -2,12 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, pmo-q3, dev/**]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+# Cancel any in-flight run for the same ref so force-pushes don't waste minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  ci:
+  # ── Fast gate: lint + unit tests (under 2 min, blocks PRs quickly) ──────────
+  fast:
+    name: Lint & Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -19,14 +30,83 @@ jobs:
       - name: Lint
         run: docker run --rm auto-apply-plugin:test npm run lint
 
-      - name: Test
+      - name: Unit tests
         run: docker run --rm auto-apply-plugin:test npm test
 
-      - name: Coverage
-        run: docker run --rm auto-apply-plugin:test npm run test:coverage
+  # ── Coverage: runs after fast gate, uploads report ──────────────────────────
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: fast
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build test image
+        run: docker build --target test -t auto-apply-plugin:test .
+
+      - name: Generate coverage
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/coverage:/app/coverage \
+            auto-apply-plugin:test npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # ── E2E: Playwright in Docker, runs after fast gate ─────────────────────────
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: fast
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
 
       - name: Build e2e image
         run: docker build --target e2e -t auto-apply-plugin:e2e .
 
-      - name: Playwright E2E
-        run: docker run --rm auto-apply-plugin:e2e npm run test:e2e
+      - name: Run Playwright
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/playwright-report:/app/playwright-report \
+            -v ${{ github.workspace }}/test-results:/app/test-results \
+            auto-apply-plugin:e2e npm run test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure screenshots
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-screenshots
+          path: test-results/
+          retention-days: 7
+
+  # ── Security audit: non-blocking, surfaces known vulns as a warning ─────────
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: fast
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build test image
+        run: docker build --target test -t auto-apply-plugin:test .
+
+      - name: npm audit (moderate+)
+        run: docker run --rm auto-apply-plugin:test npm audit --audit-level moderate
+        continue-on-error: true
