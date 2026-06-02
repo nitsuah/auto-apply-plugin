@@ -182,6 +182,31 @@ See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Polic
 
 ---
 
+## Development
+
+All checks run via Docker — no local Node.js required.
+
+```bash
+# Unit tests (53 tests, no browser needed)
+docker compose -f config/docker-compose.yml run --rm test
+
+# Lint
+docker compose -f config/docker-compose.yml run --rm lint
+
+# E2E (Playwright, requires headed or CI browser)
+docker compose -f config/docker-compose.yml run --rm e2e
+
+# Coverage
+docker compose -f config/docker-compose.yml run --rm coverage
+```
+
+**Pre-commit hooks** (lint on commit, tests on push):
+```bash
+pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+```
+
+---
+
 ## License
 
 MIT — built because filling out the same form 47 times is beneath EVERYONE. 🤙
