@@ -1,5 +1,5 @@
 ---
-updated: 2026-05-21 (qa-closeout)
+updated: 2026-06-02 (job-sources-expansion)
 ---
 
 # Roadmap
@@ -20,11 +20,13 @@ updated: 2026-05-21 (qa-closeout)
 - [x] Add a standalone mock-data preview mode so popup UI review and README screenshot refreshes work without the extension runtime.
 - [x] Add ATS reliability fallback by retrying content-script injection when a page has no receiver.
 
-## 2026 Q3 (Planned)
+## 2026 Q3 (In Progress)
 
 - [/] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
 - [x] Finish CSV import for previously submitted applications.
 - [/] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
+- [x] Expand job search to 10 sources — 6 keyless (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads) and 4 BYOK keyed (Adzuna, USAJOBS, Reed, Jooble). Plug-and-play `JOB_SOURCES` registry makes adding new boards a one-entry change.
+- [x] Add "hide unknown salary" pay-filter toggle so users can limit results to jobs with published pay.
 
 ## 2026 Q4 (Exploratory)
 

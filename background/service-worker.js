@@ -397,6 +397,16 @@ function buildJobSearchConfig(settings = {}) {
       apiKey: settings.usajobs_api_key,
     };
   }
+  if (settings.reed_api_key) {
+    config.reed = {
+      apiKey: settings.reed_api_key,
+    };
+  }
+  if (settings.jooble_api_key) {
+    config.jooble = {
+      apiKey: settings.jooble_api_key,
+    };
+  }
   return config;
 }
 

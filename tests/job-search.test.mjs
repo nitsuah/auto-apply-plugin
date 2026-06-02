@@ -7,6 +7,11 @@ import {
   normalizeAdzunaJob,
   normalizeUsaJobsJob,
   normalizeMuseJob,
+  normalizeRemoteOkJob,
+  normalizeJobicyJob,
+  normalizeWorkingNomadsJob,
+  normalizeReedJob,
+  normalizeJoobleJob,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -220,7 +225,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads']);
 });
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
@@ -277,4 +282,178 @@ test('jobPassesPayFilter overlaps ranges and keeps unknown-salary jobs', () => {
 test('searchJobs throws only when every source fails', async () => {
   const fetchImpl = async () => ({ ok: false, status: 503, json: async () => ({}) });
   await assert.rejects(() => searchJobs('engineer', { fetchImpl }), /unavailable/i);
+});
+
+test('normalizeRemoteOkJob maps the RemoteOK shape, skips header row', () => {
+  const job = normalizeRemoteOkJob({
+    id: 99,
+    position: 'DevOps Engineer',
+    company: 'Stackio',
+    url: 'https://remoteok.com/l/99',
+    location: 'Worldwide',
+    description: 'Deploy all things',
+    tags: ['devops', 'kubernetes'],
+    epoch: 1748000000,
+    salary_min: 100000,
+    salary_max: 150000,
+    currency: 'USD',
+  });
+
+  assert.equal(job.id, 'remoteok:99');
+  assert.equal(job.title, 'DevOps Engineer');
+  assert.equal(job.company, 'Stackio');
+  assert.equal(job.source, 'Remote OK');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$100,000 - $150,000');
+  assert.match(job.posted, /^20\d\d-/);
+  assert.deepEqual(job.tags, ['devops', 'kubernetes']);
+});
+
+test('normalizeJobicyJob maps Jobicy shape with salary and geo', () => {
+  const job = normalizeJobicyJob({
+    id: 42,
+    url: 'https://jobicy.com/jobs/42',
+    jobTitle: 'ML Engineer',
+    companyName: 'DataCo',
+    jobIndustry: ['Data Science'],
+    jobType: ['full_time'],
+    jobGeo: 'USA',
+    jobExcerpt: 'Build models',
+    pubDate: '2026-05-28 10:00:00',
+    annualSalaryMin: 120000,
+    annualSalaryMax: 160000,
+    salaryCurrency: 'USD',
+  });
+
+  assert.equal(job.id, 'jobicy:42');
+  assert.equal(job.title, 'ML Engineer');
+  assert.equal(job.company, 'DataCo');
+  assert.equal(job.source, 'Jobicy');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$120,000 - $160,000');
+  assert.equal(job.location, 'USA');
+  assert.deepEqual(job.tags, ['Data Science']);
+});
+
+test('normalizeWorkingNomadsJob maps Working Nomads shape', () => {
+  const job = normalizeWorkingNomadsJob({
+    id: 77,
+    title: 'Frontend Developer',
+    company_name: 'NomadCorp',
+    url: 'https://workingnomads.com/jobs/77',
+    location: 'Remote',
+    salary: '$80k - $110k',
+    pub_date: '2026-05-10T00:00:00Z',
+    description: 'Build UIs',
+    tags: ['react', 'typescript'],
+  });
+
+  assert.equal(job.id, 'workingnomads:77');
+  assert.equal(job.title, 'Frontend Developer');
+  assert.equal(job.company, 'NomadCorp');
+  assert.equal(job.source, 'Working Nomads');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$80k - $110k');
+  assert.deepEqual(job.tags, ['react', 'typescript']);
+});
+
+test('normalizeReedJob maps Reed shape with GBP salary and employment type', () => {
+  const job = normalizeReedJob({
+    jobId: 123,
+    jobTitle: 'Software Engineer',
+    employerName: 'Brit Tech Ltd',
+    locationName: 'London',
+    minimumSalary: 60000,
+    maximumSalary: 80000,
+    fullTime: true,
+    jobUrl: 'https://www.reed.co.uk/jobs/software-engineer-123',
+    date: '2026-05-20T00:00:00Z',
+    jobDescription: 'Build great software',
+  });
+
+  assert.equal(job.id, 'reed:123');
+  assert.equal(job.title, 'Software Engineer');
+  assert.equal(job.company, 'Brit Tech Ltd');
+  assert.equal(job.source, 'Reed');
+  assert.equal(job.salary, '£60,000 - £80,000');
+  assert.equal(job.employment_type, 'Full-time');
+  assert.equal(job.location, 'London');
+});
+
+test('normalizeJoobleJob maps Jooble shape', () => {
+  const job = normalizeJoobleJob({
+    title: 'Backend Engineer',
+    company: 'GlobalCorp',
+    location: 'Remote',
+    salary: '$130,000',
+    snippet: 'Write APIs',
+    type: 'Full-time',
+    link: 'https://jooble.org/desc/1',
+    updated: '2026-05-25T00:00:00+00:00',
+  });
+
+  assert.equal(job.title, 'Backend Engineer');
+  assert.equal(job.company, 'GlobalCorp');
+  assert.equal(job.source, 'Jooble');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$130,000');
+  assert.equal(job.employment_type, 'Full-time');
+});
+
+test('new keyless sources are registered and available by default', () => {
+  const sources = listJobSources({});
+  const ids = sources.map((s) => s.id);
+  assert.ok(ids.includes('remoteok'), 'remoteok missing');
+  assert.ok(ids.includes('jobicy'), 'jobicy missing');
+  assert.ok(ids.includes('workingnomads'), 'workingnomads missing');
+  assert.equal(sources.find((s) => s.id === 'remoteok').available, true);
+  assert.equal(sources.find((s) => s.id === 'jobicy').available, true);
+  assert.equal(sources.find((s) => s.id === 'workingnomads').available, true);
+});
+
+test('Reed source is registered and gated on API key', () => {
+  const sources = listJobSources({});
+  assert.ok(sources.find((s) => s.id === 'reed'));
+  assert.equal(sources.find((s) => s.id === 'reed').available, false);
+
+  const withKey = listJobSources({ reed: { apiKey: 'my-reed-key' } });
+  assert.equal(withKey.find((s) => s.id === 'reed').available, true);
+});
+
+test('Jooble source is registered and gated on API key', () => {
+  const sources = listJobSources({});
+  assert.ok(sources.find((s) => s.id === 'jooble'));
+  assert.equal(sources.find((s) => s.id === 'jooble').available, false);
+
+  const withKey = listJobSources({ jooble: { apiKey: 'my-jooble-key' } });
+  assert.equal(withKey.find((s) => s.id === 'jooble').available, true);
+});
+
+test('jobPassesPayFilter hides unknown-salary jobs when hideUnknown is set', () => {
+  const filter = { enabled: true, mode: 'annual', min: 50, max: 200, hideUnknown: true };
+  assert.equal(jobPassesPayFilter({ salary: '' }, filter), false, 'empty salary should be hidden');
+  assert.equal(jobPassesPayFilter({ salary: 'competitive' }, filter), false, 'unparseable salary should be hidden');
+  assert.equal(jobPassesPayFilter({ salary: '$100,000' }, filter), true, 'parseable in-range salary should pass');
+
+  // Without hideUnknown, unknown salary still passes.
+  const filterNoHide = { enabled: true, mode: 'annual', min: 50, max: 200, hideUnknown: false };
+  assert.equal(jobPassesPayFilter({ salary: '' }, filterNoHide), true);
+});
+
+test('searchJobs includes Remote OK, Jobicy, and Working Nomads as default active sources', async () => {
+  const queried = [];
+  const fetchImpl = async (url, opts = {}) => {
+    if (url.includes('remoteok.com')) { queried.push('remoteok'); return { ok: true, json: async () => ([{ legal: true }]) }; }
+    if (url.includes('jobicy.com')) { queried.push('jobicy'); return { ok: true, json: async () => ({ jobs: [] }) }; }
+    if (url.includes('workingnomads.com')) { queried.push('workingnomads'); return { ok: true, json: async () => ([]) }; }
+    if (url.includes('remotive.com')) return { ok: true, json: async () => ({ jobs: [] }) };
+    if (url.includes('arbeitnow.com')) return { ok: true, json: async () => ({ data: [] }) };
+    if (url.includes('themuse.com')) return { ok: true, json: async () => ({ results: [] }) };
+    return { ok: true, json: async () => ({}) };
+  };
+
+  await searchJobs('dev', { fetchImpl });
+  assert.ok(queried.includes('remoteok'), 'Remote OK not queried');
+  assert.ok(queried.includes('jobicy'), 'Jobicy not queried');
+  assert.ok(queried.includes('workingnomads'), 'Working Nomads not queried');
 });

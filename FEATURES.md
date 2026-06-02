@@ -25,6 +25,17 @@ Focuses on reducing manual effort during the application process.
 - **Supported ATS Platforms**: Works with supported applicant tracking systems used by common job portals and employer sites
 - **Receiver Auto-Recovery**: Retries content-script injection automatically when a supported page initially has no active receiver
 
+### 🔍 Multi-Source Job Search
+
+Aggregates listings from multiple job boards in one panel so you can discover, filter, and save jobs without leaving the extension.
+
+- **10 Job Sources**: Six keyless boards active by default (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads); four BYOK keyed sources (Adzuna, USAJOBS, Reed, Jooble) unlock when credentials are added in the AI panel
+- **Per-Source Filter Chips**: Toggle individual sources on/off; locked chips route to the AI settings panel to configure keys
+- **Pay Filter with Hide-Unknown Toggle**: Annual/hourly dual-slider with an explicit checkbox to hide jobs without a published salary range
+- **Remote, Type, and Location Filters**: Narrow results by work mode, employment type, and region (USA / Europe / Remote / Other)
+- **One-Click Save to Tracker**: Captures any result directly into the application pipeline as a draft with title, company, salary, and description
+- **Plug-and-Play Source Registry**: New boards added in `lib/job-search.js` by appending a single registry entry; no other plumbing required
+
 ### 📌 Tracking and Workflow
 
 Helps organize and monitor applications after submission.
