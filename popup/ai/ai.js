@@ -15,6 +15,8 @@ function readAiSettings() {
     adzuna_country: $('adzuna-country')?.value || 'us',
     usajobs_email: $('usajobs-email')?.value.trim() || '',
     usajobs_api_key: $('usajobs-api-key')?.value.trim() || '',
+    reed_api_key: $('reed-api-key')?.value.trim() || '',
+    jooble_api_key: $('jooble-api-key')?.value.trim() || '',
     linkedin_client_id: $('linkedin-client-id')?.value.trim() || '',
     linkedin_client_secret: $('linkedin-client-secret')?.value.trim() || '',
   };

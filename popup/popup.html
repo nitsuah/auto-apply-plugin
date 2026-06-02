@@ -546,6 +546,10 @@
                   </div>
                 </div>
                 <span id="pay-filter-readout" class="job-pay-readout visually-hidden" aria-live="polite">Any pay</span>
+                <label class="job-pay-hide-unknown-row">
+                  <input type="checkbox" id="pay-hide-unknown" />
+                  <span>Hide jobs without posted salary</span>
+                </label>
               </div>
             </div>
           </div>
@@ -615,6 +619,14 @@
             <input type="email" id="usajobs-email" placeholder="USAJOBS account email" autocomplete="off" />
             <input type="password" id="usajobs-api-key" placeholder="USAJOBS API Key" autocomplete="off" style="margin-top:8px" />
             <a class="hint-link" href="https://developer.usajobs.gov/apirequest/" target="_blank" rel="noopener">Request USAJOBS API access →</a>
+
+            <p class="helper-text" style="margin-top:14px">Reed (UK jobs) — a major UK job board requiring a free API key.</p>
+            <input type="password" id="reed-api-key" placeholder="Reed API Key" autocomplete="off" />
+            <a class="hint-link" href="https://www.reed.co.uk/developers/jobseeker" target="_blank" rel="noopener">Get a free Reed API key →</a>
+
+            <p class="helper-text" style="margin-top:14px">Jooble (global aggregator) — indexes millions of listings worldwide.</p>
+            <input type="password" id="jooble-api-key" placeholder="Jooble API Key" autocomplete="off" />
+            <a class="hint-link" href="https://jooble.org/api/about" target="_blank" rel="noopener">Get a free Jooble API key →</a>
           </div>
 
           <div class="form-group profile-panel ai-panel-group" id="linkedin-oauth-section">

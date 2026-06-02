@@ -19,7 +19,7 @@ const PAY_RANGES = {
   annual: { min: 0, max: 500, step: 5, unit: 'K' },   // values are thousands ($k)
   hourly: { min: 0, max: 200, step: 1, unit: '$/hr' }, // values are $/hr
 };
-const payFilter = { mode: 'annual', min: 0, max: 500 };
+const payFilter = { mode: 'annual', min: 0, max: 500, hideUnknown: false };
 const extraFilters = { remote: 'any', type: 'any', location: 'any' };
 let payDefaultsSeeded = false;
 let prefsLoaded = false;
@@ -31,7 +31,7 @@ function saveJobPrefs() {
     chrome.storage?.local?.set?.({
       jobSearchPrefs: {
         sources: [...selectedSourceIds],
-        pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max },
+        pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max, hideUnknown: payFilter.hideUnknown },
         filters: { ...extraFilters },
       },
     });
@@ -55,6 +55,7 @@ async function restoreJobPrefs() {
       const r = PAY_RANGES[payFilter.mode];
       payFilter.min = Math.min(r.max, Math.max(r.min, Number(prefs.pay.min) || r.min));
       payFilter.max = Math.min(r.max, Math.max(r.min, Number(prefs.pay.max) || r.max));
+      payFilter.hideUnknown = !!prefs.pay.hideUnknown;
       payDefaultsSeeded = true;
     }
     if (prefs.filters && typeof prefs.filters === 'object') {
@@ -117,6 +118,8 @@ function syncPayUi() {
   setSel('filter-remote', extraFilters.remote);
   setSel('filter-type', extraFilters.type);
   setSel('filter-location', extraFilters.location);
+  const hideUnknownEl = document.getElementById('pay-hide-unknown');
+  if (hideUnknownEl) hideUnknownEl.checked = !!payFilter.hideUnknown;
 }
 
 // Classify a job's location string into a coarse region bucket.
@@ -250,7 +253,7 @@ function updateSourceChipCounts(sourceResults = []) {
 // ── Results ──────────────────────────────────────────────────────────────────
 
 function applyAndRender() {
-  const payCfg = { enabled: payIsActive(), mode: payFilter.mode, min: payFilter.min, max: payFilter.max };
+  const payCfg = { enabled: payIsActive() || payFilter.hideUnknown, mode: payFilter.mode, min: payFilter.min, max: payFilter.max, hideUnknown: payFilter.hideUnknown };
   const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, payCfg) && jobPassesExtraFilters(j));
   renderJobSearchResults(filtered, lastSources);
 }
@@ -433,6 +436,13 @@ export function initJobSearchHandlers(showScreen) {
   document.getElementById('filter-remote')?.addEventListener('change', onExtraFilterChange('remote'));
   document.getElementById('filter-type')?.addEventListener('change', onExtraFilterChange('type'));
   document.getElementById('filter-location')?.addEventListener('change', onExtraFilterChange('location'));
+
+  // Hide unknown salary toggle.
+  document.getElementById('pay-hide-unknown')?.addEventListener('change', (event) => {
+    payFilter.hideUnknown = event.target.checked;
+    applyAndRender();
+    saveJobPrefs();
+  });
 
   // Card interactions: save / open-in-tracker / open-post (card body is a link).
   if (resultsDiv) {
