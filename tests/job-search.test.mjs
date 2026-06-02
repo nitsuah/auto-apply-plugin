@@ -168,7 +168,7 @@ test('searchJobs merges sources, dedupes, sorts by recency, and reports source s
 
   // Acme Platform Engineer appears in both sources → deduped to one.
   assert.equal(jobs.length, 2);
-  // Newest (Globex, created_at 1748000000) sorts first.
+  // Newest (Globex, created_at 1780272000) sorts first.
   assert.equal(jobs[0].company, 'Globex');
   assert.equal(sources.find((s) => s.name === 'Remotive').ok, true);
   assert.equal(sources.find((s) => s.name === 'Arbeitnow').count, 2);

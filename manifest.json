@@ -59,9 +59,11 @@
         "https://*.jobvite.com/*",
         "https://*.circle.com/*",
         "https://*.phenompeople.com/*",
-        "https://*/*careers*",
-        "https://*/*jobs/*",
-        "https://*/*job/*"
+        "https://*/careers",
+        "https://*/careers/*",
+        "https://*/jobs",
+        "https://*/jobs/*",
+        "https://*/job/*"
       ],
       "js": ["content/content.js"],
       "run_at": "document_idle",

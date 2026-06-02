@@ -39,7 +39,7 @@ export function showScreen(name) {
   // Show/hide the global back button (hidden on the home/main screen)
   const backBtn = document.getElementById('global-back-btn');
   if (backBtn) {
-    backBtn.classList.toggle('hidden', name === 'main');
+    backBtn.classList.toggle('hidden', name === 'main' || isStandaloneView());
   }
 
   // Update active tab indicator on header nav buttons
