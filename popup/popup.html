@@ -390,6 +390,12 @@
         <input id="tracker-search-input" type="search" placeholder="Search company, role, notes…" aria-label="Search tracked applications" />
         <div class="tracker-toolbar-filters">
           <button id="tracker-scope-toggle" class="btn btn-ghost btn-sm toggle-chip" type="button" aria-pressed="false">All</button>
+          <select id="tracker-sort-select" class="tracker-sort-select" aria-label="Sort applications">
+            <option value="smart">Sort: Default</option>
+            <option value="pay_desc">Sort: Pay (high→low)</option>
+            <option value="submitted_desc">Sort: Submitted (newest)</option>
+            <option value="updated_desc">Sort: Updated (newest)</option>
+          </select>
           <button id="tracker-clear-filters-btn" class="btn btn-ghost btn-sm" type="button">Clear filters</button>
         </div>
         <div class="tracker-toolbar-actions">

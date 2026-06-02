@@ -7,6 +7,9 @@ let trackerViewState = {
   // Default to the Active view (everything except rejected/retired). Users can
   // toggle to "All" to surface the final-stage buckets.
   activeOnly: true,
+  // Sort order within each lane. 'smart' = recency-weighted default; other
+  // modes let the user rank by pay, submission date, or last-updated.
+  sortMode: 'smart',
 };
 let trackerDragState = {
   id: '',

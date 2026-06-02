@@ -122,10 +122,16 @@ export function initTrackerHandlers() {
     await renderTracker();
     showScreen('tracker');
   });
+  $('tracker-sort-select')?.addEventListener('change', async (event) => {
+    trackerViewState.sortMode = event.target.value || 'smart';
+    await renderTracker();
+    showScreen('tracker');
+  });
   $('tracker-clear-filters-btn')?.addEventListener('click', async () => {
     trackerViewState.query = '';
     // Clearing returns to the default Active view, not an unfiltered "All".
     trackerViewState.activeOnly = true;
+    trackerViewState.sortMode = 'smart';
     if ($('tracker-search-input')) $('tracker-search-input').value = '';
     await renderTracker();
     showScreen('tracker');
@@ -257,6 +263,9 @@ export function initTrackerHandlers() {
     if (toggleBtn) {
       const card = toggleBtn.closest('.tracker-card');
       if (card) {
+        const willExpand = !card.classList.contains('expanded');
+        // Only one card may be in edit mode at a time — collapse any others.
+        if (willExpand) collapseAllExpandedCards(card.dataset.id);
         const expanded = card.classList.toggle('expanded');
         toggleBtn.setAttribute('aria-expanded', String(expanded));
         const id = card.dataset.id;
@@ -291,6 +300,23 @@ export function initTrackerHandlers() {
     if (!toggle) return;
     event.preventDefault();
     toggle.click();
+  });
+
+  // Click-away: a click anywhere outside an expanded card collapses it.
+  document.addEventListener('click', (event) => {
+    if (!document.querySelector('#tracker-body .tracker-card.expanded')) return;
+    // Ignore clicks inside an expanded card (editing) or on a toggle (the
+    // delegated handler above already manages expand/collapse for those).
+    if (event.target.closest('.tracker-card.expanded')) return;
+    if (event.target.closest('.tracker-card-toggle')) return;
+    collapseAllExpandedCards();
+  });
+
+  // Esc collapses the open card too.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!document.querySelector('#tracker-body .tracker-card.expanded')) return;
+    collapseAllExpandedCards();
   });
 
   // Auto-save on field change/blur
@@ -347,6 +373,21 @@ export function initTrackerHandlers() {
   $('tracker-body')?.addEventListener('input', autoSave, true);
   $('tracker-body')?.addEventListener('change', autoSave, true);
   $('tracker-body')?.addEventListener('focusout', autoSave, true);
+}
+
+// ── Expand / collapse helpers ───────────────────────────────────────────────
+
+/**
+ * Collapse every expanded card except `keepId`. Mutates the DOM directly (no
+ * re-render) so the cards stay exactly where they are in their lanes.
+ */
+function collapseAllExpandedCards(keepId = null) {
+  document.querySelectorAll('#tracker-body .tracker-card.expanded').forEach((card) => {
+    if (keepId && card.dataset.id === keepId) return;
+    card.classList.remove('expanded');
+    card.querySelector('.tracker-card-toggle')?.setAttribute('aria-expanded', 'false');
+    if (card.dataset.id) expandedTrackerIds.delete(card.dataset.id);
+  });
 }
 
 // ── Save / delete ───────────────────────────────────────────────────────────

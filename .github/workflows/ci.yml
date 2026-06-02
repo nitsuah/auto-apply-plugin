@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, pmo-q3, dev/**]
+    branches: ['**'] # every branch — feature branches (pmo-q3*, dev/*, fixes) all run CI
   pull_request:
     branches: [main]
   workflow_dispatch:

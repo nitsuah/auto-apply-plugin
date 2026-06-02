@@ -3,24 +3,24 @@
 services:
   test:
     build:
-      context: .
+      context: ..
       target: test
     command: npm test
 
   lint:
     build:
-      context: .
+      context: ..
       target: test
     command: npm run lint
 
   coverage:
     build:
-      context: .
+      context: ..
       target: test
     command: npm run test:coverage
 
   e2e:
     build:
-      context: .
+      context: ..
       target: e2e
     command: npm run test:e2e

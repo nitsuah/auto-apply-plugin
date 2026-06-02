@@ -33,8 +33,31 @@ export { filterApplicationsForQuery as filterTrackerApplications } from '../../l
 
 // ── Sorting ─────────────────────────────────────────────────────────────────
 
+function payRankValue(app) {
+  // Rank by the top of the band, falling back to the floor.
+  const max = Number(app?.pay_max) || 0;
+  const min = Number(app?.pay_min) || 0;
+  return Math.max(max, min);
+}
+
 export function sortTrackerApplications(applications = []) {
-  return [...(applications || [])].sort((a, b) => {
+  const list = [...(applications || [])];
+  const mode = trackerViewState.sortMode || 'smart';
+
+  if (mode === 'pay_desc') {
+    return list.sort((a, b) => payRankValue(b) - payRankValue(a)
+      || parseSortableDateTime(b?.updated_at) - parseSortableDateTime(a?.updated_at));
+  }
+  if (mode === 'submitted_desc') {
+    return list.sort((a, b) => parseSortableDate(b?.date) - parseSortableDate(a?.date)
+      || parseSortableDateTime(b?.updated_at) - parseSortableDateTime(a?.updated_at));
+  }
+  if (mode === 'updated_desc') {
+    return list.sort((a, b) => parseSortableDateTime(b?.updated_at) - parseSortableDateTime(a?.updated_at));
+  }
+
+  // 'smart' (default): recency of submission, then last update, then manual order.
+  return list.sort((a, b) => {
     const aDate = parseSortableDate(a?.date);
     const bDate = parseSortableDate(b?.date);
     if (aDate !== bDate) {
@@ -87,6 +110,12 @@ export function syncTrackerFilterUi() {
   toggle.title = trackerViewState.activeOnly
     ? 'Showing only active pipeline items.'
     : 'Showing every tracked application.';
+}
+
+export function syncTrackerSortUi() {
+  const select = $('tracker-sort-select');
+  if (!select) return;
+  select.value = trackerViewState.sortMode || 'smart';
 }
 
 // ── Lane count ──────────────────────────────────────────────────────────────
@@ -207,6 +236,7 @@ export async function renderTracker() {
     $('tracker-search-input').value = trackerViewState.query;
   }
   syncTrackerFilterUi();
+  syncTrackerSortUi();
 
   if (filteredApps.length === 0) {
     const emptyEl = $('tracker-empty');
