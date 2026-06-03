@@ -436,6 +436,8 @@ body[data-standalone="true"] .label-full { display: inline; }
   border-color: rgba(74, 222, 128, 0.5);
 }
 
+.job-desc-row { position: relative; }
+
 .job-desc {
   font-size: 11px;
   color: var(--text-muted);
@@ -445,6 +447,38 @@ body[data-standalone="true"] .label-full { display: inline; }
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.job-ai-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.job-search-result:hover .job-ai-btns,
+.job-ai-btns:focus-within {
+  opacity: 1;
+}
+.job-ai-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 5px;
+  line-height: 1.5;
+  transition: background 0.12s, border-color 0.12s;
+}
+.job-ai-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--blue);
+  color: var(--text);
+}
+.job-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .job-source-note {
@@ -2243,6 +2277,19 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
   margin-left: 0;
 }
 
+.tracker-sort-select {
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.tracker-sort-select:hover {
+  border-color: var(--accent);
+}
+
 .tracker-toolbar input[type="search"] {
   flex: 1 1 520px;
   min-width: 260px;
@@ -3868,29 +3915,59 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
   }
 }
 
-/* ── Pipeline card: expanded as floating modal overlay ── */
+/* ── Pipeline card: expanded IN PLACE with a "selected" ring ──
+   The card stays in its lane (no floating modal) so the board context is
+   preserved. A blue ring + lift marks it as the one being edited. Click-away
+   (handled in JS) collapses it. */
 .tracker-card.expanded {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 200;
-  width: min(860px, 94vw);
-  max-height: 88vh;
-  overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(96, 165, 250, 0.2);
-  border-color: rgba(96, 165, 250, 0.3);
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--blue);
+  border-color: var(--blue);
 }
 
-/* Blurred backdrop when a card is expanded */
-body.modal-open::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 199;
-  background: rgba(5, 8, 16, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+/* In-place edit form stacks to a single column so it always fits its lane. */
+.tracker-card.expanded .tracker-card-groups-grid {
+  grid-template-columns: 1fr;
+}
+
+/* ── Action-button semantic flair ──
+   Save = green, AI/automation = purple, Delete = red on hover/active. */
+.tracker-save-btn {
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.5);
+  color: #86efac;
+}
+.tracker-save-btn:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.28);
+  border-color: var(--accent);
+}
+
+/* AI / automation buttons (summarize, clean up) — purple. */
+.jd-ai-btn,
+.tracker-jd-ai-btn,
+#quickadd-summarize-btn,
+#quickadd-cleanup-btn {
+  background: rgba(192, 132, 252, 0.14);
+  border-color: rgba(192, 132, 252, 0.45);
+  color: #d8b4fe;
+}
+.jd-ai-btn:hover:not(:disabled),
+.tracker-jd-ai-btn:hover:not(:disabled),
+#quickadd-summarize-btn:hover:not(:disabled),
+#quickadd-cleanup-btn:hover:not(:disabled) {
+  background: rgba(192, 132, 252, 0.26);
+  border-color: var(--purple);
+}
+
+/* Delete — neutral at rest, red on hover/focus/active. */
+.tracker-delete-btn:hover,
+.tracker-delete-btn:focus-visible,
+.tracker-delete-btn:active {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: var(--red);
+  color: #fca5a5;
 }
 
 /* ── Pipeline lane header: distinct visual separation from cards ── */

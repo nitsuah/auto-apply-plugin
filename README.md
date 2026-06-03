@@ -100,6 +100,47 @@ apply-workspace/
 
 ---
 
+## Job Search
+
+Click **🔍 Search** in the header to open the job search panel. Results are pulled from up to **14 sources** and deduplicated automatically.
+
+### Keyless sources (always on)
+
+| Source | Coverage |
+|--------|----------|
+| Remotive | Remote tech / knowledge-worker roles worldwide |
+| Arbeitnow | Global remote & hybrid listings |
+| The Muse | US-centric roles across many industries |
+| Remote OK | High-volume remote tech board |
+| Jobicy | Remote jobs with structured salary data |
+| Working Nomads | Curated remote listings |
+| HN: Who's Hiring | Monthly HackerNews hiring thread (tech-heavy, often salary posted) |
+| We Work Remotely | Large curated remote jobs board |
+| remote.co | Vetted remote positions across categories |
+
+### Session-based sources (active when you're signed in)
+
+| Source | How it works |
+|--------|-------------|
+| LinkedIn | Uses your active LinkedIn tab session via the Voyager API — no separate key needed; shows ⚡ chip when a LinkedIn tab is open |
+
+### Optional keyed sources (add credentials in AI settings)
+
+| Source | Coverage | Key source |
+|--------|----------|------------|
+| Adzuna | Millions of listings across 16+ countries | [developer.adzuna.com](https://developer.adzuna.com/signup) |
+| USAJOBS | All US federal government positions | [developer.usajobs.gov](https://developer.usajobs.gov/apirequest/) |
+| Reed | Major UK job board | [reed.co.uk/developers](https://www.reed.co.uk/developers/jobseeker) |
+| Jooble | Global aggregator (190+ countries) | [jooble.org/api/about](https://jooble.org/api/about) |
+
+### Filters
+
+- **Sources** — toggle individual boards on/off via chip buttons; locked chips (🔒) open the AI settings panel
+- **Pay** — annual or hourly dual-slider; optional toggle to **hide jobs without a published salary**
+- **Remote / Type / Location** — filter by work mode, employment type, and region
+
+---
+
 ## CSV Import for Tracker History
 
 Use **Tracker → Import CSV** to bring in past applications from another sheet or export.
@@ -179,6 +220,31 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,S
 - No servers, no accounts, no telemetry.
 
 See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Policy, Security posture, and your GDPR/CCPA data rights — the same content shown in the app's **Help & privacy** panel.
+
+---
+
+## Development
+
+All checks run via Docker — no local Node.js required.
+
+```bash
+# Unit tests (63 tests, no browser needed)
+docker compose -f config/docker-compose.yml run --rm test
+
+# Lint
+docker compose -f config/docker-compose.yml run --rm lint
+
+# E2E (Playwright, requires headed or CI browser)
+docker compose -f config/docker-compose.yml run --rm e2e
+
+# Coverage
+docker compose -f config/docker-compose.yml run --rm coverage
+```
+
+**Pre-commit hooks** (lint on commit, tests on push):
+```bash
+pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+```
 
 ---
 

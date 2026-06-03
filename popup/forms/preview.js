@@ -24,6 +24,32 @@ export function initPreviewHandlers() {
       // tab may not have content script
     }
   });
+
+  $('preview-content')?.addEventListener('click', async (event) => {
+    const btn = event.target.closest('.preview-ai-btn');
+    if (!btn) return;
+    const entryLabel = btn.dataset.entryLabel;
+    const mode = btn.dataset.aiMode;
+    const entry = lastPreviewEntries.find((e) => e.label === entryLabel);
+    if (!entry?.value) return;
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    try {
+      const resp = await sendMessage({ type: 'SUMMARIZE_JD', payload: { text: entry.value, mode } });
+      if (!resp?.success) throw new Error(resp?.error || 'AI unavailable');
+      entry.value = resp.text;
+      // re-render only the changed card's value paragraph
+      const card = btn.closest('.preview-card');
+      const valEl = card?.querySelector('.preview-card-value');
+      if (valEl) valEl.textContent = resp.text;
+    } catch (e) {
+      console.warn('[apply-bot] preview AI:', e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
 }
 
 /**
@@ -76,12 +102,21 @@ function renderPreviewList(query = '') {
 
   const grouped = groupPreviewEntries(filtered);
   content.innerHTML = grouped.map((group) => {
-    const cards = group.items.map((item) => `
+    const cards = group.items.map((item) => {
+      const aiButtons = (item.value || '').length > 120
+        ? `<div class="preview-ai-btns">
+        <button class="job-ai-btn preview-ai-btn" data-entry-label="${escAttr(item.label)}" data-ai-mode="summary" title="Summarize with AI">✨</button>
+        <button class="job-ai-btn preview-ai-btn" data-entry-label="${escAttr(item.label)}" data-ai-mode="cleanup" title="Clean up with AI">🧹</button>
+      </div>`
+        : '';
+      return `
       <article class="preview-card">
         <h4 class="preview-card-label">${esc(item.label)}</h4>
         <p class="preview-card-value">${esc(item.value || '—')}</p>
+        ${aiButtons}
       </article>
-    `).join('');
+    `;
+    }).join('');
 
     return `
       <section class="preview-group">

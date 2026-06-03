@@ -19,7 +19,7 @@ const PAY_RANGES = {
   annual: { min: 0, max: 500, step: 5, unit: 'K' },   // values are thousands ($k)
   hourly: { min: 0, max: 200, step: 1, unit: '$/hr' }, // values are $/hr
 };
-const payFilter = { mode: 'annual', min: 0, max: 500 };
+const payFilter = { mode: 'annual', min: 0, max: 500, hideUnknown: false };
 const extraFilters = { remote: 'any', type: 'any', location: 'any' };
 let payDefaultsSeeded = false;
 let prefsLoaded = false;
@@ -31,7 +31,7 @@ function saveJobPrefs() {
     chrome.storage?.local?.set?.({
       jobSearchPrefs: {
         sources: [...selectedSourceIds],
-        pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max },
+        pay: { mode: payFilter.mode, min: payFilter.min, max: payFilter.max, hideUnknown: payFilter.hideUnknown },
         filters: { ...extraFilters },
       },
     });
@@ -55,6 +55,7 @@ async function restoreJobPrefs() {
       const r = PAY_RANGES[payFilter.mode];
       payFilter.min = Math.min(r.max, Math.max(r.min, Number(prefs.pay.min) || r.min));
       payFilter.max = Math.min(r.max, Math.max(r.min, Number(prefs.pay.max) || r.max));
+      payFilter.hideUnknown = !!prefs.pay.hideUnknown;
       payDefaultsSeeded = true;
     }
     if (prefs.filters && typeof prefs.filters === 'object') {
@@ -117,6 +118,8 @@ function syncPayUi() {
   setSel('filter-remote', extraFilters.remote);
   setSel('filter-type', extraFilters.type);
   setSel('filter-location', extraFilters.location);
+  const hideUnknownEl = document.getElementById('pay-hide-unknown');
+  if (hideUnknownEl) hideUnknownEl.checked = !!payFilter.hideUnknown;
 }
 
 // Classify a job's location string into a coarse region bucket.
@@ -207,8 +210,11 @@ function renderSourceChips(sources, countMap = {}) {
     const countLabel = (count != null) ? ` (${count})` : '';
     const title = s.available
       ? `Toggle ${s.label}`
-      : `${s.label} — click to configure ${s.requires || 'credentials'}`;
-    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${s.available ? '' : ' 🔒'}${esc(countLabel)}</button>`;
+      : s.session
+        ? `Uses your active LinkedIn session — ${s.requires || 'open LinkedIn in a browser tab'}`
+        : `${s.label} — click to configure ${s.requires || 'credentials'}`;
+    const lockIcon = s.available ? '' : (s.session ? ' ⚡' : ' 🔒');
+    return `<button type="button" class="${classes.join(' ')}" data-source-id="${escAttr(s.id)}" data-available="${s.available ? '1' : '0'}" data-session="${s.session ? '1' : '0'}" aria-pressed="${selected ? 'true' : 'false'}" title="${escAttr(title)}">${esc(s.label)}${lockIcon}${esc(countLabel)}</button>`;
   }).join('');
 }
 
@@ -231,11 +237,12 @@ function updateSourceChipCounts(sourceResults = []) {
     if (!(id in countMap)) return;
     const count = countMap[id];
     // Strip any existing count suffix, update label
-    const base = chip.textContent.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*🔒\s*$/, '').trim();
+    const base = chip.textContent.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*[🔒⚡]\s*$/, '').trim();
     const locked = chip.dataset.available === '0';
+    const lockIcon = locked ? (chip.dataset.session === '1' ? ' ⚡' : ' 🔒') : '';
     chip.textContent = count !== null
-      ? `${base}${locked ? ' 🔒' : ''} (${count})`
-      : `${base}${locked ? ' 🔒' : ''} (!)`;
+      ? `${base}${lockIcon} (${count})`
+      : `${base}${lockIcon} (!)`;
     chip.dataset.count = count !== null ? count : -1;
     // Apply heatmap
     chip.classList.remove('chip-count-zero', 'chip-count-low', 'chip-count-mid', 'chip-count-high');
@@ -250,7 +257,7 @@ function updateSourceChipCounts(sourceResults = []) {
 // ── Results ──────────────────────────────────────────────────────────────────
 
 function applyAndRender() {
-  const payCfg = { enabled: payIsActive(), mode: payFilter.mode, min: payFilter.min, max: payFilter.max };
+  const payCfg = { enabled: payIsActive() || payFilter.hideUnknown, mode: payFilter.mode, min: payFilter.min, max: payFilter.max, hideUnknown: payFilter.hideUnknown };
   const filtered = lastRawResults.filter((j) => jobPassesPayFilter(j, payCfg) && jobPassesExtraFilters(j));
   renderJobSearchResults(filtered, lastSources);
 }
@@ -278,7 +285,14 @@ export function renderJobSearchResults(results, sources = []) {
       `<span class="job-badge job-badge-source">${esc(j.source || 'Web')}</span>`,
     ].filter(Boolean).join('');
     const openLabel = j.atsLabel ? `Open ${esc(j.title || 'job')} (apply on ${esc(j.atsLabel)})` : `Open ${esc(j.title || 'job')} at ${esc(j.company || '')}`;
-    const desc = j.description ? `<p class="job-desc">${esc(j.description.slice(0, 180))}…</p>` : '';
+    const descBlock = j.description ? `
+      <div class="job-desc-row">
+        <p class="job-desc">${esc(j.description.slice(0, 180))}${j.description.length > 180 ? '…' : ''}</p>
+        <div class="job-ai-btns" role="group" aria-label="AI description tools">
+          <button type="button" class="job-ai-btn" data-job-id="${escAttr(j.id)}" data-ai-mode="summary" title="Summarize description with AI (requires Gemini key)">✨</button>
+          <button type="button" class="job-ai-btn" data-job-id="${escAttr(j.id)}" data-ai-mode="cleanup" title="Clean up description with AI (requires Gemini key)">🧹</button>
+        </div>
+      </div>` : '';
     const saved = savedJobIds.has(j.id);
     return `
     <div class="job-search-result" data-job-id="${escAttr(j.id)}" data-job-url="${escAttr(j.url)}" role="link" tabindex="0" aria-label="${escAttr(openLabel)}">
@@ -288,7 +302,7 @@ export function renderJobSearchResults(results, sources = []) {
         <div class="job-meta">${esc(j.company || 'Unknown company')} • ${esc(j.location || 'Location n/a')}</div>
       </div>
       <div class="job-badges">${badges}</div>
-      ${desc}
+      ${descBlock}
       <button type="button" class="job-save-btn${saved ? ' hidden' : ''}" data-job-id="${escAttr(j.id)}">💾 Save job</button>
     </div>`;
   }).join('');
@@ -434,9 +448,43 @@ export function initJobSearchHandlers(showScreen) {
   document.getElementById('filter-type')?.addEventListener('change', onExtraFilterChange('type'));
   document.getElementById('filter-location')?.addEventListener('change', onExtraFilterChange('location'));
 
-  // Card interactions: save / open-in-tracker / open-post (card body is a link).
+  // Hide unknown salary toggle.
+  document.getElementById('pay-hide-unknown')?.addEventListener('change', (event) => {
+    payFilter.hideUnknown = event.target.checked;
+    applyAndRender();
+    saveJobPrefs();
+  });
+
+  // Card interactions: AI tools / save / open-in-tracker / open-post.
   if (resultsDiv) {
-    const handleResultActivate = (event) => {
+    const handleResultActivate = async (event) => {
+      // AI summarize / clean-up button
+      const aiBtn = event.target.closest('.job-ai-btn');
+      if (aiBtn) {
+        event.stopPropagation();
+        const jobId = aiBtn.dataset.jobId || '';
+        const mode = aiBtn.dataset.aiMode || 'summary';
+        const job = lastResultsById.get(jobId);
+        if (!job?.description) return;
+        const origLabel = aiBtn.textContent;
+        aiBtn.disabled = true;
+        aiBtn.textContent = '⏳';
+        try {
+          const resp = await sendMessage({ type: 'SUMMARIZE_JD', payload: { text: job.description, mode } });
+          if (!resp?.success) throw new Error(resp?.error || 'AI unavailable');
+          job.description = resp.text;
+          const card = aiBtn.closest('.job-search-result');
+          const descEl = card?.querySelector('.job-desc');
+          if (descEl) descEl.textContent = resp.text;
+        } catch (err) {
+          console.warn('[apply-bot] AI job desc action failed:', err.message);
+        } finally {
+          aiBtn.disabled = false;
+          aiBtn.textContent = origLabel;
+        }
+        return;
+      }
+
       const saveBtn = event.target.closest('.job-save-btn');
       if (saveBtn) {
         const jobId = saveBtn.dataset.jobId || '';
@@ -457,7 +505,7 @@ export function initJobSearchHandlers(showScreen) {
       if (event.key !== 'Enter') return;
       if (event.target.closest('.job-search-result') && !event.target.closest('button')) {
         event.preventDefault();
-        handleResultActivate(event);
+        void handleResultActivate(event);
       }
     });
   }

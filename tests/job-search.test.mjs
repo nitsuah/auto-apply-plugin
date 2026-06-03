@@ -7,6 +7,16 @@ import {
   normalizeAdzunaJob,
   normalizeUsaJobsJob,
   normalizeMuseJob,
+  normalizeRemoteOkJob,
+  normalizeJobicyJob,
+  normalizeWorkingNomadsJob,
+  normalizeReedJob,
+  normalizeJoobleJob,
+  normalizeHnComment,
+  normalizeWwrJob,
+  normalizeRemoteCoJob,
+  normalizeLinkedInJob,
+  parseLinkedInVoyagerResponse,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -220,7 +230,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco']);
 });
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
@@ -276,5 +286,334 @@ test('jobPassesPayFilter overlaps ranges and keeps unknown-salary jobs', () => {
 
 test('searchJobs throws only when every source fails', async () => {
   const fetchImpl = async () => ({ ok: false, status: 503, json: async () => ({}) });
-  await assert.rejects(() => searchJobs('engineer', { fetchImpl }), /unavailable/i);
+  // Only include sources that can actually fail (not the graceful-return ones)
+  await assert.rejects(
+    () => searchJobs('engineer', { fetchImpl, sources: ['remotive', 'arbeitnow', 'themuse'] }),
+    /unavailable/i
+  );
+});
+
+test('normalizeRemoteOkJob maps the RemoteOK shape, skips header row', () => {
+  const job = normalizeRemoteOkJob({
+    id: 99,
+    position: 'DevOps Engineer',
+    company: 'Stackio',
+    url: 'https://remoteok.com/l/99',
+    location: 'Worldwide',
+    description: 'Deploy all things',
+    tags: ['devops', 'kubernetes'],
+    epoch: 1748000000,
+    salary_min: 100000,
+    salary_max: 150000,
+    currency: 'USD',
+  });
+
+  assert.equal(job.id, 'remoteok:99');
+  assert.equal(job.title, 'DevOps Engineer');
+  assert.equal(job.company, 'Stackio');
+  assert.equal(job.source, 'Remote OK');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$100,000 - $150,000');
+  assert.match(job.posted, /^20\d\d-/);
+  assert.deepEqual(job.tags, ['devops', 'kubernetes']);
+});
+
+test('normalizeJobicyJob maps Jobicy shape with salary and geo', () => {
+  const job = normalizeJobicyJob({
+    id: 42,
+    url: 'https://jobicy.com/jobs/42',
+    jobTitle: 'ML Engineer',
+    companyName: 'DataCo',
+    jobIndustry: ['Data Science'],
+    jobType: ['full_time'],
+    jobGeo: 'USA',
+    jobExcerpt: 'Build models',
+    pubDate: '2026-05-28 10:00:00',
+    annualSalaryMin: 120000,
+    annualSalaryMax: 160000,
+    salaryCurrency: 'USD',
+  });
+
+  assert.equal(job.id, 'jobicy:42');
+  assert.equal(job.title, 'ML Engineer');
+  assert.equal(job.company, 'DataCo');
+  assert.equal(job.source, 'Jobicy');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$120,000 - $160,000');
+  assert.equal(job.location, 'USA');
+  assert.deepEqual(job.tags, ['Data Science']);
+});
+
+test('normalizeWorkingNomadsJob maps Working Nomads shape', () => {
+  const job = normalizeWorkingNomadsJob({
+    id: 77,
+    title: 'Frontend Developer',
+    company_name: 'NomadCorp',
+    url: 'https://workingnomads.com/jobs/77',
+    location: 'Remote',
+    salary: '$80k - $110k',
+    pub_date: '2026-05-10T00:00:00Z',
+    description: 'Build UIs',
+    tags: ['react', 'typescript'],
+  });
+
+  assert.equal(job.id, 'workingnomads:77');
+  assert.equal(job.title, 'Frontend Developer');
+  assert.equal(job.company, 'NomadCorp');
+  assert.equal(job.source, 'Working Nomads');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$80k - $110k');
+  assert.deepEqual(job.tags, ['react', 'typescript']);
+});
+
+test('normalizeReedJob maps Reed shape with GBP salary and employment type', () => {
+  const job = normalizeReedJob({
+    jobId: 123,
+    jobTitle: 'Software Engineer',
+    employerName: 'Brit Tech Ltd',
+    locationName: 'London',
+    minimumSalary: 60000,
+    maximumSalary: 80000,
+    fullTime: true,
+    jobUrl: 'https://www.reed.co.uk/jobs/software-engineer-123',
+    date: '2026-05-20T00:00:00Z',
+    jobDescription: 'Build great software',
+  });
+
+  assert.equal(job.id, 'reed:123');
+  assert.equal(job.title, 'Software Engineer');
+  assert.equal(job.company, 'Brit Tech Ltd');
+  assert.equal(job.source, 'Reed');
+  assert.equal(job.salary, '£60,000 - £80,000');
+  assert.equal(job.employment_type, 'Full-time');
+  assert.equal(job.location, 'London');
+});
+
+test('normalizeJoobleJob maps Jooble shape', () => {
+  const job = normalizeJoobleJob({
+    title: 'Backend Engineer',
+    company: 'GlobalCorp',
+    location: 'Remote',
+    salary: '$130,000',
+    snippet: 'Write APIs',
+    type: 'Full-time',
+    link: 'https://jooble.org/desc/1',
+    updated: '2026-05-25T00:00:00+00:00',
+  });
+
+  assert.equal(job.title, 'Backend Engineer');
+  assert.equal(job.company, 'GlobalCorp');
+  assert.equal(job.source, 'Jooble');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary, '$130,000');
+  assert.equal(job.employment_type, 'Full-time');
+});
+
+test('new keyless sources are registered and available by default', () => {
+  const sources = listJobSources({});
+  const ids = sources.map((s) => s.id);
+  assert.ok(ids.includes('remoteok'), 'remoteok missing');
+  assert.ok(ids.includes('jobicy'), 'jobicy missing');
+  assert.ok(ids.includes('workingnomads'), 'workingnomads missing');
+  assert.equal(sources.find((s) => s.id === 'remoteok').available, true);
+  assert.equal(sources.find((s) => s.id === 'jobicy').available, true);
+  assert.equal(sources.find((s) => s.id === 'workingnomads').available, true);
+});
+
+test('Reed source is registered and gated on API key', () => {
+  const sources = listJobSources({});
+  assert.ok(sources.find((s) => s.id === 'reed'));
+  assert.equal(sources.find((s) => s.id === 'reed').available, false);
+
+  const withKey = listJobSources({ reed: { apiKey: 'my-reed-key' } });
+  assert.equal(withKey.find((s) => s.id === 'reed').available, true);
+});
+
+test('Jooble source is registered and gated on API key', () => {
+  const sources = listJobSources({});
+  assert.ok(sources.find((s) => s.id === 'jooble'));
+  assert.equal(sources.find((s) => s.id === 'jooble').available, false);
+
+  const withKey = listJobSources({ jooble: { apiKey: 'my-jooble-key' } });
+  assert.equal(withKey.find((s) => s.id === 'jooble').available, true);
+});
+
+test('jobPassesPayFilter hides unknown-salary jobs when hideUnknown is set', () => {
+  const filter = { enabled: true, mode: 'annual', min: 50, max: 200, hideUnknown: true };
+  assert.equal(jobPassesPayFilter({ salary: '' }, filter), false, 'empty salary should be hidden');
+  assert.equal(jobPassesPayFilter({ salary: 'competitive' }, filter), false, 'unparseable salary should be hidden');
+  assert.equal(jobPassesPayFilter({ salary: '$100,000' }, filter), true, 'parseable in-range salary should pass');
+
+  // Without hideUnknown, unknown salary still passes.
+  const filterNoHide = { enabled: true, mode: 'annual', min: 50, max: 200, hideUnknown: false };
+  assert.equal(jobPassesPayFilter({ salary: '' }, filterNoHide), true);
+});
+
+// ── New source tests ─────────────────────────────────────────────────────────
+
+test('normalizeHnComment — pipe-delimited format maps correctly', () => {
+  const raw = {
+    objectID: '12345',
+    comment_text: 'Acme Corp | Senior Engineer | Remote | Full-time | $120k-$150k',
+    created_at: '2026-05-30T10:00:00Z',
+  };
+  const job = normalizeHnComment(raw);
+  assert.equal(job.id, 'hn:12345');
+  assert.equal(job.company, 'Acme Corp');
+  assert.equal(job.title, 'Senior Engineer');
+  assert.equal(job.location, 'Remote');
+  assert.equal(job.remote, true);
+  assert.equal(job.url, 'https://news.ycombinator.com/item?id=12345');
+  assert.equal(job.source, "HN: Who's Hiring");
+  assert.match(job.posted, /^20\d\d-/);
+});
+
+test('normalizeHnComment — colon format fallback', () => {
+  const raw = {
+    objectID: '67890',
+    comment_text: 'WidgetCo: Looking for a Backend Developer. Must know Go.',
+    created_at: '2026-06-01T08:00:00Z',
+  };
+  const job = normalizeHnComment(raw);
+  assert.equal(job.id, 'hn:67890');
+  assert.equal(job.company, 'WidgetCo');
+  assert.ok(job.title.toLowerCase().includes('looking') || job.title.toLowerCase().includes('backend'));
+  assert.equal(job.source, "HN: Who's Hiring");
+});
+
+test('normalizeWwrJob — title parsing splits "Category: Role at Company" correctly', () => {
+  const mockItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Design & UX: Product Designer at Figma' },
+        link: { textContent: 'https://weworkremotely.com/jobs/1' },
+        guid: null,
+        pubDate: { textContent: 'Mon, 02 Jun 2026 10:00:00 +0000' },
+        description: { textContent: 'Work on design systems' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeWwrJob(mockItem);
+  assert.equal(job.title, 'Product Designer');
+  assert.equal(job.company, 'Figma');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'We Work Remotely');
+  assert.equal(job.url, 'https://weworkremotely.com/jobs/1');
+});
+
+test('normalizeRemoteCoJob — title parsing splits "Role at Company"', () => {
+  const mockItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Senior Backend Engineer at Stripe' },
+        link: { textContent: 'https://remote.co/job/123' },
+        guid: null,
+        pubDate: { textContent: 'Mon, 02 Jun 2026 10:00:00 +0000' },
+        description: { textContent: 'Work on payments infrastructure' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeRemoteCoJob(mockItem);
+  assert.equal(job.title, 'Senior Backend Engineer');
+  assert.equal(job.company, 'Stripe');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'remote.co');
+});
+
+test('normalizeLinkedInJob — maps entityUrn to id and url, uses companyMap', () => {
+  const raw = {
+    entityUrn: 'urn:li:fsd_jobPosting:9876543',
+    title: 'Staff Engineer',
+    formattedLocation: 'San Francisco, CA',
+    workRemoteAllowed: true,
+    listedAt: 1748736000000,
+    description: { text: 'Build scalable systems.' },
+    companyDetails: { company: 'urn:li:fs_miniCompany:42' },
+  };
+  const companyMap = { 'urn:li:fs_miniCompany:42': 'Acme Corp' };
+  const job = normalizeLinkedInJob(raw, companyMap);
+  assert.equal(job.id, 'linkedin:9876543');
+  assert.equal(job.url, 'https://www.linkedin.com/jobs/view/9876543/');
+  assert.equal(job.company, 'Acme Corp');
+  assert.equal(job.title, 'Staff Engineer');
+  assert.equal(job.remote, true);
+  assert.equal(job.atsLabel, 'LinkedIn');
+  assert.equal(job.source, 'LinkedIn');
+  assert.match(job.posted, /^20\d\d-/);
+});
+
+test('parseLinkedInVoyagerResponse — builds companyMap from included, returns job array', () => {
+  const data = {
+    included: [
+      {
+        $type: 'com.linkedin.voyager.dash.organization.Company',
+        entityUrn: 'urn:li:fs_miniCompany:99',
+        name: 'TechCorp',
+      },
+      {
+        $type: 'com.linkedin.voyager.dash.jobs.JobPosting',
+        entityUrn: 'urn:li:fsd_jobPosting:111',
+        title: 'Frontend Developer',
+        formattedLocation: 'Remote',
+        workRemoteAllowed: true,
+        listedAt: 1748736000000,
+        description: { text: 'Build UIs' },
+        companyDetails: { company: 'urn:li:fs_miniCompany:99' },
+      },
+    ],
+  };
+  const jobs = parseLinkedInVoyagerResponse(data);
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].id, 'linkedin:111');
+  assert.equal(jobs[0].company, 'TechCorp');
+  assert.equal(jobs[0].title, 'Frontend Developer');
+  assert.equal(jobs[0].source, 'LinkedIn');
+});
+
+test('listJobSources — linkedin source present, session-gated on sessionActive', () => {
+  const noSession = listJobSources({});
+  const linkedin = noSession.find((s) => s.id === 'linkedin');
+  assert.ok(linkedin, 'linkedin source should be present');
+  assert.equal(linkedin.available, false);
+  assert.equal(linkedin.session, true);
+  assert.equal(linkedin.keyless, false);
+
+  const withSession = listJobSources({ linkedin: { sessionActive: true } });
+  assert.equal(withSession.find((s) => s.id === 'linkedin').available, true);
+});
+
+test('listJobSources — hn-hiring, weworkremotely, remoteco present and available by default', () => {
+  const sources = listJobSources({});
+  const hn = sources.find((s) => s.id === 'hn-hiring');
+  const wwr = sources.find((s) => s.id === 'weworkremotely');
+  const rc = sources.find((s) => s.id === 'remoteco');
+  assert.ok(hn, 'hn-hiring should be present');
+  assert.ok(wwr, 'weworkremotely should be present');
+  assert.ok(rc, 'remoteco should be present');
+  assert.equal(hn.available, true);
+  assert.equal(wwr.available, true);
+  assert.equal(rc.available, true);
+  assert.equal(hn.keyless, true);
+  assert.equal(wwr.keyless, true);
+  assert.equal(rc.keyless, true);
+});
+
+test('searchJobs includes Remote OK, Jobicy, and Working Nomads as default active sources', async () => {
+  const queried = [];
+  const fetchImpl = async (url, opts = {}) => {
+    if (url.includes('remoteok.com')) { queried.push('remoteok'); return { ok: true, json: async () => ([{ legal: true }]) }; }
+    if (url.includes('jobicy.com')) { queried.push('jobicy'); return { ok: true, json: async () => ({ jobs: [] }) }; }
+    if (url.includes('workingnomads.com')) { queried.push('workingnomads'); return { ok: true, json: async () => ([]) }; }
+    if (url.includes('remotive.com')) return { ok: true, json: async () => ({ jobs: [] }) };
+    if (url.includes('arbeitnow.com')) return { ok: true, json: async () => ({ data: [] }) };
+    if (url.includes('themuse.com')) return { ok: true, json: async () => ({ results: [] }) };
+    return { ok: true, json: async () => ({}) };
+  };
+
+  await searchJobs('dev', { fetchImpl });
+  assert.ok(queried.includes('remoteok'), 'Remote OK not queried');
+  assert.ok(queried.includes('jobicy'), 'Jobicy not queried');
+  assert.ok(queried.includes('workingnomads'), 'Working Nomads not queried');
 });

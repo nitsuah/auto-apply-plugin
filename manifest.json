@@ -7,7 +7,9 @@
     "storage",
     "activeTab",
     "scripting",
-    "identity"
+    "identity",
+    "cookies",
+    "tabs"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
@@ -16,6 +18,14 @@
     "https://www.themuse.com/*",
     "https://api.adzuna.com/*",
     "https://data.usajobs.gov/*",
+    "https://remoteok.com/*",
+    "https://jobicy.com/*",
+    "https://www.workingnomads.com/*",
+    "https://www.reed.co.uk/*",
+    "https://jooble.org/*",
+    "https://hn.algolia.com/*",
+    "https://weworkremotely.com/*",
+    "https://remote.co/*",
     "https://api.linkedin.com/*",
     "https://*.greenhouse.io/*",
     "https://*.ashbyhq.com/*",
