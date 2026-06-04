@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
 
 test('popup lint output has no missing symbol/runtime signatures', () => {
-  const output = execSync('npx eslint popup/popup.js', {
+  const output = execSync('npx eslint popup/popup.js --config config/eslint.config.mjs', {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
