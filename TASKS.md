@@ -1,12 +1,10 @@
-# TASKS
 ---
-updated: 2026-06-02
+updated: 2026-06-08
 ---
+
+# Tasks
 
 ## In Progress
-
-- [x] Process note: after any significant popup / tracker / profile UI update, refresh the README gallery images in `screenshots/` before wrapping the stopping point.
-  - Progress: refreshed for the latest tracker/profile UI pass and verified during manual QA closeout (2026-05-21).
 
 - [/] Polish the popup into a true job-workspace view.
   - Priority: P1
@@ -28,7 +26,7 @@ updated: 2026-06-02
   - Priority: P2
   - Context: the product needs a clearer visual and messaging system, but it should stay grounded in the current MVP goals: local-first autofill, review-first trust, and a real job-workspace feel.
   - Acceptance Criteria: define an achievable naming/branding checklist for popup copy, icons, and docs without derailing the core application workflow.
-  - Progress: user-facing copy now shifts toward “Apply Workspace” across the manifest, popup header, tracker labels, and README positioning; rebrand pass remains partial and intentionally scoped to copy/UI touchpoints for now.
+  - Progress: user-facing copy now shifts toward "Apply Workspace" across the manifest, popup header, tracker labels, and README positioning; rebrand pass remains partial and intentionally scoped to copy/UI touchpoints for now.
 
 ## Todo
 
@@ -44,14 +42,6 @@ updated: 2026-06-02
   - Progress (2026-06-02, more keyless + LinkedIn): added HN Who's Hiring (Algolia, no key), We Work Remotely (RSS), remote.co (RSS) as three more keyless sources (9 keyless total). Added LinkedIn session source — service worker reads JSESSIONID via `chrome.cookies`, relays query + CSRF token to content script on any open LinkedIn tab, content script fetches from Voyager API using page session. `cookies` + `tabs` permissions added. Added ✨/🧹 AI buttons to long preview-answer cards (same `SUMMARIZE_JD` backend). 71 tests passing.
   - Remaining: on-ATS-page detail parsing depth, tracker-side indexing enhancements, OAuth job source once a partner API is available.
   - Integrate with public job APIs (e.g. Adzuna, USAJobs, or RapidAPI job endpoints) and/or scrape LinkedIn, Indeed, etc. via URL endpoint with generic app for auth initially or lazy 3l0 scraping after.
-  - Normalize results to a common schema: title, company, location, salary, remote, url, and ATS/job board link. [done]
-  - Show results in the job search panel with clear CTA to "Go to job post" (ATS link preferred). [done]
-  - Add logic to extract and highlight ATS/job board links from job listings (when available). [done — known-ATS detection on result URLs]
-  - If only a generic job board link is available, surface that as the main action. [done]
-  - Add a "Save to Tracker" button for each result to capture the job into the user's board. [done]
-  - Scrape/parse job post details (salary, remote, etc.) when user lands on the ATS/job board page. [done — main-screen "💾 Save Job to Tracker" button captures parsed details in one click; the content script now also parses schema.org JSON-LD `JobPosting` (very common, incl. custom career domains) for reliable salary / employment type / location / remote, preferring it over DOM scraping. Pure parser in `lib/jd-parser.js`, unit-tested in `tests/jsonld-parser.test.mjs`.]
-  - Index all captured jobs for fast search/filter in the tracker. [done — tracker search input filters by company, role, notes, and all saved fields; jobs saved via "Save job" are immediately searchable]
-  - (Optional) Add basic deduplication for jobs appearing on multiple boards. [done]
 
 - [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
 - [ ] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
@@ -79,8 +69,8 @@ updated: 2026-06-02
   - Context: the UI is becoming more workspace-like, so keyboard support, labels, alt text, and contrast should get a structured pass.
   - Acceptance Criteria: document the biggest accessibility gaps and land the highest-value fixes without bloating the MVP.
   - Progress (2026-05-31): structured manual audit written to `docs/a11y-audit.md`. Landed fixes: `popup/ux/a11y.js` derives accessible names from placeholders/titles for all unlabeled controls (run at init); icon-only Help button labeled; Enter/Space now toggles tracker card expand (the `role=button` summary); `prefers-reduced-motion` block disables non-essential animation. Remaining (documented): keyboard DnD alternative, color-contrast verification, focus-ring audit, live-region sweep, and wiring `axe-core` into Playwright e2e.
-- [/] Identify visual overload segments and have AI buttons to make detailed information more concise for consumption. For example, job descriptions can be very long and detailed, so having an option to summarize or highlight key points could be helpful. The scraping results may also have some noise that could be reduced with a "clean up" button in most circumstances.
-  - Progress (2026-05-31): added BYOK Gemini "✨ Summarize" and "🧹 Clean up" buttons on both the Quick-add JD field and each tracker card's description (`transformJobText` in `lib/gemini.js`, `SUMMARIZE_JD` SW message). Summarize returns a scannable labeled-bullet brief; Clean up strips nav/cookie/boilerplate noise. On a card the result fills the textarea without auto-saving, so the original is preserved until the user clicks Save. Requires a Gemini key (clear error otherwise).
+- [/] Identify visual overload segments and have AI buttons to make detailed information more concise for consumption.
+  - Progress (2026-05-31): added BYOK Gemini "✨ Summarize" and "🧹 Clean up" buttons on both the Quick-add JD field and each tracker card's description. Summarize returns a scannable labeled-bullet brief; Clean up strips nav/cookie/boilerplate noise.
   - Progress (2026-06-02): ✨/🧹 buttons added to job search result cards (hover-reveal) and to preview answer cards with values > 120 chars.
   - Remaining: none — all AI button surfaces now covered.
 
@@ -92,21 +82,6 @@ Captured so they aren't lost; pick up when prioritized.
 - [ ] **Wire `axe-core` into the Playwright e2e.** *Blocked here:* adding `@axe-core/playwright` needs an `npm install` to update `package-lock.json`, and the e2e Docker image runs `npm ci` (requires a matching lock); npm isn't available in the current dev environment.
 - [/] **Refresh `screenshots/` gallery**: added `tests/e2e/screenshots.spec.mjs` — Playwright captures from headless Chromium with a chrome mock (shows UI shell/chrome but no live data). Full gallery with real populated data still needs the extension loaded in real Chrome. New captures: main-dashboard, tracker-workspace, profile-memory, job-search, ai-settings all updated.
 - [ ] **a11y burndown (remaining from `docs/a11y-audit.md`):** keyboard alternative for bubble/card drag-and-drop (status `<select>` is the current path — document or enhance); automated color-contrast verification of muted text over tinted surfaces + small badges; focus-ring audit at popup vs. standalone widths.
-- [x] **Separate "Availability" field**: added distinct `availability` text input to Profile (notice period / immediate status), wired through `applyProfileOverrides`, `getProfileFromResume`, and `buildDeterministicAnswers`; falls back to `start_date` when blank.
-- [x] **Pay filter — option to hide unknown-salary jobs**: added "Hide jobs without posted salary" checkbox; `hideUnknown` flag wired into `jobPassesPayFilter` and persisted in `jobSearchPrefs`.
-- [x] **Added keyed sources — Reed + Jooble** and three new keyless sources (Remote OK, Jobicy, Working Nomads) via the `JOB_SOURCES` registry. AI settings panel updated; SW config builder extended.
-- [x] **Optional summarize / clean-up on job search results**: added ✨/🧹 icon buttons on each result card's description area (appear on hover, same `SUMMARIZE_JD` SW message, updates card text in-place).
-- [x] **On-page detail capture polish — source confidence hint**: `enrichJobInfo` in `content.js` now sets `_dataSource: 'json-ld' | 'dom'`; the main-screen "Save Job to Tracker" status message notes when structured data was detected.
-- [x] Optional summarize / clean-up on long preview answers: ✨/🧹 buttons added to preview-card values > 120 chars.
-
-## Done
-
-- Tracker/workspace UI polish pass: responsive layout improvements, final-stage lane management, status/dropdown readability upgrades, and better card metadata presentation.
-- Tracker card edit redesign: grouped context/pay/sentiment/date boxes, URL placement under scorecard, restored submitted+updated date visibility, and larger description editor sizing.
-- Tracker data controls: editable URL + summary sync, verdict dropdown, structured pay min/max controls, location select with Other fallback, and drag-lock while expanded.
-- ATS reliability hardening: added Jobvite + Circle/Phenom domain support and content-script auto-injection retry path for missing receiver errors.
-- Profile setup UX split: separate Save Profile and Parse/Upload Resume actions with top-right status messaging.
-
 
 <!--
 AGENT INSTRUCTIONS:

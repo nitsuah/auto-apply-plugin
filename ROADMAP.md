@@ -1,32 +1,22 @@
 ---
-updated: 2026-06-02 (job-sources-expansion)
+updated: 2026-06-08
 ---
 
 # Roadmap
 
-## 2026 Q1 (Completed)
+## 2026 Q1 ✅
 
-- [x] Ship the Chrome MV3 extension foundation, profile-first setup flow, and review-first tracker baseline.
-- [x] Add Gemini model resilience, Docker validation, privacy consent, and safe draft/self-heal improvements.
+> Completed. See FEATURES.md for shipped capabilities.
 
 ## 2026 Q2 (In Progress)
 
 - [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, structured pay bands, verdict controls, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
-	- Completed in current pass: tracker lane/header ergonomics, memory/profile workflow refinements, grouped tracker card edit sections, URL placement/styling alignment, submitted plus updated date visibility, and darker status-dropdown readability.
-	- Closeout update: README screenshots refreshed and final fit-and-finish sign-off completed during manual QA (2026-05-21).
-- [x] Move tracker/help actions into the popup header and reduce main-screen scrolling friction.
-- [x] Make Memory editable from Profile so users can correct bad captures quickly.
-- [x] Add a help/legal surface for EULA, terms, privacy, GDPR, selective cache clear, and full reset/delete-my-info actions.
-- [x] Add a standalone mock-data preview mode so popup UI review and README screenshot refreshes work without the extension runtime.
-- [x] Add ATS reliability fallback by retrying content-script injection when a page has no receiver.
+- [/] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
+- [ ] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
 
 ## 2026 Q3 (In Progress)
 
-- [/] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
-- [x] Finish CSV import for previously submitted applications.
-- [/] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
-- [x] Expand job search to 10 sources — 6 keyless (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads) and 4 BYOK keyed (Adzuna, USAJOBS, Reed, Jooble). Plug-and-play `JOB_SOURCES` registry makes adding new boards a one-entry change.
-- [x] Add "hide unknown salary" pay-filter toggle so users can limit results to jobs with published pay.
+- [/] Expand job search to additional sources — on-ATS-page parsing depth, tracker-side indexing, and OAuth job source once a partner API is available.
 
 ## 2026 Q4 (Exploratory)
 
