@@ -24,6 +24,8 @@ updated: 2026-06-08
 - [ ] Explore optional identity-provider imports (Google, ID.me, etc.) for bootstrapping profile data without breaking local-first/privacy guarantees. But also for email/etc. auto-fill in the tracker and potential future job-board integrations.
 - [ ] Revisit deeper job-fit scoring, verdict assistance, and richer tracker analytics after the storage and review foundations are stable.
 - [ ] Run a lightweight `axe` / accessibility audit on popup navigation, labels, contrast, and keyboard flow as the workspace UI settles.
+- [ ] **Interview prep mode** — from a saved tracker card, generate a Gemini-backed set of likely behavioral and technical questions tailored to the JD and the user's stored profile, with suggested answer structures pre-filled from memory. Keeps interview prep local-first and zero-upload.
+- [ ] **Application analytics panel** — surface aggregate stats from tracker data: response-rate by source, salary-range effectiveness, and time-to-first-response distribution; gives signal on which boards and bid ranges are yielding callbacks without any external telemetry.
 
 ## Notes
 
