@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build test image
         run: docker build --target test -t auto-apply-plugin:test .
@@ -40,7 +40,7 @@ jobs:
     needs: fast
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build test image
         run: docker build --target test -t auto-apply-plugin:test .
@@ -67,7 +67,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build e2e image
         run: docker build --target e2e -t auto-apply-plugin:e2e .
@@ -102,7 +102,7 @@ jobs:
     needs: fast
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build test image
         run: docker build --target test -t auto-apply-plugin:test .
