@@ -59,6 +59,7 @@ Designed so the user stays in control of all data without relying on any externa
 Aggregates listings from multiple job boards in one panel so you can discover, filter, and save jobs without leaving the extension.
 
 - **13 Job Sources**: Nine keyless boards active by default (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads, HN Who's Hiring, We Work Remotely, remote.co); four BYOK keyed sources (Adzuna, USAJOBS, Reed, Jooble); LinkedIn session source (active when signed into LinkedIn in any tab)
+- **Source Confidence Hints**: Each search result card shows a confidence indicator reflecting the reliability and data completeness of its source board; helps prioritize high-signal listings at a glance
 - **Per-Source Filter Chips**: Toggle individual sources on/off; locked chips route to the AI settings panel to configure keys
 - **Pay Filter with Hide-Unknown Toggle**: Annual/hourly dual-slider with an explicit checkbox to hide jobs without a published salary range
 - **Remote, Type, and Location Filters**: Narrow results by work mode, employment type, and region (USA / Europe / Remote / Other)
