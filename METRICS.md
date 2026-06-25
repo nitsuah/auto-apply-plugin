@@ -4,7 +4,7 @@
 
 | Metric        | Value |
 | ------------- | ----- |
-| Code Coverage | 93.98% |
+| Code Coverage | 91.86% |
 | Build Time    | 3.44s |
 | Bundle Size   | 619.78KB |
 | Test Files    | 6 (5 unit + 1 Playwright e2e) |
