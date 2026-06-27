@@ -13,27 +13,27 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
-test.beforeEach(async () => {
-  context = await chromium.launchPersistentContext('', {
-    headless: true,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-    ],
+test.describe('Accessibility audit', () => {
+  test.beforeEach(async () => {
+    context = await chromium.launchPersistentContext('', {
+      headless: true,
+      args: [
+        `--disable-extensions-except=${EXTENSION_PATH}`,
+        `--load-extension=${EXTENSION_PATH}`,
+      ],
+    });
+
+    const backgroundPage = context.backgroundPages()[0];
+    extensionId = backgroundPage.url().split('/')[2];
+
+    // Create a dummy page to be the "active" tab
+    await context.newPage();
   });
 
-  const backgroundPage = context.backgroundPages()[0];
-  extensionId = backgroundPage.url().split('/')[2];
+  test.afterEach(async () => {
+    await context.close();
+  });
 
-  // Create a dummy page to be the "active" tab
-  await context.newPage();
-});
-
-test.afterEach(async () => {
-  await context.close();
-});
-
-test.describe('Accessibility audit', () => {
   test('main dashboard should not have any automatically detectable accessibility issues', async () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 420, height: 640 });

@@ -10,26 +10,6 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
-test.beforeEach(async () => {
-  context = await chromium.launchPersistentContext('', {
-    headless: true,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-    ],
-  });
-
-  const backgroundPage = context.backgroundPages()[0];
-  extensionId = backgroundPage.url().split('/')[2];
-
-  // Create a dummy page to be the "active" tab
-  await context.newPage();
-});
-
-test.afterEach(async () => {
-  await context.close();
-});
-
 // ── Screenshot tests ──────────────────────────────────────────────────────────
 
 test('screenshot: main dashboard', async () => {
