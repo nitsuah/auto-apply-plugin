@@ -1,24 +1,14 @@
 /**
- * Screenshot capture spec — generates README gallery images.
+ * Accessibility tests with axe-core.
  *
  * Loads popup.html via file:// URL with an inline chrome mock, navigates
- * to each major screen, and saves PNGs to screenshots/.
- *
- * NOTE: page.exposeFunction does NOT work with file:// URLs (WebSocket bridge
- * is blocked). All mock data must be inlined via addInitScript. Screens may
- * appear empty if the SW message round-trip doesn't complete — that is expected
- * in headless Playwright. For fully-populated gallery shots load the extension
- * in a real Chrome profile.
- *
- * Usage:
- *   docker run --name ss apply-plugin-e2e npx playwright test tests/e2e/screenshots.spec.mjs
- *   docker cp ss:/app/screenshots/. screenshots/
- *   docker rm ss
+ * to each major screen, and runs axe-core scans.
  */
 
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright'; // Import AxeBuilder
 
 const POPUP_BASE = pathToFileURL(path.resolve(process.cwd(), 'popup/popup.html')).toString();
 const POPUP_URL = POPUP_BASE + '?standalone=1';
@@ -62,14 +52,6 @@ const MOCK_STATE = {
   lastAnswers: null,
   lastFillReport: null,
   lastTrackedApplicationId: null,
-  resumeAttachment: {
-    name: 'Alex-Chen-Resume.pdf',
-    source: 'upload',
-    updatedAt: '2026-05-10T09:00:00.000Z',
-    preview: 'Alex Chen — Senior Software Engineer',
-    hasDownload: true,
-    downloadLabel: 'Download copy',
-  },
   applications: [
     { id: 'a1', company: 'Anthropic', title: 'Staff Engineer', status: 'interviewed', date: '2026-05-20', remote: true, location: 'San Francisco, CA', salary_range: '$200k–$280k', pay_min: 200000, pay_max: 280000, url: 'https://anthropic.com/careers', sentiment: 'excited', score: 5, sort_order: 0 },
     { id: 'a2', company: 'Stripe', title: 'Senior Backend Engineer', status: 'submitted', date: '2026-05-18', remote: false, location: 'San Francisco, CA', salary_range: '$180k–$240k', pay_min: 180000, pay_max: 240000, url: 'https://stripe.com/jobs', sentiment: 'positive', score: 4, sort_order: 1 },
@@ -151,58 +133,70 @@ async function loadPopup(page) {
   await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
 }
 
-// ── Screenshot tests ──────────────────────────────────────────────────────────
+// ── Accessibility tests ───────────────────────────────────────────────────────
 
-test('screenshot: main dashboard', async ({ page }) => {
-  await page.setViewportSize({ width: 420, height: 640 });
-  await loadPopup(page);
-  await page.screenshot({ path: 'screenshots/main-dashboard.png' });
-});
+test.describe('Accessibility audit', () => {
+  test('main dashboard should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 640 });
+    await loadPopup(page);
 
-test('screenshot: tracker workspace', async ({ page }) => {
-  await page.setViewportSize({ width: 1100, height: 780 });
-  await loadPopup(page);
-  const btn = page.locator('#header-tracker-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: 'screenshots/tracker-workspace.png' });
-});
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 
-test('screenshot: profile and memory', async ({ page }) => {
-  await page.setViewportSize({ width: 1100, height: 860 });
-  await loadPopup(page);
-  const btn = page.locator('#header-profile-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: 'screenshots/profile-memory.png' });
-});
+  test('tracker workspace should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 780 });
+    await loadPopup(page);
+    const btn = page.locator('#header-tracker-btn');
+    if (await btn.isVisible()) {
+      await btn.click();
+      await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
 
-test('screenshot: job search panel', async ({ page }) => {
-  await page.setViewportSize({ width: 1100, height: 780 });
-  await loadPopup(page);
-  const btn = page.locator('#header-job-search-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: 'screenshots/job-search.png' });
-});
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 
-test('screenshot: AI settings panel', async ({ page }) => {
-  await page.setViewportSize({ width: 1100, height: 780 });
-  await loadPopup(page);
-  const btn = page.locator('#header-ai-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: 'screenshots/ai-settings.png' });
+  test('profile and memory screen should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 860 });
+    await loadPopup(page);
+    const btn = page.locator('#header-profile-btn');
+    if (await btn.isVisible()) {
+      await btn.click();
+      await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('job search panel should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 780 });
+    await loadPopup(page);
+    const btn = page.locator('#header-job-search-btn');
+    if (await btn.isVisible()) {
+      await btn.click();
+      await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
+  test('AI settings panel should not have any automatically detectable accessibility issues', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 780 });
+    await loadPopup(page);
+    const btn = page.locator('#header-ai-btn');
+    if (await btn.isVisible()) {
+      await btn.click();
+      await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForTimeout(300);
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
 });

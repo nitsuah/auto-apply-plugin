@@ -13,5 +13,6 @@ FROM mcr.microsoft.com/playwright:v1.61.0-noble AS e2e
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
+RUN npm install @axe-core/playwright
 COPY . .
 CMD ["npm", "run", "test:e2e"]
