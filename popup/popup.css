@@ -3048,7 +3048,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-score-interactive .tracker-star {
-  color: #4b5563;
+  color: #6b7280;
   transition: color 0.1s, transform 0.1s;
 }
 
@@ -3057,7 +3057,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-score-interactive:hover .tracker-star {
-  color: #4b5563;
+  color: #9ca3af;
 }
 
 .tracker-score-interactive .tracker-star:hover,
