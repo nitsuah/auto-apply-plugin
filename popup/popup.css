@@ -3973,10 +3973,15 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 /* ── Pipeline lane header: distinct visual separation from cards ── */
 .tracker-lane-header {
   margin: -10px -10px 10px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 12px 14px; /* Increased padding */
+  background: rgba(255, 255, 255, 0.05); /* Slightly lighter */
   border-bottom: 1px solid var(--border);
   border-radius: var(--radius) var(--radius) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 /* ── Pipeline "Drafted" status: distinct from generic "Pending" ── */
