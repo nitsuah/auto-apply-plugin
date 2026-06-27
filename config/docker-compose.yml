@@ -27,4 +27,4 @@ services:
     build:
       context: ..
       target: e2e
-    command: npm run test:e2e
+    command: sh -c "npm run build && playwright test"
