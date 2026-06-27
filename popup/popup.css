@@ -781,8 +781,8 @@ body[data-screen="ai"] {
 }
 
 body[data-screen="tracker"] {
-  width: 1180px;
-  min-width: 1180px;
+  width: 1280px;
+  min-width: 1280px;
   min-height: 700px;
 }
 
