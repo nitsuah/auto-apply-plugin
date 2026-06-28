@@ -15,17 +15,13 @@ let extensionId;
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
-    context = await chromium.launchPersistentContext('', {
+    const userDataDir = '/tmp/playwright-a11y-profile';
+    context = await chromium.launchPersistentContext(userDataDir, {
       channel: 'chromium',
       headless: true,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--remote-debugging-port=9222',
       ],
     });
 

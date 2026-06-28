@@ -15,17 +15,13 @@ let extensionId;
 // ── Screenshot tests ──────────────────────────────────────────────────────────
 
 test.beforeAll(async () => {
-  context = await chromium.launchPersistentContext('', {
+  const userDataDir = '/tmp/playwright-screenshot-profile';
+  context = await chromium.launchPersistentContext(userDataDir, {
     channel: 'chromium',
     headless: true,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
-      '--disable-gpu',
-      '--disable-software-rasterizer',
-      '--no-sandbox',
-      '--disable-dev-shm-usage',
-      '--remote-debugging-port=9222',
     ],
   });
 
