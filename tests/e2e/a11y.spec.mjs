@@ -15,8 +15,8 @@ let extensionId;
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
-    console.log('Launching context...');
     context = await chromium.launchPersistentContext('', {
+      channel: 'chromium',
       headless: true,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
@@ -27,13 +27,10 @@ test.describe('Accessibility audit', () => {
         '--disable-dev-shm-usage',
       ],
     });
-    console.log('Context launched.');
 
-    console.log('Waiting for service worker...');
-    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-    console.log('Service worker found:', worker.url());
+    // Wait for the service worker to be ready
+    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
     extensionId = worker.url().split('/')[2];
-    console.log('Extension ID:', extensionId);
 
     // Create a dummy page to be the "active" tab
     await context.newPage();

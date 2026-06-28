@@ -16,6 +16,7 @@ let extensionId;
 
 test.beforeAll(async () => {
   context = await chromium.launchPersistentContext('', {
+    channel: 'chromium',
     headless: true,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
@@ -27,7 +28,7 @@ test.beforeAll(async () => {
     ],
   });
 
-  const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
   extensionId = worker.url().split('/')[2];
 });
 
