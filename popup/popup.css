@@ -781,9 +781,11 @@ body[data-screen="ai"] {
 }
 
 body[data-screen="tracker"] {
+  /* Remove fixed width, keep only the preferred width */
   width: 1280px;
-  min-width: 1280px;
   min-height: 700px;
+  /* Allow shrinking */
+  max-width: 1280px;
 }
 
 body[data-standalone="true"] {

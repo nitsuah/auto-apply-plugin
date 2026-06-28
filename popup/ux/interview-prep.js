@@ -48,9 +48,12 @@ export async function openInterviewPrepForApplication(applicationId) {
   if (app.remote) metaParts.push('Remote');
   $('interview-prep-meta').textContent = metaParts.join(' · ') || '—';
 
-  $('interview-prep-job-info')?.classList.remove('hidden');
-  $('interview-prep-generate-btn')?.disabled = false;
-  $('interview-prep-questions')?.classList.add('hidden');
+  const jobInfo = $('interview-prep-job-info');
+  if (jobInfo) jobInfo.classList.remove('hidden');
+  const genBtn = $('interview-prep-generate-btn');
+  if (genBtn) genBtn.disabled = false;
+  const questions = $('interview-prep-questions');
+  if (questions) questions.classList.add('hidden');
   generatedQuestions = [];
 
   // Load any existing interview prep data
@@ -96,9 +99,12 @@ export async function openInterviewPrepForCurrentJob() {
   if (app.remote) metaParts.push('Remote');
   $('interview-prep-meta').textContent = metaParts.join(' · ') || '—';
 
-  $('interview-prep-job-info')?.classList.remove('hidden');
-  $('interview-prep-generate-btn')?.disabled = false;
-  $('interview-prep-questions')?.classList.add('hidden');
+  const jobInfo = $('interview-prep-job-info');
+  if (jobInfo) jobInfo.classList.remove('hidden');
+  const genBtn = $('interview-prep-generate-btn');
+  if (genBtn) genBtn.disabled = false;
+  const questions = $('interview-prep-questions');
+  if (questions) questions.classList.add('hidden');
   generatedQuestions = [];
 
   await showScreen('interview-prep');
@@ -115,7 +121,8 @@ async function loadInterviewPrepData(applicationId) {
     if (resp?.success && resp.data?.questions) {
       generatedQuestions = resp.data.questions;
       renderQuestions();
-      $('interview-prep-questions')?.classList.remove('hidden');
+      const questions = $('interview-prep-questions');
+      if (questions) questions.classList.remove('hidden');
     }
   } catch (err) {
     console.warn('Could not load interview prep data:', err);
@@ -123,7 +130,7 @@ async function loadInterviewPrepData(applicationId) {
 }
 
 async function saveInterviewPrepData() {
-  if (!currentApplicationId || generatedQuestions.length === 0) return;
+  if (!currentApplicationId) return;
 
   try {
     await sendMessage({
@@ -146,11 +153,14 @@ async function generateInterviewQuestions() {
   generateBtn?.textContent = '⏳ Generating...';
   setStatus('interview-prep-status', '⏳ Generating interview questions...');
 
+  // Capture active application id at the start
+  const activeAppId = currentApplicationId;
+
   try {
     // Get the application details for context
     let context = {};
-    if (currentApplicationId) {
-      const resp = await sendMessage({ type: 'GET_APPLICATION', payload: { id: currentApplicationId } });
+    if (activeAppId) {
+      const resp = await sendMessage({ type: 'GET_APPLICATION', payload: { id: activeAppId } });
       if (resp?.success) context = resp.application;
     } else {
       // Use current job info
@@ -158,10 +168,16 @@ async function generateInterviewQuestions() {
       if (jobResp?.success) context = jobResp.job;
     }
 
+    // Verify application id still matches
+    if (activeAppId !== currentApplicationId) return;
+
     // Get user profile for personalized answers
     const state = await sendMessage({ type: 'GET_STATE' });
     const profile = state?.profile || {};
     const resume = state?.resume?.structured || {};
+
+    // Verify application id still matches
+    if (activeAppId !== currentApplicationId) return;
 
     // Send to Gemini for question generation
     const resp = await sendMessage({
@@ -177,6 +193,9 @@ async function generateInterviewQuestions() {
       throw new Error(resp?.error || 'Failed to generate questions.');
     }
 
+    // Verify application id still matches
+    if (activeAppId !== currentApplicationId) return;
+
     generatedQuestions = resp.questions || [];
     renderQuestions();
     $('interview-prep-questions')?.classList.remove('hidden');
@@ -186,8 +205,10 @@ async function generateInterviewQuestions() {
     await saveInterviewPrepData();
 
   } catch (err) {
+    if (activeAppId !== currentApplicationId) return;
     setStatus('interview-prep-status', '❌ ' + err.message, 'error');
   } finally {
+    if (activeAppId !== currentApplicationId) return;
     generateBtn?.disabled = false;
     generateBtn?.textContent = '✨ Generate Questions';
   }
@@ -208,9 +229,11 @@ function renderQuestions() {
     <div class="interview-prep-question-card" data-index="${index}">
       <div class="interview-prep-question-header">
         <h4 class="interview-prep-question-text">${escapeHtml(q.question || 'Untitled Question')}</h4>
-        <span class="interview-prep-question-type">${q.type || 'general'}</span>
+        <span class="interview-prep-question-type">${escapeHtml(q.type || 'general')}</span>
       </div>
+      <label for="answer-input-${index}" class="visually-hidden">Your answer for: ${escapeHtml(q.question || 'Question')}</label>
       <textarea
+        id="answer-input-${index}"
         class="interview-prep-answer-input"
         placeholder="Draft your answer here..."
         data-index="${index}"
@@ -254,11 +277,17 @@ async function handleSuggestAnswer(event) {
   btn.disabled = true;
   btn.textContent = '⏳ Suggesting...';
 
+  // Capture active application id at the start
+  const activeAppId = currentApplicationId;
+
   try {
     const question = generatedQuestions[index];
     const state = await sendMessage({ type: 'GET_STATE' });
     const profile = state?.profile || {};
     const resume = state?.resume?.structured || {};
+
+    // Verify application id still matches
+    if (activeAppId !== currentApplicationId) return;
 
     const resp = await sendMessage({
       type: 'GENERATE_INTERVIEW_ANSWER',
@@ -271,6 +300,9 @@ async function handleSuggestAnswer(event) {
       },
     });
 
+    // Verify application id still matches
+    if (activeAppId !== currentApplicationId) return;
+
     if (resp?.success && resp.suggestion) {
       question.suggestion = resp.suggestion;
       generatedQuestions[index] = question;
@@ -279,8 +311,10 @@ async function handleSuggestAnswer(event) {
       setStatus('interview-prep-status', '✅ Answer suggestion added!', 'success');
     }
   } catch (err) {
+    if (activeAppId !== currentApplicationId) return;
     setStatus('interview-prep-status', '❌ ' + err.message, 'error');
   } finally {
+    if (activeAppId !== currentApplicationId) return;
     btn.disabled = false;
     btn.textContent = '✨ Suggest Answer';
   }

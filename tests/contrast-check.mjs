@@ -15,21 +15,18 @@ const cssPath = path.join(__dirname, '../popup/popup.css');
 
 // ── Color parsing ────────────────────────────────────────────────────────────
 
-const CSS_VAR_MAP = {
-  '--bg': '#0b0f19',
-  '--bg-base': '#0b0f19',
-  '--surface': '#141720',
-  '--surface-2': '#1d2133',
-  '--border': '#272b3e',
-  '--accent': '#4ade80',
-  '--accent-dark': '#16a34a',
-  '--blue': '#60a5fa',
-  '--yellow': '#fbbf24',
-  '--red': '#f87171',
-  '--purple': '#c084fc',
-  '--text': '#e2e8f0',
-  '--text-muted': '#8892a4',
-};
+// Extract :root CSS variables
+const varMatch = css.match(/:root\s*\{([^}]+)\}/);
+const CSS_VAR_MAP = {};
+if (varMatch) {
+  const vars = varMatch[1].split(';');
+  for (const v of vars) {
+    const [name, val] = v.split(':');
+    if (name && val) {
+      CSS_VAR_MAP[name.trim()] = val.trim();
+    }
+  }
+}
 
 function resolveColor(value) {
   if (!value) return null;

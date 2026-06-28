@@ -231,7 +231,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco', 'indeed']);
 });
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
@@ -626,7 +626,7 @@ test('normalizeIndeedJob normalizes RSS item to standard shape', () => {
         title: { textContent: 'Senior Software Engineer' },
         link: { textContent: 'https://www.indeed.com/viewjob?jk=abc123' },
         pubDate: { textContent: 'Mon, 27 Jun 2026 10:00:00 GMT' },
-        description: { textContent: '<b>Company:</b> Acme Corp<br/><b>Location:</b> San Francisco, CA<br/><b>Salary:</b> $150,000 - $180,000 a year<br/>Remote: Yes' },
+        description: { textContent: 'Role at Acme Corp<br/><b>Location:</b> San Francisco, CA<br/><b>Salary:</b> $150,000 - $180,000 a year<br/>Remote: Yes' },
         guid: { textContent: 'abc123' },
       };
       return data[sel] || null;
@@ -665,7 +665,7 @@ test('normalizeIndeedJob handles missing salary and remote', () => {
   assert.equal(job.remote, false);
   assert.equal(job.salary_min, undefined);
   assert.equal(job.salary_max, undefined);
-  assert.equal(job.salary_interval, undefined);
+  assert.equal(job.salary_interval, 'yearly');
 });
 
 test('normalizeIndeedJob handles HTML entities and malformed data', () => {

@@ -66,15 +66,22 @@ Aggregates listings from multiple job boards in one panel so you can discover, f
 - **One-Click Save to Tracker**: Captures any result directly into the application pipeline as a draft with title, company, salary, and description
 - **Plug-and-Play Source Registry**: New boards added in `lib/job-search.js` by appending a single registry entry; no other plumbing required
 
-### 📌 Tracking and Workflow
+### ✨ Interview Prep
 
-Helps organize and monitor applications after submission.
+- **AI Interview Question Generation**: Generates tailored interview questions based on the job description and your profile, with suggested answer structures.
+- **Answer Editing and Saving**: Allows you to draft and save your answers to generated questions locally.
 
-- **Application Tracker**: Keeps a record of applications, statuses, and related job details in one place
-- **Workflow Support**: Streamlines repeated application steps to make high-volume applying easier to manage
-- **Structured Pay and Verdict Editing**: Captures pay as min/max values and keeps verdict as controlled sentiment options
-- **Advanced Card Editing**: Supports editable URL, location presets with custom fallback, and drag-lock while cards are in expanded edit mode
-- **Separate Availability Field**: Distinct availability / notice period field in Profile; autofill routes "availability" and "notice period" questions to this field, falling back to Start Date when blank
+### ♿ Accessibility Enhancements
+
+- **WCAG AA Contrast Audit**: Automated checks for color contrast compliance to WCAG AA standards.
+- **Improved Keyboard Navigation**: Enhanced focus management and keyboard shortcuts for better accessibility.
+- **Accessible Form Elements**: Programmatic labels and aria attributes for form fields to improve screen reader compatibility.
+
+### 🖼️ UI/UX Enhancements
+
+- **Responsive Tracker View**: Tracker view now adapts to narrower viewports, allowing it to shrink gracefully.
+- **Chrome Mock for E2E Tests**: Consolidated and reusable Chrome mock setup for consistent e2e testing.
+- **Dynamic CSS Variable Mapping**: Custom CSS property values are now derived directly from `popup.css` for up-to-date contrast checks.
 
 <!--
 AGENT INSTRUCTIONS:

@@ -23,8 +23,8 @@ test.describe('Accessibility audit', () => {
       ],
     });
 
-    const backgroundPage = context.backgroundPages()[0];
-    extensionId = backgroundPage.url().split('/')[2];
+    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+    extensionId = worker.url().split('/')[2];
 
     // Create a dummy page to be the "active" tab
     await context.newPage();
@@ -50,10 +50,8 @@ test.describe('Accessibility audit', () => {
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
     await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
     const btn = page.locator('#header-tracker-btn');
-    if (await btn.isVisible()) {
-      await btn.click();
-      await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-    }
+    await btn.click();
+    await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -65,10 +63,8 @@ test.describe('Accessibility audit', () => {
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
     await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
     const btn = page.locator('#header-profile-btn');
-    if (await btn.isVisible()) {
-      await btn.click();
-      await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-    }
+    await btn.click();
+    await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -80,10 +76,8 @@ test.describe('Accessibility audit', () => {
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
     await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
     const btn = page.locator('#header-job-search-btn');
-    if (await btn.isVisible()) {
-      await btn.click();
-      await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-    }
+    await btn.click();
+    await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -95,10 +89,8 @@ test.describe('Accessibility audit', () => {
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
     await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
     const btn = page.locator('#header-ai-btn');
-    if (await btn.isVisible()) {
-      await btn.click();
-      await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-    }
+    await btn.click();
+    await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);

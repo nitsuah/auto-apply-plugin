@@ -84,7 +84,7 @@ apply-workspace/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
-> Last refreshed: 2026-05-21 (manual QA closeout)
+> Last refreshed: 2026-06-28 (manual QA closeout)
 
 ### Main dashboard
 
@@ -127,11 +127,6 @@ Click **🔍 Search** in the header to open the job search panel. Results are pu
 ### Optional keyed sources (add credentials in AI settings)
 
 | Source | Coverage | Key source |
-|--------|----------|------------|
-| Adzuna | Global job board with structured salary data | Adzuna API keys (app ID + key) |
-| USAJOBS | US federal jobs | USAJOBS email + API key |
-| Reed | UK job board | Reed API key |
-| Jooble | Global job board | Jooble API key |
 |--------|----------|------------|
 | Adzuna | Millions of listings across 16+ countries | [developer.adzuna.com](https://developer.adzuna.com/signup) |
 | USAJOBS | All US federal government positions | [developer.usajobs.gov](https://developer.usajobs.gov/apirequest/) |

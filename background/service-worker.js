@@ -1416,7 +1416,12 @@ function buildProfileSummary(profile, resume) {
   if (resume?.experience?.length) {
     parts.push('Experience:');
     for (const exp of resume.experience.slice(0, 3)) {
-      parts.push(`  - ${exp.title} at ${exp.company} (${exp.start} – ${exp.end || 'Present'}): ${exp.description?.slice(0, 200)}`);
+      const title = exp.title || '';
+      const company = exp.company || '';
+      const start = exp.start || '';
+      const end = exp.end || 'Present';
+      const desc = exp.description?.slice(0, 200) || '';
+      parts.push(`  - ${title} at ${company} (${start} – ${end}): ${desc}`);
     }
   }
 
@@ -1432,7 +1437,8 @@ function buildJobSummary(job) {
   const parts = [];
   if (job.company) parts.push(`Company: ${job.company}`);
   if (job.title) parts.push(`Role: ${job.title}`);
-  if (job.description) parts.push(`JD: ${job.description.slice(0, 500)}`);
+  const jd = (job.description || job.jd_snippet || 'Not specified').slice(0, 500);
+  parts.push(`JD: ${jd}`);
   if (job.employment_type) parts.push(`Type: ${job.employment_type}`);
   if (job.remote) parts.push('Remote: Yes');
   return parts.join('\n');
@@ -1441,18 +1447,35 @@ function buildJobSummary(job) {
 // ── Interview Response Parsing ────────────────────────────────────────────────
 
 function parseInterviewQuestionsResponse(response) {
+  // 1. Try raw JSON
   try {
-    // Try to extract JSON from response
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(response);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {}
+
+  // 2. Try fenced JSON
+  try {
+    const fencedMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+    if (fencedMatch) {
+      const parsed = JSON.parse(fencedMatch[1]);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-    // Fallback: try to parse as direct JSON
-    return JSON.parse(response);
-  } catch {
-    // Last resort: parse line by line
-    return parseQuestionsFallback(response);
-  }
+  } catch {}
+
+  // 3. Try bracketed array
+  try {
+    const bracketMatch = response.match(/\[[\s\S]*\]/);
+    if (bracketMatch) {
+      const parsed = JSON.parse(bracketMatch[0]);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+
+  // 4. Last resort: fallback or throw
+  const fallback = parseQuestionsFallback(response);
+  if (Array.isArray(fallback) && fallback.length > 0) return fallback;
+
+  throw new Error('Could not parse interview questions from AI response.');
 }
 
 function parseQuestionsFallback(text) {
@@ -1475,5 +1498,7 @@ function parseQuestionsFallback(text) {
 }
 
 function parseInterviewAnswerResponse(response) {
-  return response.trim();
+  const trimmed = response.trim();
+  if (!trimmed) throw new Error('Empty AI response.');
+  return trimmed;
 }

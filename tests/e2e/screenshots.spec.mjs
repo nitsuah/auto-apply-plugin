@@ -28,10 +28,8 @@ test('screenshot: tracker workspace', async () => {
   await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
   await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
   const btn = page.locator('#header-tracker-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
+  await btn.click();
+  await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 });
   await page.screenshot({ path: 'screenshots/tracker-workspace.png' });
 });
 
@@ -41,10 +39,8 @@ test('screenshot: profile and memory', async () => {
   await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
   await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
   const btn = page.locator('#header-profile-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
+  await btn.click();
+  await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 });
   await page.screenshot({ path: 'screenshots/profile-memory.png' });
 });
 
@@ -54,10 +50,8 @@ test('screenshot: job search panel', async () => {
   await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
   await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
   const btn = page.locator('#header-job-search-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
+  await btn.click();
+  await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 });
   await page.screenshot({ path: 'screenshots/job-search.png' });
 });
 
@@ -67,9 +61,7 @@ test('screenshot: AI settings panel', async () => {
   await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
   await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
   const btn = page.locator('#header-ai-btn');
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 }).catch(() => {});
-  }
+  await btn.click();
+  await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 });
   await page.screenshot({ path: 'screenshots/ai-settings.png' });
 });

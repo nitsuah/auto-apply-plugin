@@ -281,7 +281,11 @@ export function initTrackerHandlers() {
     if (interviewPrepBtn) {
       const id = interviewPrepBtn.dataset.id;
       if (id) {
-        await openInterviewPrepForApplication(id);
+        try {
+          await openInterviewPrepForApplication(id);
+        } catch (err) {
+          setStatus('fill-status', '❌ Could not load interview prep: ' + err.message, 'error');
+        }
       }
       return;
     }
