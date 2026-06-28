@@ -15,7 +15,7 @@ let extensionId;
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
-    const userDataDir = '/tmp/playwright-a11y-profile';
+    const userDataDir = '/tmp/playwright-a11y-profile-' + Math.random().toString(36).substring(7);
     context = await chromium.launchPersistentContext(userDataDir, {
       channel: 'chromium',
       headless: true,
@@ -25,9 +25,16 @@ test.describe('Accessibility audit', () => {
       ],
     });
 
-    // Wait for the service worker to be ready
-    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 30000 });
-    extensionId = worker.url().split('/')[2];
+    // Retry finding the service worker a few times
+    for (let i = 0; i < 10; i++) {
+        const workers = context.serviceWorkers();
+        if (workers.length > 0) {
+            extensionId = workers[0].url().split('/')[2];
+            break;
+        }
+        await new Promise(r => setTimeout(r, 2000));
+    }
+    if (!extensionId) throw new Error('Service worker not found after retries');
 
     // Create a dummy page to be the "active" tab
     await context.newPage();
