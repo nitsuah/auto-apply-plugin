@@ -32,6 +32,7 @@
             👤 <span class="tracker-btn-label">Profile</span>
           </button>
           <button id="header-help-btn" class="icon-btn" title="Help, privacy, and reset options" aria-label="Help, privacy, and reset options">?</button>
+          <button id="header-interview-prep-btn" class="icon-btn" title="Interview prep mode" aria-label="Interview prep mode">🎯</button>
         </div>
       </div>
     </header>
@@ -737,6 +738,34 @@
       </div>
 
       <p id="help-status" class="status-msg" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- Interview Prep Screen -->
+    <section id="interview-prep-screen" class="screen hidden">
+      <div class="tracker-header">
+        <h2 class="section-title">Interview Prep 🎯</h2>
+        <p class="helper-text">Generate likely questions for this role and draft answer structures from your profile.</p>
+      </div>
+
+      <div class="interview-prep-content">
+        <div class="interview-prep-header">
+          <div id="interview-prep-job-info" class="interview-prep-job-info hidden">
+            <h3 id="interview-prep-company"></h3>
+            <p id="interview-prep-title"></p>
+            <p id="interview-prep-meta"></p>
+          </div>
+          <button id="interview-prep-generate-btn" class="btn btn-primary" disabled>
+            ✨ Generate Questions
+          </button>
+        </div>
+
+        <div id="interview-prep-questions" class="interview-prep-questions hidden">
+          <h3>Generated Questions</h3>
+          <div id="interview-prep-questions-list" class="interview-prep-questions-list"></div>
+        </div>
+
+        <div id="interview-prep-status" class="status-msg" role="status" aria-live="polite"></div>
+      </div>
     </section>
 
   </div>

@@ -552,6 +552,7 @@ export function renderTrackerCard(app) {
         <div class="tracker-card-actions">
           <span class="tracker-save-state">Auto-save on blur</span>
           <div class="tracker-card-action-buttons">
+            <button class="btn btn-ghost btn-sm tracker-interview-prep-btn" data-id="${escAttr(app.id)}" title="Open interview prep for this application">🎯 Interview Prep</button>
             <button class="btn btn-ghost btn-sm tracker-delete-btn" data-id="${escAttr(app.id)}">Delete</button>
             <button class="btn btn-secondary btn-sm tracker-save-btn" data-id="${escAttr(app.id)}">Save</button>
           </div>

@@ -10,6 +10,7 @@ import { exportCsv, importTrackerCsvFile } from './tracker-csv.js';
 import { showScreen } from '../ux/navigation.js';
 import { setStatus } from '../ux/state.js';
 import { fillTrackerDraftForm, readTrackerDraftForm, resetTrackerDraftForm } from '../forms/forms.js';
+import { openInterviewPrepForApplication } from '../ux/interview-prep.js';
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
@@ -271,6 +272,16 @@ export function initTrackerHandlers() {
         const id = card.dataset.id;
         if (expanded) expandedTrackerIds.add(id);
         else expandedTrackerIds.delete(id);
+      }
+      return;
+    }
+
+    // Interview Prep button
+    const interviewPrepBtn = event.target.closest('.tracker-interview-prep-btn');
+    if (interviewPrepBtn) {
+      const id = interviewPrepBtn.dataset.id;
+      if (id) {
+        await openInterviewPrepForApplication(id);
       }
       return;
     }

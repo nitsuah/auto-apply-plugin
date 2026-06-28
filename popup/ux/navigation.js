@@ -11,6 +11,7 @@ const NAV_BTN_MAP = {
   ai: 'header-ai-btn',
   setup: 'header-profile-btn',
   help: 'header-help-btn',
+  'interview-prep': 'header-interview-prep-btn',
 };
 
 // Show a named screen and hide others
@@ -31,6 +32,7 @@ export function showScreen(name) {
       help: '• Help',
       preview: '• Preview',
       'job-search': '• Job Search',
+      'interview-prep': '• Interview Prep',
       main: '',
     };
     label.textContent = labels[name] || '';
