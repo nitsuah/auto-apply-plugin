@@ -15,6 +15,7 @@ let extensionId;
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
+    console.log('EXTENSION_PATH:', EXTENSION_PATH);
     const userDataDir = '/tmp/playwright-a11y-profile-' + Math.random().toString(36).substring(7);
     context = await chromium.launchPersistentContext(userDataDir, {
       channel: 'chromium',
