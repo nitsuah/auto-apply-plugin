@@ -14,6 +14,27 @@ let extensionId;
 
 // ── Screenshot tests ──────────────────────────────────────────────────────────
 
+test.beforeAll(async () => {
+  context = await chromium.launchPersistentContext('', {
+    headless: true,
+    args: [
+      `--disable-extensions-except=${EXTENSION_PATH}`,
+      `--load-extension=${EXTENSION_PATH}`,
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+    ],
+  });
+
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+  extensionId = worker.url().split('/')[2];
+});
+
+test.afterAll(async () => {
+  await context.close();
+});
+
 test('screenshot: main dashboard', async () => {
   const page = await context.newPage();
   await page.setViewportSize({ width: 420, height: 640 });
