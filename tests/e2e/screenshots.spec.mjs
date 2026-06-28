@@ -25,6 +25,7 @@ test.beforeAll(async () => {
       '--disable-software-rasterizer',
       '--no-sandbox',
       '--disable-dev-shm-usage',
+      '--remote-debugging-port=9222',
     ],
   });
 

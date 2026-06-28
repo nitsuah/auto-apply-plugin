@@ -25,6 +25,7 @@ test.describe('Accessibility audit', () => {
         '--disable-software-rasterizer',
         '--no-sandbox',
         '--disable-dev-shm-usage',
+        '--remote-debugging-port=9222',
       ],
     });
 
