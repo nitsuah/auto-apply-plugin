@@ -128,6 +128,11 @@ Click **🔍 Search** in the header to open the job search panel. Results are pu
 
 | Source | Coverage | Key source |
 |--------|----------|------------|
+| Adzuna | Global job board with structured salary data | Adzuna API keys (app ID + key) |
+| USAJOBS | US federal jobs | USAJOBS email + API key |
+| Reed | UK job board | Reed API key |
+| Jooble | Global job board | Jooble API key |
+|--------|----------|------------|
 | Adzuna | Millions of listings across 16+ countries | [developer.adzuna.com](https://developer.adzuna.com/signup) |
 | USAJOBS | All US federal government positions | [developer.usajobs.gov](https://developer.usajobs.gov/apirequest/) |
 | Reed | Major UK job board | [reed.co.uk/developers](https://www.reed.co.uk/developers/jobseeker) |
