@@ -15,6 +15,7 @@ const VERDICT_OPTIONS = [
   { value: 'lean_no', label: 'Lean no' },
   { value: 'no', label: 'No, not a fit' },
   { value: 'research', label: 'Need more research' },
+  { value: 'interview_prep', label: 'Interview prep' },
 ];
 
 const USA_STATES = [
