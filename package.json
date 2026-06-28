@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node -e \"const fs=require('fs');const cp=require('child_process').execSync;if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});fs.mkdirSync('dist');['popup','lib','data','manifest.json'].forEach(f=>cp('cp -r '+f+' dist/'))\"",
+    "build": "node -e \"const fs=require('fs');const path=require('path');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});fs.mkdirSync('dist');['popup','lib','data','manifest.json'].forEach(f=>fs.cpSync(f,path.join('dist',f),{recursive:true}))\"",
     "test": "node --test tests/*.test.mjs",
     "test:coverage": "node --experimental-test-coverage --test tests/*.test.mjs",
     "test:e2e": "playwright test --config config/playwright.config.mjs",

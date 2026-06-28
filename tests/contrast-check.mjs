@@ -144,21 +144,11 @@ if (fails.length > 0) {
 
 // ── Assertions ───────────────────────────────────────────────────────────────
 
-const critical = fails.filter((f) => f.severity === 'critical');
 assert.equal(
-  critical.length,
+  fails.length,
   0,
-  `Found ${critical.length} critical contrast failures (ratio < 3:1):\n` +
-    critical.map((c) => `  ${c.selector}: ${c.ratio}:1`).join('\n')
+  `Found ${fails.length} WCAG AA contrast failures (ratio < 4.5:1):\n` +
+    fails.map((f) => `  [${f.severity}] ${f.selector}: ${f.ratio}:1`).join('\n')
 );
-
-// Allow up to 5 minor fails (large-text-only, etc.) — track but don't block
-const minor = fails.filter((f) => f.severity === 'fail');
-if (minor.length > 0) {
-  console.log(`\n⚠ ${minor.length} sub-AA pairs (3:1–4.5:1) — review for large-text-only use:`);
-  for (const m of minor) {
-    console.log(`  ${m.ratio}:1  ${m.selector}`);
-  }
-}
 
 console.log('\n✓ No critical contrast failures.');

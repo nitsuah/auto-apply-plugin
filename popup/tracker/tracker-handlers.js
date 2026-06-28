@@ -284,7 +284,7 @@ export function initTrackerHandlers() {
         try {
           await openInterviewPrepForApplication(id);
         } catch (err) {
-          setStatus('fill-status', '❌ Could not load interview prep: ' + err.message, 'error');
+          setTrackerScreenStatus('❌ Could not load interview prep: ' + err.message, 'error');
         }
       }
       return;

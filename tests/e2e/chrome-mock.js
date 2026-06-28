@@ -1,6 +1,6 @@
 export function installChromeMock() {
   const noop = () => {};
-  return {
+  globalThis.chrome = {
     runtime: {
       lastError: null,
       sendMessage: (_msg, cb) => cb?.({ ok: true }),

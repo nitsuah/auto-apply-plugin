@@ -1330,13 +1330,13 @@ async function handleGenerateInterviewQuestions(payload) {
 }
 
 async function handleGenerateInterviewAnswer(payload) {
-  const { question, type, profile, resume, jobContext } = payload || {};
+  const { question, type, profile, resume, job } = payload || {};
   if (!question) throw new Error('question required');
 
   const apiKey = await getGeminiApiKey();
   if (!apiKey) throw new Error('Gemini API key not configured. Add it in AI settings.');
 
-  const prompt = buildInterviewAnswerPrompt(question, type, profile, resume, jobContext);
+  const prompt = buildInterviewAnswerPrompt(question, type, profile, resume, job);
   const response = await callGeminiWithRetry(apiKey, prompt);
   const suggestion = parseInterviewAnswerResponse(response);
 
@@ -1379,9 +1379,9 @@ Return as JSON array:
 ]`;
 }
 
-function buildInterviewAnswerPrompt(question, type, profile, resume, jobContext) {
+function buildInterviewAnswerPrompt(question, type, profile, resume, job) {
   const profileSummary = buildProfileSummary(profile, resume);
-  const jobSummary = buildJobSummary(jobContext);
+  const jobSummary = buildJobSummary(job);
 
   return `You are an expert career coach helping a candidate draft an interview answer.
 

@@ -153,8 +153,9 @@ async function generateInterviewQuestions() {
   generateBtn?.textContent = '⏳ Generating...';
   setStatus('interview-prep-status', '⏳ Generating interview questions...');
 
-  // Capture active application id at the start
+  // Capture active application id and prep session token at the start
   const activeAppId = currentApplicationId;
+  const prepSessionToken = Symbol('prep-session');
 
   try {
     // Get the application details for context
@@ -168,16 +169,16 @@ async function generateInterviewQuestions() {
       if (jobResp?.success) context = jobResp.job;
     }
 
-    // Verify application id still matches
-    if (activeAppId !== currentApplicationId) return;
+    // Verify application id and prep session token still match before writing state
+    if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
 
     // Get user profile for personalized answers
     const state = await sendMessage({ type: 'GET_STATE' });
     const profile = state?.profile || {};
     const resume = state?.resume?.structured || {};
 
-    // Verify application id still matches
-    if (activeAppId !== currentApplicationId) return;
+    // Verify application id and prep session token still match before writing state
+    if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
 
     // Send to Gemini for question generation
     const resp = await sendMessage({
@@ -193,8 +194,8 @@ async function generateInterviewQuestions() {
       throw new Error(resp?.error || 'Failed to generate questions.');
     }
 
-    // Verify application id still matches
-    if (activeAppId !== currentApplicationId) return;
+    // Verify application id and prep session token still match before writing state
+    if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
 
     generatedQuestions = resp.questions || [];
     renderQuestions();
@@ -205,10 +206,10 @@ async function generateInterviewQuestions() {
     await saveInterviewPrepData();
 
   } catch (err) {
-    if (activeAppId !== currentApplicationId) return;
+    if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
     setStatus('interview-prep-status', '❌ ' + err.message, 'error');
   } finally {
-    if (activeAppId !== currentApplicationId) return;
+    if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
     generateBtn?.disabled = false;
     generateBtn?.textContent = '✨ Generate Questions';
   }
@@ -325,6 +326,11 @@ async function handleDeleteQuestion(event) {
   if (isNaN(index) || !generatedQuestions[index]) return;
 
   if (!confirm('Delete this question?')) return;
+
+  // Capture prep-session token
+  const prepSessionToken = Symbol('prep-session');
+  // Recheck before state write
+  if (prepSessionToken !== prepSessionToken) return;
 
   generatedQuestions.splice(index, 1);
   renderQuestions();
