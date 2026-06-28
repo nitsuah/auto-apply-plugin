@@ -4,6 +4,7 @@
 
 import { test, expect, chromium } from '@playwright/test';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -15,7 +16,8 @@ let extensionId;
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
-    console.log('EXTENSION_PATH:', EXTENSION_PATH);
+    process.stdout.write('EXTENSION_PATH: ' + EXTENSION_PATH + '\n');
+    process.stdout.write('Path exists: ' + fs.existsSync(EXTENSION_PATH) + '\n');
     const userDataDir = '/tmp/playwright-a11y-profile-' + Math.random().toString(36).substring(7);
     context = await chromium.launchPersistentContext(userDataDir, {
       channel: 'chromium',
