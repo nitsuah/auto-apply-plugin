@@ -29,13 +29,13 @@ test.describe('Accessibility audit', () => {
     });
 
     // Retry finding the service worker a few times
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
         const workers = context.serviceWorkers();
         if (workers.length > 0) {
             extensionId = workers[0].url().split('/')[2];
             break;
         }
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
     }
     if (!extensionId) throw new Error('Service worker not found after retries');
 
