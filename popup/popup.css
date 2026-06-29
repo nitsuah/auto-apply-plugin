@@ -781,9 +781,11 @@ body[data-screen="ai"] {
 }
 
 body[data-screen="tracker"] {
-  width: 1180px;
-  min-width: 1180px;
+  /* Remove fixed width, keep only the preferred width */
+  width: 1280px;
   min-height: 700px;
+  /* Allow shrinking */
+  max-width: 1280px;
 }
 
 body[data-standalone="true"] {
@@ -3048,7 +3050,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-score-interactive .tracker-star {
-  color: #4b5563;
+  color: #6b7280;
   transition: color 0.1s, transform 0.1s;
 }
 
@@ -3057,7 +3059,7 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 }
 
 .tracker-score-interactive:hover .tracker-star {
-  color: #4b5563;
+  color: #9ca3af;
 }
 
 .tracker-score-interactive .tracker-star:hover,
@@ -3973,10 +3975,15 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
 /* ── Pipeline lane header: distinct visual separation from cards ── */
 .tracker-lane-header {
   margin: -10px -10px 10px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 12px 14px; /* Increased padding */
+  background: rgba(255, 255, 255, 0.05); /* Slightly lighter */
   border-bottom: 1px solid var(--border);
   border-radius: var(--radius) var(--radius) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 /* ── Pipeline "Drafted" status: distinct from generic "Pending" ── */

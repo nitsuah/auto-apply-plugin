@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node -e \"const fs=require('fs');const path=require('path');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true});fs.mkdirSync('dist');['popup','lib','data','manifest.json','background'].forEach(f=>fs.cpSync(f,path.join('dist',f),{recursive:true}))\"",
     "test": "node --test tests/*.test.mjs",
     "test:coverage": "node --experimental-test-coverage --test tests/*.test.mjs",
     "test:e2e": "playwright test --config config/playwright.config.mjs",
+    "test:e2e-headed": "playwright test --headed",
     "lint": "eslint popup/popup.js lib/*.js --max-warnings=0 --config config/eslint.config.mjs"
   },
   "dependencies": {
@@ -13,6 +15,7 @@
     "eslint": "^10.5.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.1",
     "@playwright/test": "1.61.0",
     "jsdom": "^29.1.1"
   }

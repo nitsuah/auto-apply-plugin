@@ -312,6 +312,12 @@ export async function initMainHandlers() {
         },
       });
       if (!saveResp?.success) throw new Error(saveResp?.error || 'Could not save to tracker.');
+      btn.textContent = '✅ Saved!';
+      btn.classList.add('btn-success');
+      setTimeout(() => {
+        btn.textContent = '💾 Save Job to Tracker';
+        btn.classList.remove('btn-success');
+      }, 2000);
       const label = [job.company, job.title].filter(Boolean).join(' — ') || 'This job';
       const srcNote = job._dataSource === 'json-ld' ? ' Salary, location & type read from structured data.' : '';
       setStatus('fill-status', `✅ Saved "${label}" to the tracker as a draft.${srcNote}`, 'success');

@@ -14,4 +14,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
+RUN ls -l /app/lib/
+RUN cat /app/lib/job-search.js
+RUN npm run build
 CMD ["npm", "run", "test:e2e"]

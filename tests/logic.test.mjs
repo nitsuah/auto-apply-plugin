@@ -243,3 +243,11 @@ test('filterApplicationsForQuery narrows tracker results by search text and acti
   assert.equal(filterApplicationsForQuery(apps, '', { activeOnly: true }).length, 2);
   assert.equal(filterApplicationsForQuery(apps, 'cloud', { activeOnly: true }).length, 0);
 });
+
+test('filterApplicationsForQuery is case-insensitive for titles', () => {
+  const apps = [
+    { company: 'Stripe', title: 'IT Systems Engineer', status: 'drafted', verdict: 'Top choice', description: 'Identity and device automation' },
+  ];
+  assert.equal(filterApplicationsForQuery(apps, 'it systems engineer').length, 1);
+  assert.equal(filterApplicationsForQuery(apps, 'IT SYSTEMS ENGINEER').length, 1);
+});

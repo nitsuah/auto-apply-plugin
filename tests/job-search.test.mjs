@@ -16,6 +16,7 @@ import {
   normalizeWwrJob,
   normalizeRemoteCoJob,
   normalizeLinkedInJob,
+  normalizeIndeedJob,
   parseLinkedInVoyagerResponse,
   dedupeJobs,
   jobMatchesQuery,
@@ -230,7 +231,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco']);
+  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco', 'indeed']);
 });
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
@@ -616,4 +617,90 @@ test('searchJobs includes Remote OK, Jobicy, and Working Nomads as default activ
   assert.ok(queried.includes('remoteok'), 'Remote OK not queried');
   assert.ok(queried.includes('jobicy'), 'Jobicy not queried');
   assert.ok(queried.includes('workingnomads'), 'Working Nomads not queried');
+});
+
+test('normalizeIndeedJob normalizes RSS item to standard shape', () => {
+  const rssItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Senior Software Engineer' },
+        link: { textContent: 'https://www.indeed.com/viewjob?jk=abc123' },
+        pubDate: { textContent: 'Mon, 27 Jun 2026 10:00:00 GMT' },
+        description: { textContent: 'Role at Acme Corp<br/><b>Location:</b> San Francisco, CA<br/><b>Salary:</b> $150,000 - $180,000 a year<br/>Remote: Yes' },
+        guid: { textContent: 'abc123' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeIndeedJob(rssItem);
+  assert.equal(job.title, 'Senior Software Engineer');
+  assert.equal(job.company, 'Acme Corp');
+  assert.equal(job.location, 'San Francisco, CA');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary_min, 150000);
+  assert.equal(job.salary_max, 180000);
+  assert.equal(job.salary_interval, 'yearly');
+  assert.equal(job.url, 'https://www.indeed.com/viewjob?jk=abc123');
+  assert.equal(job.source, 'Indeed');
+  assert.ok(job.id.startsWith('indeed:'));
+});
+
+test('normalizeIndeedJob handles missing salary and remote', () => {
+  const rssItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Junior Dev' },
+        link: { textContent: 'https://www.indeed.com/viewjob?jk=xyz789' },
+        pubDate: { textContent: 'Mon, 27 Jun 2026 10:00:00 GMT' },
+        description: { textContent: '<b>Company:</b> Beta Inc<br/><b>Location:</b> Austin, TX<br/>No salary listed' },
+        guid: { textContent: 'xyz789' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeIndeedJob(rssItem);
+  assert.equal(job.title, 'Junior Dev');
+  assert.equal(job.company, 'Beta Inc');
+  assert.equal(job.location, 'Austin, TX');
+  assert.equal(job.remote, false);
+  assert.equal(job.salary_min, undefined);
+  assert.equal(job.salary_max, undefined);
+  assert.equal(job.salary_interval, 'yearly');
+});
+
+test('normalizeIndeedJob handles HTML entities and malformed data', () => {
+  const rssItem = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Engineer & Designer' },
+        link: { textContent: 'https://www.indeed.com/viewjob?jk=ent123' },
+        pubDate: { textContent: 'Mon, 27 Jun 2026 10:00:00 GMT' },
+        description: { textContent: '<b>Company:</b> Test & Co<br/><b>Location:</b> New York, NY<br/><b>Salary:</b> $50/hr<br/>Remote option' },
+        guid: { textContent: 'ent123' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeIndeedJob(rssItem);
+  assert.equal(job.title, 'Engineer & Designer');
+  assert.equal(job.company, 'Test & Co');
+  assert.equal(job.location, 'New York, NY');
+  assert.equal(job.remote, true);
+  assert.equal(job.salary_min, 50);
+  assert.equal(job.salary_max, 50);
+  assert.equal(job.salary_interval, 'hourly');
+});
+
+test('searchJobs includes Indeed as default active source', async () => {
+  const queried = [];
+  const fetchImpl = async (url, opts = {}) => {
+    if (url.includes('indeed.com/rss')) { queried.push('indeed'); return { ok: true, text: async () => `<?xml version="1.0"?><rss><channel><item><title>Test</title><link>https://indeed.com/viewjob?jk=1</link><pubDate>Mon, 27 Jun 2026 10:00:00 GMT</pubDate><description><b>Company:</b> Test<br/><b>Location:</b> NYC</description><guid>1</guid></item></channel></rss>` }; }
+    if (url.includes('remotive.com')) return { ok: true, json: async () => ({ jobs: [] }) };
+    if (url.includes('arbeitnow.com')) return { ok: true, json: async () => ({ data: [] }) };
+    if (url.includes('themuse.com')) return { ok: true, json: async () => ({ results: [] }) };
+    return { ok: true, json: async () => ({}) };
+  };
+
+  await searchJobs('dev', { fetchImpl });
+  assert.ok(queried.includes('indeed'), 'Indeed not queried');
 });
