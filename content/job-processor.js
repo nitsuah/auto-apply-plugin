@@ -1,64 +1,71 @@
 /**
  * content/job-processor.js - Job info extraction and processing
- * Extracted from content.js (lines 131-252, 233-528)
  */
 
-import { getFillableInputs, fillForm, loadFieldMap } from './form-filler.js';
+import { getFillableInputs, fillForm, loadFieldMap, findFieldForReviewTarget, highlightField, describeField } from './form-filler.js';
 import { collectCustomQuestions } from './form-filler.js';
 import { detectAts } from './ats-detector.js';
-import { qs, matchesDomain, firstNonEmptyText, extractGenericText } from './utils.js';
+import { matchesDomain } from './utils.js';
+
+// ── Local inline helpers (avoids top-level import conflicts in content scripts) ──
+
+function qs(selector) {
+  try { return document.querySelector(selector); } catch { return null; }
+}
+
+function extractGenericText() {
+  const JD_KEYWORDS = ['responsibilities', 'qualifications', 'requirements', 'experience', 'skills', 'about', 'role', 'position'];
+  const candidates = Array.from(document.querySelectorAll(
+    'article, section, main, .job-description, [class*="description"], [id*="description"], [class*="posting"], [id*="posting"]'
+  ));
+  let best = null;
+  let bestScore = 0;
+  for (const el of candidates) {
+    const text = el.innerText || '';
+    if (text.length < 200) continue;
+    const lower = text.toLowerCase();
+    const kwHits = JD_KEYWORDS.filter((kw) => lower.includes(kw)).length;
+    const score = kwHits * 100 + text.length;
+    if (score > bestScore) { bestScore = score; best = text; }
+  }
+  return best || document.body.innerText.slice(0, 8000);
+}
+
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    const text = String(value || '').trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+// ── Exported handlers ─────────────────────────────────────────────────────────
 
 /** Handle FILL_FORM message - extract job info, generate answers, fill form */
 export async function handleFillForm() {
-  // 1. Extract JD + job meta
   const { jd, company, title, location: jobLocation, employment_type, remote, salary_range } = extractJobInfo();
-
-  // 2. Collect any custom open-ended questions
   const customQuestions = collectCustomQuestions();
 
-  // 3. Ask service worker to generate answers via Gemini
   const resp = await chrome.runtime.sendMessage({
     type: 'GENERATE_ANSWERS',
     payload: { jd, customQuestions, pageUrl: location.href },
   });
-
-  if (!resp?.success) {
-    throw new Error(resp?.error || 'Failed to generate answers');
-  }
+  if (!resp?.success) throw new Error(resp?.error || 'Failed to generate answers');
 
   const answers = resp.answers;
   const warning = resp.warning || null;
 
-  // 4. Merge custom answers into flat map
   if (answers.custom_answers && typeof answers.custom_answers === 'object') {
-    for (const [q, a] of Object.entries(answers.custom_answers)) {
-      answers[q] = a;
-    }
+    for (const [q, a] of Object.entries(answers.custom_answers)) answers[q] = a;
   }
 
-  // 5. Fill the form
   const fieldMap = await loadFieldMap();
   const report = fillForm(answers, fieldMap);
 
-  // 6. Log the application
   await chrome.runtime.sendMessage({
     type: 'LOG_APPLICATION',
-    payload: {
-      company,
-      title,
-      url: location.href,
-      status: 'filled',
-      jd_snippet: jd.slice(0, 300),
-      description: jd.slice(0, 6000),
-      location: jobLocation,
-      employment_type,
-      remote,
-      salary_range,
-      answers_generated: true,
-      fill_report: report,
-    },
+    payload: { company, title, url: location.href, status: 'filled', jd_snippet: jd.slice(0, 300), description: jd.slice(0, 6000), location: jobLocation, employment_type, remote, salary_range, answers_generated: true, fill_report: report },
   });
-
   return { success: true, filled: report.filled, company, title, warning, report };
 }
 
@@ -73,70 +80,32 @@ export async function handleInjectAnswers(answers) {
 /** Handle GET_JOB_INFO message */
 export async function handleGetJobInfo() {
   const info = extractJobInfo();
-  return {
-    success: true,
-    job: {
-      ...info,
-      url: location.href,
-    },
-  };
+  return { success: true, job: { ...info, url: location.href } };
 }
 
 /** Handle FOCUS_FIELD message */
 export async function handleFocusField(target = {}) {
   const field = findFieldForReviewTarget(target);
-  if (!field) {
-    return { success: false, error: 'Could not find that field on the page. It may have moved or already been completed.' };
-  }
-
+  if (!field) return { success: false, error: 'Could not find that field on the page.' };
   field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  try {
-    field.focus({ preventScroll: true });
-  } catch {
-    field.focus();
-  }
+  try { field.focus({ preventScroll: true }); } catch { field.focus(); }
   highlightField(field);
-
   return { success: true, label: describeField(field) };
 }
 
 /** Handle FETCH_LINKEDIN_JOBS message */
 export async function handleFetchLinkedInJobs(payload, sendResponse) {
   const { query, csrfToken } = payload || {};
-  const params = new URLSearchParams({
-    keywords: query || '',
-    start: '0',
-    count: '25',
-    origin: 'GLOBAL_SEARCH_HEADER',
-    q: 'all',
-  });
+  const params = new URLSearchParams({ keywords: query || '', start: '0', count: '25', origin: 'GLOBAL_SEARCH_HEADER', q: 'all' });
   const res = await fetch(`${window.location.origin}/voyager/api/jobs/search?${params}`, {
-    headers: {
-      'Csrf-Token': csrfToken || '',
-      'X-Restli-Protocol-Version': '2.0.0',
-      'Accept': 'application/vnd.linkedin.normalized+json+2.1',
-    },
+    headers: { 'Csrf-Token': csrfToken || '', 'X-Restli-Protocol-Version': '2.0.0', 'Accept': 'application/vnd.linkedin.normalized+json+2.1' },
   });
-  if (!res.ok) {
-    sendResponse({ success: false, error: `LinkedIn responded ${res.status}` });
-    return;
-  }
+  if (!res.ok) { sendResponse({ success: false, error: `LinkedIn responded ${res.status}` }); return; }
   const data = await res.json();
   sendResponse({ success: true, data });
 }
 
-/** Load field-map.json from extension */
-export async function loadFieldMap() {
-  try {
-    const url = chrome.runtime.getURL('data/field-map.json');
-    const res = await fetch(url);
-    return await res.json();
-  } catch {
-    return {};
-  }
-}
-
-// ── JD extraction (inlined from lib/jd-parser.js) ────────────────────────
+// ── JD extraction (inlined from lib/jd-parser.js) ────────────────────────────
 
 function extractJobInfo() {
   const hostname = location.hostname;
@@ -150,98 +119,43 @@ function extractJobInfo() {
   else if (matchesDomain(hostname, 'jobvite.com')) info = extractJobvite();
   else if (matchesDomain(hostname, 'circle.com') || matchesDomain(hostname, 'phenompeople.com')) info = extractPhenom();
   else info = extractGenericJobInfo();
-
-  // Structured data (schema.org JobPosting) is the most reliable source for
-  // salary / employment type / location, so capture it when present.
   info._ld = parseJobPostingJsonLd(readJsonLdObjects());
-
   return enrichJobInfo(info);
 }
 
 function extractGreenhouse() {
-  return {
-    title: qs('#header h1, .app-title, h1')?.textContent?.trim() || '',
-    company: qs('#header .company-name, .company')?.textContent?.trim() || document.title,
-    jd: qs('#content, #app_body, .content')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('#header h1, .app-title, h1')?.textContent?.trim() || '', company: qs('#header .company-name, .company')?.textContent?.trim() || document.title, jd: qs('#content, #app_body, .content')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractAshby() {
-  return {
-    title: qs('h1[data-testid="job-title"], h1.ashby-job-posting-heading, h1')?.textContent?.trim() || '',
-    company: qs('.ashby-application-portal-name, [data-testid="company-name"]')?.textContent?.trim() || document.title,
-    jd: qs('.ashby-job-posting-brief-list, .ashby-job-posting-description, main')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('h1[data-testid="job-title"], h1.ashby-job-posting-heading, h1')?.textContent?.trim() || '', company: qs('.ashby-application-portal-name, [data-testid="company-name"]')?.textContent?.trim() || document.title, jd: qs('.ashby-job-posting-brief-list, .ashby-job-posting-description, main')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractLever() {
-  return {
-    title: qs('.posting-header h2, h2.posting-title')?.textContent?.trim() || '',
-    company: qs('.main-header-logo img')?.alt?.trim() || document.title,
-    jd: qs('.posting-description, section.page-centered')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('.posting-header h2, h2.posting-title')?.textContent?.trim() || '', company: qs('.main-header-logo img')?.alt?.trim() || document.title, jd: qs('.posting-description, section.page-centred')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractLinkedIn() {
-  return {
-    title: qs('.job-details-jobs-unified-top-card__job-title, h1.t-24')?.textContent?.trim() || '',
-    company: qs('.job-details-jobs-unified-top-card__company-name, a.ember-view')?.textContent?.trim() || '',
-    jd: qs('#job-details, .jobs-description__content, .jobs-description-content__text')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('.job-details-jobs-unified-top-card__job-title, h1.t-24')?.textContent?.trim() || '', company: qs('.job-details-jobs-unified-top-card__company-name, a.ember-view')?.textContent?.trim() || '', jd: qs('#job-details, .jobs-description__content, .jobs-description-content__text')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractWorkday() {
-  return {
-    title: qs('[data-automation-id="jobPostingHeader"], h2.css-9xh9yi')?.textContent?.trim() || '',
-    company: document.title.split('|')?.[1]?.trim() || '',
-    jd: qs('[data-automation-id="job-description"], .css-qdtm9x')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('[data-automation-id="jobPostingHeader"], h2.css-9xh9yi')?.textContent?.trim() || '', company: document.title.split('|')?.[1]?.trim() || '', jd: qs('[data-automation-id="job-description"], .css-qdtm9x')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractICIMS() {
-  return {
-    title: qs('.iCIMS_JobHeaderTitle, #iCIMS_MainColumn h1')?.textContent?.trim() || '',
-    company: qs('.iCIMS_CompanyLogo img')?.alt || document.title,
-    jd: qs('#iCIMS_JobContent, .iCIMS_JobContent')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('.iCIMS_JobHeaderTitle, #iCIMS_MainColumn h1')?.textContent?.trim() || '', company: qs('.iCIMS_CompanyLogo img')?.alt || document.title, jd: qs('#iCIMS_JobContent, .iCIMS_JobContent')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractJobvite() {
-  return {
-    title: qs('[data-qa="job-title"], h1, .job-title')?.textContent?.trim() || '',
-    company: qs('[data-qa="company-name"], .company-name')?.textContent?.trim() || document.title,
-    jd: qs('[data-qa="job-description"], .job-description, main')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('[data-qa="job-title"], h1, .job-title')?.textContent?.trim() || '', company: qs('[data-qa="company-name"], .company-name')?.textContent?.trim() || document.title, jd: qs('[data-qa="job-description"], .job-description, main')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractPhenom() {
-  return {
-    title: qs('[data-ph-id="ph-page-element-page16-j5r8i0"], h1, [class*="job-title"]')?.textContent?.trim() || '',
-    company: qs('[class*="company"], [data-qa="company-name"]')?.textContent?.trim() || document.title,
-    jd: qs('[class*="job-description"], [data-qa="job-description"], main')?.innerText?.trim() || extractGenericText(),
-  };
+  return { title: qs('[data-ph-id="ph-page-element-page16-j5r8i0"], h1, [class*="job-title"]')?.textContent?.trim() || '', company: qs('[class*="company"], [data-qa="company-name"]')?.textContent?.trim() || document.title, jd: qs('[class*="job-description"], [data-qa="job-description"], main')?.innerText?.trim() || extractGenericText() };
 }
-
 function extractGenericJobInfo() {
-  return {
-    title: qs('h1, h2')?.textContent?.trim() || '',
-    company: '',
-    jd: extractGenericText(),
-  };
+  return { title: qs('h1, h2')?.textContent?.trim() || '', company: '', jd: extractGenericText() };
 }
 
 function enrichJobInfo(info = {}) {
   const ld = info._ld || null;
   const jd = String(info.jd || (ld && ld.description) || extractGenericText() || '');
-  const locationText = firstNonEmptyText(
-    info.location,
-    ld && ld.location,
-    extractLocationFromPage(),
-    extractLocationFromText(jd),
-    'Unknown'
-  );
-
-  const result = {
+  const locationText = firstNonEmptyText(info.location, ld && ld.location, extractLocationFromPage(), extractLocationFromText(jd), 'Unknown');
+  return {
     ...info,
     title: info.title || (ld && ld.title) || '',
     company: info.company || (ld && ld.company) || '',
@@ -250,19 +164,16 @@ function enrichJobInfo(info = {}) {
     employment_type: (ld && ld.employment_type) || detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
     remote: (ld && ld.remote) || detectRemoteFromText(`${locationText}\n${jd}`),
     salary_range: (ld && ld.salary_range) || extractSalaryRangeFromText(jd),
-    // _dataSource lets the UI show a confidence hint: json-ld beats DOM scraping.
     _dataSource: ld ? 'json-ld' : 'dom',
   };
-  delete result._ld;
-  return result;
 }
 
-// ── JSON-LD JobPosting (schema.org) — inlined pure copy of lib/jd-parser.js ──
+// ── JSON-LD JobPosting (schema.org) — inlined from lib/jd-parser.js ─────────
 
 function readJsonLdObjects() {
   const out = [];
   for (const el of document.querySelectorAll('script[type="application/ld+json"]')) {
-    try { out.push(JSON.parse(el.textContent || '')); } catch { /* ignore malformed */ }
+    try { out.push(JSON.parse(el.textContent || '')); } catch { /* ignore */ }
   }
   return out;
 }
@@ -306,7 +217,7 @@ function ldText(value) {
 function stripLdHtml(value) {
   return String(value || '')
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -343,17 +254,11 @@ function parseJsonLdSalary(baseSalary) {
   const sym = currency === 'USD' ? '$' : `${currency} `;
   const v = baseSalary.value;
   const num = (n) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Number(n) : null);
-  let min = null;
-  let max = null;
-  let unit = '';
+  let min = null, max = null, unit = '';
   if (v && typeof v === 'object') {
-    min = num(v.minValue);
-    max = num(v.maxValue);
-    unit = v.unitText || '';
+    min = num(v.minValue); max = num(v.maxValue); unit = v.unitText || '';
     if (min == null && max == null) min = num(v.value);
-  } else {
-    min = num(v);
-  }
+  } else { min = num(v); }
   const fmt = (n) => `${sym}${Math.round(n).toLocaleString()}`;
   const suffix = /hour/i.test(String(unit)) ? '/hr' : '';
   if (min != null && max != null && min !== max) return `${fmt(min)} - ${fmt(max)}${suffix}`;
@@ -362,23 +267,14 @@ function parseJsonLdSalary(baseSalary) {
   return '';
 }
 
-function extractLocationFromPage() {
-  const selectors = [
-    '[data-automation-id="locations"]',
-    '[data-testid*="location"]',
-    '.posting-categories .sort-by-location',
-    '.job-details-jobs-unified-top-card__tertiary-description',
-    '.topcard__flavor--bullet',
-    '.job-location',
-    '[itemprop="jobLocation"]',
-    '[class*="location"]',
-  ];
+// ── Location / employment detection helpers ──────────────────────────────────
 
+function extractLocationFromPage() {
+  const selectors = ['[data-automation-id="locations"]', '[data-testid*="location"]', '.posting-categories .sort-by-location', '.job-details-jobs-unified-top-card__tertiary-description', '.topcard__flavor--bullet', '.job-location', '[itemprop="jobLocation"]', '[class*="location"]'];
   for (const selector of selectors) {
     const text = qs(selector)?.textContent?.trim();
     if (text && text.length <= 120) return text;
   }
-
   return '';
 }
 
@@ -388,51 +284,16 @@ function extractLocationFromText(text = '') {
   if (match?.[1]) return match[1].trim();
   return /\bremote\b/i.test(normalized) ? 'Remote' : '';
 }
-
 function detectEmploymentTypeFromText(text = '') {
-  const normalized = String(text || '').toLowerCase();
-  if (/part[ -]?time/.test(normalized)) return 'Part-time';
-  if (/contract|contractor/.test(normalized)) return 'Contract';
-  if (/intern(ship)?/.test(normalized)) return 'Internship';
-  if (/temporary|temp\b/.test(normalized)) return 'Temporary';
+  const n = String(text || '').toLowerCase();
+  if (/part[ -]?time/.test(n)) return 'Part-time';
+  if (/contract|contractor/.test(n)) return 'Contract';
+  if (/intern(ship)?/.test(n)) return 'Internship';
+  if (/temporary|temp\b/.test(n)) return 'Temporary';
   return 'Full-time';
 }
-
-function detectRemoteFromText(text = '') {
-  return /\bremote\b|hybrid|work from home|wfh/i.test(String(text || ''));
-}
-
+function detectRemoteFromText(text = '') { return /\bremote\b|hybrid|work from home|wfh/i.test(String(text || '')); }
 function extractSalaryRangeFromText(text = '') {
   const match = String(text || '').match(/\$\s?\d[\d,]*(?:\.\d+)?\s*(?:k|K|\/hr|\/year)?\s*(?:-|–|to)\s*\$?\s?\d[\d,]*(?:\.\d+)?\s*(?:k|K|\/hr|\/year)?/);
   return match ? match[0].replace(/\s+/g, ' ').trim() : '';
-}
-
-function firstNonEmptyText(...values) {
-  for (const value of values) {
-    const text = String(value || '').trim();
-    if (text) return text;
-  }
-  return '';
-}
-
-function extractGenericText() {
-  const JD_KEYWORDS = ['responsibilities', 'qualifications', 'requirements', 'experience', 'skills', 'about', 'role', 'position'];
-  const candidates = Array.from(document.querySelectorAll(
-    'article, section, main, .job-description, [class*="description"], [id*="description"], [class*="posting"], [id*="posting"]'
-  ));
-  let best = null;
-  let bestScore = 0;
-  for (const el of candidates) {
-    const text = el.innerText || '';
-    if (text.length < 200) continue;
-    const lower = text.toLowerCase();
-    const kwHits = JD_KEYWORDS.filter((kw) => lower.includes(kw)).length;
-    const score = kwHits * 100 + text.length;
-    if (score > bestScore) { bestScore = score; best = text; }
-  }
-  return best || document.body.innerText.slice(0, 8000);
-}
-
-function qs(selector) {
-  try { return document.querySelector(selector); } catch { return null; }
 }
