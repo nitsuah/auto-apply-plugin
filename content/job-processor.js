@@ -95,6 +95,12 @@ export async function handleFocusField(target = {}) {
 
 /** Handle FETCH_LINKEDIN_JOBS message */
 export async function handleFetchLinkedInJobs(payload, sendResponse) {
+  // Only allow on LinkedIn domains to prevent CSRF token leakage
+  if (!location.hostname.endsWith('linkedin.com')) {
+    sendResponse({ success: false, error: 'LinkedIn job fetch only allowed on LinkedIn domains' });
+    return;
+  }
+
   const { query, csrfToken } = payload || {};
   const params = new URLSearchParams({ keywords: query || '', start: '0', count: '25', origin: 'GLOBAL_SEARCH_HEADER', q: 'all' });
   const res = await fetch(`${window.location.origin}/voyager/api/jobs/search?${params}`, {
@@ -162,7 +168,7 @@ function enrichJobInfo(info = {}) {
     jd,
     location: locationText || 'Unknown',
     employment_type: (ld && ld.employment_type) || detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
-    remote: (ld && ld.remote) || detectRemoteFromText(`${locationText}\n${jd}`),
+    remote: ld?.remote !== undefined ? ld.remote : detectRemoteFromText(`${locationText}\n${jd}`),
     salary_range: (ld && ld.salary_range) || extractSalaryRangeFromText(jd),
     _dataSource: ld ? 'json-ld' : 'dom',
   };

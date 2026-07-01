@@ -238,7 +238,7 @@ export function hasMeaningfulValue(el) {
   return !!String(el.value || '').trim();
 }
 
-function describeField(el) {
+export function describeField(el) {
   return (
     getAssociatedLabelText(el) ||
     el.getAttribute('aria-label') ||
@@ -269,7 +269,7 @@ function dedupeUnresolvedFields(items = []) {
   });
 }
 
-function findFieldForReviewTarget(target = {}) {
+export function findFieldForReviewTarget(target = {}) {
   const fields = collectDraftableFields();
   const requestedKey = String(target?.draftKey || '').trim();
   if (requestedKey) {
@@ -368,7 +368,7 @@ function fireEvents(el, events) {
   for (const type of events) el.dispatchEvent(new Event(type, { bubbles: true }));
 }
 
-function highlightField(el) {
+export function highlightField(el) {
   const orig = el.style.outline;
   el.style.outline = '2px solid #4ade80';
   el.style.outlineOffset = '2px';
