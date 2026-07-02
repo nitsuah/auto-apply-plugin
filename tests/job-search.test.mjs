@@ -120,7 +120,7 @@ test('normalizeUsaJobsJob maps the nested federal-job descriptor', () => {
   assert.equal(job.atsLabel, 'USAJOBS');
 });
 
-test('USAJOBS source is registered and gated on email + key', () => {
+test('USAJOBS source is registered and gated on email + key + headerInjection', () => {
   const sources = listJobSources({});
   assert.ok(sources.find((s) => s.id === 'usajobs'));
   assert.equal(sources.find((s) => s.id === 'usajobs').available, false);
