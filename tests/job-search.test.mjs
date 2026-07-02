@@ -125,8 +125,11 @@ test('USAJOBS source is registered and gated on email + key + headerInjection', 
   assert.ok(sources.find((s) => s.id === 'usajobs'));
   assert.equal(sources.find((s) => s.id === 'usajobs').available, false);
 
-  const withCreds = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k' } });
+  const withCreds = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k', headerInjection: true } });
   assert.equal(withCreds.find((s) => s.id === 'usajobs').available, true);
+
+  const withoutInjection = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k' } });
+  assert.equal(withoutInjection.find((s) => s.id === 'usajobs').available, false);
 });
 
 test('detectAtsLabelFromUrl recognizes known applicant tracking systems', () => {
