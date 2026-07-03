@@ -5,7 +5,10 @@
 
 import { matchesDomain, qs } from './utils.js';
 
-/** Detect ATS platform from current page URL and content */
+/**
+ * Detect ATS platform from current page URL and content
+ * @return {string} The detected ATS platform or 'Generic' if none found
+ */
 export function detectAts() {
   const host = location.hostname;
   const path = `${location.pathname} ${location.search}`.toLowerCase();

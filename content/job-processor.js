@@ -2,10 +2,9 @@
  * content/job-processor.js - Job info extraction and processing
  */
 
-import { getFillableInputs, fillForm, loadFieldMap, findFieldForReviewTarget, highlightField, describeField } from './form-filler.js';
-import { collectCustomQuestions } from './form-filler.js';
+import { getFillableInputs, fillForm, loadFieldMap, findFieldForReviewTarget, highlightField, describeField, collectCustomQuestions } from './form-filler.js';
 import { detectAts } from './ats-detector.js';
-import { matchesDomain } from './utils.js';
+import { matchesDomain, qs, firstNonEmptyText, extractGenericText, stripLdHtml } from './utils.js';
 
 // ── Local inline helpers (avoids top-level import conflicts in content scripts) ──
 
@@ -41,7 +40,10 @@ function firstNonEmptyText(...values) {
 
 // ── Exported handlers ─────────────────────────────────────────────────────────
 
-/** Handle FILL_FORM message - extract job info, generate answers, fill form */
+/**
+ * Handle FILL_FORM message - extract job info, generate answers, fill form
+ * @returns {Promise<{success: boolean, filled: number[], company?: string, title?: string, warning?: string, report: any}>} Fill result report
+ */
 export async function handleFillForm() {
   const { jd, company, title, location: jobLocation, employment_type, remote, salary_range } = extractJobInfo();
   const customQuestions = collectCustomQuestions();
@@ -222,9 +224,22 @@ function ldText(value) {
 
 function stripLdHtml(value) {
   return String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#\d+;/g, (match) => {
+      const num = parseInt(match.replace(/[^0-9]/g, ''), 10);
+      return isNaN(num) ? '' : String.fromCharCode(num);
+    })
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#[xX][0-9a-fA-F]+;/g, (match) => {
+      const hex = match.replace(/[^0-9a-fA-F]/g, '');
+      const code = parseInt(hex, 16);
+      return isNaN(code) ? '' : String.fromCharCode(code);
+    })
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

@@ -7,6 +7,10 @@ import { handleFillForm, handleInjectAnswers, handleGetJobInfo, handleFocusField
 import { detectAts } from './ats-detector.js';
 import { getFillableInputs, findFieldForReviewTarget } from './form-filler.js';
 
+/**
+ * Setup Chrome runtime message listener for content script
+ * Registers listener that delegates to handleMessage with error normalization
+ */
 export function setupMessageListener() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (!frameOwnsMessage(msg)) return false;
