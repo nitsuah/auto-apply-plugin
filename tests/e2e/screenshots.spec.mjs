@@ -17,7 +17,6 @@ let extensionId;
 test.beforeAll(async () => {
   const userDataDir = '/tmp/playwright-screenshot-profile-' + Math.random().toString(36).substring(7);
   context = await chromium.launchPersistentContext(userDataDir, {
-    channel: 'chromium',
     headless: true,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
