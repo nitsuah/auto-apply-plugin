@@ -342,7 +342,7 @@ function enrichJobInfo(info = {}) {
     jd,
     location: locationText || 'Unknown',
     employment_type: (ld && ld.employment_type) || detectEmploymentTypeFromText(`${info.title || ''}\n${jd}`),
-    remote: (ld && ld.remote) || detectRemoteFromText(`${locationText}\n${jd}`),
+    remote: ld?.remote !== undefined ? ld.remote : detectRemoteFromText(`${locationText}\n${jd}`),
     salary_range: (ld && ld.salary_range) || extractSalaryRangeFromText(jd),
     // _dataSource lets the UI show a confidence hint: json-ld beats DOM scraping.
     _dataSource: ld ? 'json-ld' : 'dom',

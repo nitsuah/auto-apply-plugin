@@ -120,13 +120,16 @@ test('normalizeUsaJobsJob maps the nested federal-job descriptor', () => {
   assert.equal(job.atsLabel, 'USAJOBS');
 });
 
-test('USAJOBS source is registered and gated on email + key', () => {
+test('USAJOBS source is registered and gated on email + key + headerInjection', () => {
   const sources = listJobSources({});
   assert.ok(sources.find((s) => s.id === 'usajobs'));
   assert.equal(sources.find((s) => s.id === 'usajobs').available, false);
 
-  const withCreds = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k' } });
+  const withCreds = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k', headerInjection: true } });
   assert.equal(withCreds.find((s) => s.id === 'usajobs').available, true);
+
+  const withoutInjection = listJobSources({ usajobs: { email: 'me@example.com', apiKey: 'k' } });
+  assert.equal(withoutInjection.find((s) => s.id === 'usajobs').available, false);
 });
 
 test('detectAtsLabelFromUrl recognizes known applicant tracking systems', () => {
@@ -233,6 +236,25 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
   const all = resolveActiveSources({}).map((s) => s.id);
   assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco', 'indeed']);
 });
+
+test('resolveActiveSources allows session sources in explicit selection', () => {
+  // Session source (linkedin) should be included when explicitly selected
+  // even without sessionActive set - the run function handles detection.
+  const selected = resolveActiveSources({}, ['linkedin', 'remotive']);
+  assert.ok(selected.find((s) => s.id === 'linkedin'), 'linkedin included when explicitly requested');
+  assert.ok(selected.find((s) => s.id === 'remotive'), 'remotive included when explicitly requested');
+
+  // Non-session source (adzuna) should still be gated on availability
+  const gatedOut = resolveActiveSources({}, ['adzuna', 'linkedin']);
+  assert.ok(gatedOut.find((s) => s.id === 'linkedin'), 'linkedin bypasses available()');
+  assert.equal(gatedOut.find((s) => s.id === 'adzuna'), undefined, 'adzuna still gated on api key');
+
+  // No allow-list should still respect sessionActive
+  const noSession = resolveActiveSources({});
+  assert.equal(noSession.find((s) => s.id === 'linkedin'), undefined, 'linkedin excluded without allow-list when no sessionActive');
+});
+
+
 
 test('normalizeMuseJob maps The Muse shape and strips HTML', () => {
   const job = normalizeMuseJob({
