@@ -37,8 +37,49 @@ import {
   handleGenerateInterviewAnswer,
 } from './handlers/index.js';
 
-// ── Message router ────────────────────────────────────────────────────────────
+/**
+ * Map of message type to handler function.
+ * Adding new message types is now a single-line addition here.
+ */
+const MESSAGE_HANDLERS = {
+  SAVE_SETUP: handleSaveSetup,
+  SAVE_SETTINGS_ONLY: handleSaveSettingsOnly,
+  GET_STATE: getState,
+  GET_RESUME_ATTACHMENT: handleGetResumeAttachment,
+  REMOVE_RESUME_ATTACHMENT: handleRemoveResumeAttachment,
+  GENERATE_ANSWERS: handleGenerateAnswers,
+  GET_LAST_ANSWERS: getLastAnswers,
+  SEARCH_JOBS: handleSearchJobs,
+  GET_JOB_SOURCES: handleGetJobSources,
+  GET_OAUTH_INFO: handleGetOauthInfo,
+  LINKEDIN_CONNECT: handleLinkedInConnect,
+  SUMMARIZE_JD: handleSummarizeJd,
+  LOG_APPLICATION: handleLogApplication,
+  PARSE_APPLICATION_DRAFT: handleParseApplicationDraft,
+  IMPORT_APPLICATIONS_CSV: handleImportApplicationsCsv,
+  UPDATE_APPLICATION: handleUpdateApplication,
+  REORDER_APPLICATIONS: handleReorderApplications,
+  DELETE_APPLICATION: handleDeleteApplication,
+  MARK_LAST_SUBMITTED: handleMarkLastSubmitted,
+  SAVE_LEARNED_DEFAULTS: handleSaveLearnedDefaults,
+  GET_LEARNED_DEFAULTS: handleGetLearnedDefaults,
+  UPDATE_LEARNED_DEFAULT: handleUpdateLearnedDefault,
+  IGNORE_LEARNED_DEFAULT: handleIgnoreLearnedDefault,
+  DELETE_LEARNED_DEFAULT: handleDeleteLearnedDefault,
+  DELETE_IGNORED_LEARNED_DEFAULT: handleDeleteIgnoredLearnedDefault,
+  CLEAR_TEMP_DATA: handleClearTempData,
+  RESET_ALL_DATA: handleResetAllData,
+  ATS_DETECTED: () => ({ success: true }),
+  GET_INTERVIEW_PREP: handleGetInterviewPrep,
+  SAVE_INTERVIEW_PREP: handleSaveInterviewPrep,
+  GENERATE_INTERVIEW_QUESTIONS: handleGenerateInterviewQuestions,
+  GENERATE_INTERVIEW_ANSWER: handleGenerateInterviewAnswer,
+};
 
+/**
+ * Sets up the message router for the service worker.
+ * Registers a listener for chrome.runtime.onMessage.
+ */
 export function setupMessageRouter() {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     handleMessage(msg).then(sendResponse).catch((err) => {
@@ -48,73 +89,16 @@ export function setupMessageRouter() {
   });
 }
 
+/**
+ * Dispatches a message to the appropriate handler.
+ * @param {Object} msg - The message object with `type` and optional `payload`.
+ * @returns {Promise<any>} The handler's return value.
+ * @throws {Error} If the message type is unknown.
+ */
 export async function handleMessage(msg) {
-  switch (msg.type) {
-    case 'SAVE_SETUP':
-      return handleSaveSetup(msg.payload);
-    case 'SAVE_SETTINGS_ONLY':
-      return handleSaveSettingsOnly(msg.payload);
-    case 'GET_STATE':
-      return getState();
-    case 'GET_RESUME_ATTACHMENT':
-      return handleGetResumeAttachment();
-    case 'REMOVE_RESUME_ATTACHMENT':
-      return handleRemoveResumeAttachment();
-    case 'GENERATE_ANSWERS':
-      return handleGenerateAnswers(msg.payload);
-    case 'GET_LAST_ANSWERS':
-      return getLastAnswers();
-    case 'SEARCH_JOBS':
-      return handleSearchJobs(msg.payload);
-    case 'GET_JOB_SOURCES':
-      return handleGetJobSources();
-    case 'GET_OAUTH_INFO':
-      return handleGetOauthInfo();
-    case 'LINKEDIN_CONNECT':
-      return handleLinkedInConnect();
-    case 'SUMMARIZE_JD':
-      return handleSummarizeJd(msg.payload);
-    case 'LOG_APPLICATION':
-      return handleLogApplication(msg.payload);
-    case 'PARSE_APPLICATION_DRAFT':
-      return handleParseApplicationDraft(msg.payload);
-    case 'IMPORT_APPLICATIONS_CSV':
-      return handleImportApplicationsCsv(msg.payload);
-    case 'UPDATE_APPLICATION':
-      return handleUpdateApplication(msg.payload);
-    case 'REORDER_APPLICATIONS':
-      return handleReorderApplications(msg.payload);
-    case 'DELETE_APPLICATION':
-      return handleDeleteApplication(msg.payload);
-    case 'MARK_LAST_SUBMITTED':
-      return handleMarkLastSubmitted();
-    case 'SAVE_LEARNED_DEFAULTS':
-      return handleSaveLearnedDefaults(msg.payload);
-    case 'GET_LEARNED_DEFAULTS':
-      return handleGetLearnedDefaults();
-    case 'UPDATE_LEARNED_DEFAULT':
-      return handleUpdateLearnedDefault(msg.payload);
-    case 'IGNORE_LEARNED_DEFAULT':
-      return handleIgnoreLearnedDefault(msg.payload);
-    case 'DELETE_LEARNED_DEFAULT':
-      return handleDeleteLearnedDefault(msg.payload);
-    case 'DELETE_IGNORED_LEARNED_DEFAULT':
-      return handleDeleteIgnoredLearnedDefault(msg.payload);
-    case 'CLEAR_TEMP_DATA':
-      return handleClearTempData();
-    case 'RESET_ALL_DATA':
-      return handleResetAllData();
-    case 'ATS_DETECTED':
-      return { success: true }; // acknowledged — no action needed
-    case 'GET_INTERVIEW_PREP':
-      return handleGetInterviewPrep(msg.payload);
-    case 'SAVE_INTERVIEW_PREP':
-      return handleSaveInterviewPrep(msg.payload);
-    case 'GENERATE_INTERVIEW_QUESTIONS':
-      return handleGenerateInterviewQuestions(msg.payload);
-    case 'GENERATE_INTERVIEW_ANSWER':
-      return handleGenerateInterviewAnswer(msg.payload);
-    default:
-      throw new Error('Unknown message type: ' + msg.type);
+  const handler = MESSAGE_HANDLERS[msg?.type];
+  if (!handler) {
+    throw new Error('Unknown message type: ' + msg?.type);
   }
+  return handler(msg.payload);
 }
