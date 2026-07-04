@@ -17,6 +17,7 @@ test('extension service worker loads successfully', async ({ page }) => {
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--headless=new',
+      '--enable-extensions',
       '--disable-gpu',
       '--disable-software-rasterizer',
       '--no-sandbox',
@@ -26,17 +27,32 @@ test('extension service worker loads successfully', async ({ page }) => {
   });
 
   // Log SW console messages for CI debugging
-  context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
+  context.on('serviceworker', sw => {
+    sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`));
+    sw.on('close', () => process.stdout.write('[SW] Service worker closed\n'));
+  });
+
+  // Log any error events
+  context.on('error', err => process.stdout.write(`[Context Error] ${err}\n`));
 
   let extensionId;
   // Retry finding the service worker a few times
   for (let i = 0; i < 20; i++) {
       const workers = context.serviceWorkers();
+      process.stdout.write(`[Attempt ${i+1}/20] Service workers: ${workers.length}\n`);
       if (workers.length > 0) {
           extensionId = workers[0].url().split('/')[2];
+          process.stdout.write(`[SUCCESS] Extension ID found: ${extensionId}\n`);
           break;
       }
       await new Promise(r => setTimeout(r, 5000));
+  }
+  if (!extensionId) {
+      process.stdout.write('[FAIL] No service workers found\n');
+      for (const page of context.pages()) {
+          process.stdout.write(`  Page: ${page.url()}\n`);
+      }
+      throw new Error('Service worker not found after retries');
   }
 
   expect(extensionId).toBeDefined();
