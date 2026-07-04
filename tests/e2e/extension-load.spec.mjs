@@ -26,7 +26,13 @@ test('extension service worker loads successfully', async ({ page }) => {
   });
 
   // Log SW console messages for CI debugging
-  context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
+  context.on('serviceworker', sw => {
+    sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`));
+    sw.on('close', () => process.stdout.write('[SW] Service worker closed\n'));
+  });
+
+  // Log any error events
+  context.on('error', err => process.stdout.write(`[Context Error] ${err}\n`));
 
   let extensionId;
   // Retry finding the service worker a few times
