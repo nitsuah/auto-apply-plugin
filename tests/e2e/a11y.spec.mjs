@@ -24,6 +24,7 @@ test.describe('Accessibility audit', () => {
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
+        '--headless=new',
         '--disable-gpu',
         '--disable-software-rasterizer',
         '--no-sandbox',
@@ -31,6 +32,9 @@ test.describe('Accessibility audit', () => {
         '--disable-dev-shm-usage',
       ],
     });
+    // Log SW console messages for CI debugging
+    context.serviceWorkers().forEach(w => w.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
+    context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
 
     // Retry finding the service worker a few times
     for (let i = 0; i < 20; i++) {
