@@ -16,13 +16,17 @@ test('extension service worker loads successfully', async ({ page }) => {
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
-      '--disable-gpu', // Disable GPU hardware acceleration
-      '--disable-software-rasterizer', // Disable software rasterizer
-      '--no-sandbox', // Required for Docker environments
-      '--disable-setuid-sandbox', // Required for Docker environments
-      '--disable-dev-shm-usage', // Overcomes limited resource problems
+      '--headless=new',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
     ],
   });
+
+  // Log SW console messages for CI debugging
+  context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
 
   let extensionId;
   // Retry finding the service worker a few times
