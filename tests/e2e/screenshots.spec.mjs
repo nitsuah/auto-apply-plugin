@@ -21,13 +21,13 @@ test.beforeAll(async () => {
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
+      '--headless=new',
       '--disable-gpu',
       '--disable-software-rasterizer',
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
     ],
-    headless: 'new',
   });
   // Log SW console messages for CI debugging
   context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
