@@ -24,7 +24,6 @@ test.describe('Accessibility audit', () => {
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
-        '--headless=new',
         '--enable-extensions',
         '--disable-gpu',
         '--disable-software-rasterizer',
