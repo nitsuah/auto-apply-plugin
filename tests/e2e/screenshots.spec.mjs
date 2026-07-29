@@ -2,9 +2,10 @@
  * Screenshot capture spec — generates README gallery images.
  */
 
-import { test, chromium } from '@playwright/test';
+import { test } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { launchExtensionContext } from './helpers/extension-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_PATH = path.join(__dirname, '../../dist');
@@ -12,30 +13,8 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
-// ── Screenshot tests ──────────────────────────────────────────────────────────
-
 test.beforeAll(async () => {
-  const userDataDir = '/tmp/playwright-screenshot-profile-' + Math.random().toString(36).substring(7);
-  context = await chromium.launchPersistentContext(userDataDir, {
-    headless: true,
-    args: [
-      `--disable-extensions-except=${EXTENSION_PATH}`,
-      `--load-extension=${EXTENSION_PATH}`,
-      '--enable-extensions',
-      '--disable-gpu',
-      '--disable-software-rasterizer',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-    ],
-  });
-  // Log SW console messages for CI debugging
-  context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
-
-  // Use event-driven detection with fallback for already-registered workers
-  let sw = context.serviceWorkers()[0];
-  if (!sw) sw = await context.waitForEvent('serviceworker', { timeout: 30000 });
-  extensionId = sw.url().split('/')[2];
+  ({ context, extensionId } = await launchExtensionContext(EXTENSION_PATH, 'playwright-screenshot-profile'));
 });
 
 test.afterAll(async () => {
