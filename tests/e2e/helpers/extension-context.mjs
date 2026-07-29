@@ -10,11 +10,9 @@ import fs from 'node:fs';
  *   Polling serviceWorkers() works because Playwright's internal CDP state syncs
  *   within the first poll interval even if the initial call returns [].
  *
- * Why both `headless: true` AND `--headless=new` in args:
- *   Playwright 1.61 internally only pushes `--headless` (bare), which does not
- *   reliably trigger Chrome's extension service worker registration in CI.
- *   The explicit `--headless=new` ensures Chrome's new headless mode that fully
- *   supports extension service workers.
+ * Why headless: false:
+ *   Chrome MV3 extension service workers require a graphical environment.
+ *   In CI this is satisfied by xvfb-run wrapping the test command.
  */
 async function waitForServiceWorker(context, timeout = 45000) {
   const deadline = Date.now() + timeout;
@@ -43,11 +41,10 @@ export async function launchExtensionContext(extensionPath, profilePrefix = 'pla
 
   const userDataDir = `/tmp/${profilePrefix}-${Math.random().toString(36).slice(2)}`;
   const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: true,
+    headless: false,
     args: [
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
-      '--headless=new',
       '--enable-extensions',
       '--disable-gpu',
       '--disable-software-rasterizer',
