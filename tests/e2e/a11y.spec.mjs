@@ -20,7 +20,7 @@ test.describe('Accessibility audit', () => {
     process.stdout.write('Path exists: ' + fs.existsSync(EXTENSION_PATH) + '\n');
     const userDataDir = '/tmp/playwright-a11y-profile-' + Math.random().toString(36).substring(7);
     context = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
+      headless: true,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,

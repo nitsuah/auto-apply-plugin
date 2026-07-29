@@ -12,7 +12,7 @@ test('extension service worker loads successfully', async ({ page }) => {
 
   const userDataDir = '/tmp/playwright-extension-profile-' + Math.random().toString(36).substring(7);
   const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: false,
+    headless: true,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
