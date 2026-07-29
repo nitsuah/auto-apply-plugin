@@ -1,9 +1,9 @@
 // interview-prep.js
 // Handles interview prep mode: generating questions, editing answers, saving/loading
 
-import { $, sendMessage, setStatus } from '../../lib/utils.js';
+import { $, sendMessage, sendToActiveTab } from '../../lib/utils.js';
+import { setStatus } from './state.js';
 import { showScreen } from './navigation.js';
-import { sendToActiveTab } from '../../lib/utils.js';
 
 // ── Interview prep state ──────────────────────────────────────────────────────
 
@@ -149,8 +149,10 @@ async function saveInterviewPrepData() {
 
 async function generateInterviewQuestions() {
   const generateBtn = $('interview-prep-generate-btn');
-  generateBtn?.disabled = true;
-  generateBtn?.textContent = '⏳ Generating...';
+  if (generateBtn) {
+    generateBtn.disabled = true;
+    generateBtn.textContent = '⏳ Generating...';
+  }
   setStatus('interview-prep-status', '⏳ Generating interview questions...');
 
   // Capture active application id and prep session token at the start
@@ -210,8 +212,10 @@ async function generateInterviewQuestions() {
     setStatus('interview-prep-status', '❌ ' + err.message, 'error');
   } finally {
     if (activeAppId !== currentApplicationId || prepSessionToken !== prepSessionToken) return;
-    generateBtn?.disabled = false;
-    generateBtn?.textContent = '✨ Generate Questions';
+    if (generateBtn) {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '✨ Generate Questions';
+    }
   }
 }
 

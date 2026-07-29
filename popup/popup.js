@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mark standalone mode on body
   document.body.dataset.standalone = isStandaloneView() ? 'true' : 'false';
 
+  // Show setup screen immediately so the popup is never blank while waiting for
+  // the service worker to respond. loadMainScreen() will update it once state loads.
+  showScreen('setup');
+
   // Wire the loadMainScreen callback into tracker handlers (avoids circular import)
   setLoadMainScreen(loadMainScreen);
 

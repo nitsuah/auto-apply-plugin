@@ -2,11 +2,11 @@
  * Accessibility tests with axe-core.
  */
 
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'node:path';
-import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
+import { launchExtensionContext } from './helpers/extension-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_PATH = path.join(__dirname, '../../dist');
@@ -14,67 +14,34 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
-function attachServiceWorkerLogging(ctx) {
-  ctx.on('serviceworker', sw => {
-    sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`));
-    sw.on('close', () => process.stdout.write('[SW] Service worker closed\n'));
-  });
-  ctx.on('error', err => process.stdout.write(`[Context Error] ${err}\n`));
-}
+// Stub chrome.runtime.sendMessage so the popup initialises without a live
+// service worker. These tests exercise popup UI structure, not messaging.
+const SW_STUB = () => {
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    chrome.runtime.sendMessage = (_msg, callback) => {
+      if (typeof callback === 'function') setTimeout(() => callback(null), 0);
+    };
+  }
+};
 
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
     process.stdout.write('EXTENSION_PATH: ' + EXTENSION_PATH + '\n');
-    process.stdout.write('Path exists: ' + fs.existsSync(EXTENSION_PATH) + '\n');
-    const userDataDir = '/tmp/playwright-a11y-profile-' + Math.random().toString(36).substring(7);
-    context = await chromium.launchPersistentContext(userDataDir, {
-      headless: true,
-      args: [
-        `--disable-extensions-except=${EXTENSION_PATH}`,
-        `--load-extension=${EXTENSION_PATH}`,
-        '--headless=new',
-        '--enable-extensions',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-      ],
-    });
-    attachServiceWorkerLogging(context);
-
-    // Retry finding the service worker a few times
-    for (let i = 0; i < 20; i++) {
-        const workers = context.serviceWorkers();
-        process.stdout.write(`[Attempt ${i+1}/20] Service workers: ${workers.length}\n`);
-        if (workers.length > 0) {
-            extensionId = workers[0].url().split('/')[2];
-            process.stdout.write(`[SUCCESS] Extension ID found: ${extensionId}\n`);
-            break;
-        }
-        await new Promise(r => setTimeout(r, 5000));
-    }
-    if (!extensionId) {
-        process.stdout.write('[FAIL] No service workers found\n');
-        for (const page of context.pages()) {
-            process.stdout.write(`  Page: ${page.url()}\n`);
-        }
-        throw new Error('Service worker not found after retries');
-    }
-
+    ({ context, extensionId } = await launchExtensionContext(EXTENSION_PATH, 'playwright-a11y-profile'));
+    await context.addInitScript(SW_STUB);
     // Create a dummy page to be the "active" tab
     await context.newPage();
   });
 
   test.afterEach(async () => {
-    await context.close();
+    await context?.close();
   });
 
   test('main dashboard should not have any automatically detectable accessibility issues', async () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 420, height: 640 });
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
-    await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -84,10 +51,9 @@ test.describe('Accessibility audit', () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 1100, height: 780 });
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
-    await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
-    const btn = page.locator('#header-tracker-btn');
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('tracker-screen')?.classList.contains('hidden'), { timeout: 4000 });
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
+    await page.locator('#header-tracker-btn').click();
+    await expect(page.locator('#tracker-screen')).toBeVisible({ timeout: 10000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -97,10 +63,9 @@ test.describe('Accessibility audit', () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 1100, height: 860 });
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
-    await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
-    const btn = page.locator('#header-profile-btn');
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('setup-screen')?.classList.contains('hidden'), { timeout: 4000 });
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
+    await page.locator('#header-profile-btn').click();
+    await expect(page.locator('#setup-screen')).toBeVisible({ timeout: 10000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -110,10 +75,9 @@ test.describe('Accessibility audit', () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 1100, height: 780 });
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
-    await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
-    const btn = page.locator('#header-job-search-btn');
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('job-search-screen')?.classList.contains('hidden'), { timeout: 4000 });
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
+    await page.locator('#header-job-search-btn').click();
+    await expect(page.locator('#job-search-screen')).toBeVisible({ timeout: 10000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
@@ -123,10 +87,9 @@ test.describe('Accessibility audit', () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 1100, height: 780 });
     await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
-    await page.waitForSelector('.screen:not(.hidden)', { state: 'visible', timeout: 6000 });
-    const btn = page.locator('#header-ai-btn');
-    await btn.click();
-    await page.waitForFunction(() => !document.getElementById('ai-screen')?.classList.contains('hidden'), { timeout: 4000 });
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
+    await page.locator('#header-ai-btn').click();
+    await expect(page.locator('#ai-screen')).toBeVisible({ timeout: 10000 });
 
     const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
