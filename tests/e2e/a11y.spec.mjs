@@ -14,10 +14,21 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
+// Stub chrome.runtime.sendMessage so the popup initialises without a live
+// service worker. These tests exercise popup UI structure, not messaging.
+const SW_STUB = () => {
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    chrome.runtime.sendMessage = (_msg, callback) => {
+      if (typeof callback === 'function') setTimeout(() => callback(null), 0);
+    };
+  }
+};
+
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
     process.stdout.write('EXTENSION_PATH: ' + EXTENSION_PATH + '\n');
     ({ context, extensionId } = await launchExtensionContext(EXTENSION_PATH, 'playwright-a11y-profile'));
+    await context.addInitScript(SW_STUB);
     // Create a dummy page to be the "active" tab
     await context.newPage();
   });

@@ -13,8 +13,19 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
+// Stub chrome.runtime.sendMessage so the popup initialises without a live
+// service worker. These tests exercise popup UI appearance, not messaging.
+const SW_STUB = () => {
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    chrome.runtime.sendMessage = (_msg, callback) => {
+      if (typeof callback === 'function') setTimeout(() => callback(null), 0);
+    };
+  }
+};
+
 test.beforeAll(async () => {
   ({ context, extensionId } = await launchExtensionContext(EXTENSION_PATH, 'playwright-screenshot-profile'));
+  await context.addInitScript(SW_STUB);
 });
 
 test.afterAll(async () => {
