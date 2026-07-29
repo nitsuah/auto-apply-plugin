@@ -23,7 +23,7 @@ test.describe('Accessibility audit', () => {
   });
 
   test.afterEach(async () => {
-    await context.close();
+    await context?.close();
   });
 
   test('main dashboard should not have any automatically detectable accessibility issues', async () => {

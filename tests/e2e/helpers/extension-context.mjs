@@ -2,13 +2,33 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 
 /**
- * Launch a persistent Chromium context with the extension loaded.
+ * Poll context.serviceWorkers() until a worker appears or timeout expires.
  *
- * Why both `headless: true` AND `--headless=new`:
- *   Playwright 1.61 internally only pushes `--headless` (bare flag), which does
- *   not reliably trigger Chrome's extension service worker registration in CI.
- *   The explicit `--headless=new` in args is required to ensure the new headless
- *   mode that supports extension service workers.
+ * Why polling instead of waitForEvent('serviceworker'):
+ *   The 'serviceworker' CDP event fires during launchPersistentContext (before
+ *   user code can call waitForEvent), so event-driven detection always misses it.
+ *   Polling serviceWorkers() works because Playwright's internal CDP state syncs
+ *   within the first poll interval even if the initial call returns [].
+ *
+ * Why both `headless: true` AND `--headless=new` in args:
+ *   Playwright 1.61 internally only pushes `--headless` (bare), which does not
+ *   reliably trigger Chrome's extension service worker registration in CI.
+ *   The explicit `--headless=new` ensures Chrome's new headless mode that fully
+ *   supports extension service workers.
+ */
+async function waitForServiceWorker(context, timeout = 45000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const workers = context.serviceWorkers();
+    if (workers.length > 0) return workers[0];
+    await new Promise(r => setTimeout(r, 500));
+  }
+  throw new Error(`Extension service worker not found after ${timeout}ms`);
+}
+
+/**
+ * Launch a persistent Chromium context with the extension loaded and its
+ * service worker confirmed running.
  *
  * @param {string} extensionPath - Absolute path to the built extension dist dir.
  * @param {string} [profilePrefix] - Prefix for the temporary user data dir.
@@ -41,13 +61,18 @@ export async function launchExtensionContext(extensionPath, profilePrefix = 'pla
     sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`))
   );
 
-  let sw = context.serviceWorkers()[0];
-  if (!sw) sw = await context.waitForEvent('serviceworker', { timeout: 45000 });
+  let sw;
+  try {
+    sw = await waitForServiceWorker(context);
+  } catch (err) {
+    await context.close();
+    throw err;
+  }
 
   const extensionId = sw.url().split('/')[2];
   if (!extensionId) {
     await context.close();
-    throw new Error(`Service worker registered but extensionId could not be parsed from: ${sw.url()}`);
+    throw new Error(`Service worker found but extensionId could not be parsed from: ${sw.url()}`);
   }
 
   return { context, extensionId };

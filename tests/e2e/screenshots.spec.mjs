@@ -18,7 +18,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await context.close();
+  await context?.close();
 });
 
 test('screenshot: main dashboard', async () => {
