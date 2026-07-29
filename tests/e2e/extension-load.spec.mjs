@@ -17,10 +17,7 @@ test('extension service worker loads successfully', async ({ page }) => {
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--headless=new',
-<<<<<<< HEAD
-=======
       '--enable-extensions',
->>>>>>> origin/main
       '--disable-gpu',
       '--disable-software-rasterizer',
       '--no-sandbox',
