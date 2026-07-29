@@ -27,12 +27,13 @@ export async function loadMainScreen(options = {}) {
   } = resp || {};
 
   applyStateToSetupForm(resp || {});
-  await renderLearnedDefaults();
   renderConsentSignedDate(resp?.settings || {}, privacyConsent);
 
-  // If no privacy consent or no profile/resume, redirect to setup
+  // Show the correct screen before awaiting renderLearnedDefaults so the popup
+  // is never blank longer than the one GET_STATE round-trip.
   if (!privacyConsent || (!hasApiKey && !hasResume)) {
     showScreen('setup');
+    await renderLearnedDefaults();
     if (!privacyConsent) {
       setStatus('setup-status', 'Review the privacy note once to continue using apply-bot.');
     }
@@ -42,6 +43,8 @@ export async function loadMainScreen(options = {}) {
   if (showMain) {
     showScreen('main');
   }
+
+  await renderLearnedDefaults();
 
   // Update UI badges
   const resumeTooltip = hasResume
