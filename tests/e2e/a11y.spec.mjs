@@ -14,6 +14,14 @@ const EXTENSION_PATH = path.join(__dirname, '../../dist');
 let context;
 let extensionId;
 
+function attachServiceWorkerLogging(ctx) {
+  ctx.on('serviceworker', sw => {
+    sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`));
+    sw.on('close', () => process.stdout.write('[SW] Service worker closed\n'));
+  });
+  ctx.on('error', err => process.stdout.write(`[Context Error] ${err}\n`));
+}
+
 test.describe('Accessibility audit', () => {
   test.beforeEach(async () => {
     process.stdout.write('EXTENSION_PATH: ' + EXTENSION_PATH + '\n');
@@ -25,6 +33,10 @@ test.describe('Accessibility audit', () => {
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
         '--headless=new',
+<<<<<<< HEAD
+=======
+        '--enable-extensions',
+>>>>>>> origin/main
         '--disable-gpu',
         '--disable-software-rasterizer',
         '--no-sandbox',
@@ -32,20 +44,32 @@ test.describe('Accessibility audit', () => {
         '--disable-dev-shm-usage',
       ],
     });
+<<<<<<< HEAD
     // Log SW console messages for CI debugging
     context.serviceWorkers().forEach(w => w.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
     context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
+=======
+    attachServiceWorkerLogging(context);
+>>>>>>> origin/main
 
     // Retry finding the service worker a few times
     for (let i = 0; i < 20; i++) {
         const workers = context.serviceWorkers();
+        process.stdout.write(`[Attempt ${i+1}/20] Service workers: ${workers.length}\n`);
         if (workers.length > 0) {
             extensionId = workers[0].url().split('/')[2];
+            process.stdout.write(`[SUCCESS] Extension ID found: ${extensionId}\n`);
             break;
         }
         await new Promise(r => setTimeout(r, 5000));
     }
-    if (!extensionId) throw new Error('Service worker not found after retries');
+    if (!extensionId) {
+        process.stdout.write('[FAIL] No service workers found\n');
+        for (const page of context.pages()) {
+            process.stdout.write(`  Page: ${page.url()}\n`);
+        }
+        throw new Error('Service worker not found after retries');
+    }
 
     // Create a dummy page to be the "active" tab
     await context.newPage();
