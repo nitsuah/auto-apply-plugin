@@ -12,7 +12,7 @@ test('extension service worker loads successfully', async ({ page }) => {
 
   const userDataDir = '/tmp/playwright-extension-profile-' + Math.random().toString(36).substring(7);
   const context = await chromium.launchPersistentContext(userDataDir, {
-    headless: true,
+    headless: false,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
@@ -35,25 +35,10 @@ test('extension service worker loads successfully', async ({ page }) => {
   // Log any error events
   context.on('error', err => process.stdout.write(`[Context Error] ${err}\n`));
 
-  let extensionId;
-  // Retry finding the service worker a few times
-  for (let i = 0; i < 20; i++) {
-      const workers = context.serviceWorkers();
-      process.stdout.write(`[Attempt ${i+1}/20] Service workers: ${workers.length}\n`);
-      if (workers.length > 0) {
-          extensionId = workers[0].url().split('/')[2];
-          process.stdout.write(`[SUCCESS] Extension ID found: ${extensionId}\n`);
-          break;
-      }
-      await new Promise(r => setTimeout(r, 5000));
-  }
-  if (!extensionId) {
-      process.stdout.write('[FAIL] No service workers found\n');
-      for (const page of context.pages()) {
-          process.stdout.write(`  Page: ${page.url()}\n`);
-      }
-      throw new Error('Service worker not found after retries');
-  }
+  // Use event-driven detection with fallback for already-registered workers
+  let sw = context.serviceWorkers()[0];
+  if (!sw) sw = await context.waitForEvent('serviceworker', { timeout: 30000 });
+  const extensionId = sw.url().split('/')[2];
 
   expect(extensionId).toBeDefined();
   expect(extensionId).not.toBeNull();

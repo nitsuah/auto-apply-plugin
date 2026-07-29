@@ -17,7 +17,7 @@ let extensionId;
 test.beforeAll(async () => {
   const userDataDir = '/tmp/playwright-screenshot-profile-' + Math.random().toString(36).substring(7);
   context = await chromium.launchPersistentContext(userDataDir, {
-    headless: true,
+    headless: false,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
@@ -33,16 +33,10 @@ test.beforeAll(async () => {
   // Log SW console messages for CI debugging
   context.on('serviceworker', sw => sw.on('console', msg => process.stdout.write(`[SW:${msg.type()}] ${msg.text()}\n`)));
 
-  // Retry finding the service worker a few times
-  for (let i = 0; i < 20; i++) {
-      const workers = context.serviceWorkers();
-      if (workers.length > 0) {
-          extensionId = workers[0].url().split('/')[2];
-          break;
-      }
-      await new Promise(r => setTimeout(r, 5000));
-  }
-  if (!extensionId) throw new Error('Service worker not found after retries');
+  // Use event-driven detection with fallback for already-registered workers
+  let sw = context.serviceWorkers()[0];
+  if (!sw) sw = await context.waitForEvent('serviceworker', { timeout: 30000 });
+  extensionId = sw.url().split('/')[2];
 });
 
 test.afterAll(async () => {
