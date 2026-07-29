@@ -812,6 +812,12 @@ body[data-standalone="true"][data-screen="preview"] {
   width: 100%;
 }
 
+/* <main> wraps all screens for landmark semantics; display:contents keeps
+   the existing flex layout intact (screens remain direct #app flex children). */
+#screen-content {
+  display: contents;
+}
+
 body[data-standalone="true"] #app {
   width: 100%;
   max-width: none;
@@ -1508,7 +1514,7 @@ body[data-standalone="true"][data-screen="setup"] .profile-side-column .memory-l
 }
 
 .consent-locked {
-  opacity: 0.58;
+  filter: opacity(0.58);
 }
 
 .consent-locked .profile-panel,

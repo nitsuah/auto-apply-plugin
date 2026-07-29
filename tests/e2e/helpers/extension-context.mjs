@@ -51,6 +51,7 @@ export async function launchExtensionContext(extensionPath, profilePrefix = 'pla
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
+      '--force-color-profile=srgb',
     ],
   });
 
