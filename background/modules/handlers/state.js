@@ -1,4 +1,17 @@
-async function getState() {
+import { isTerminalApplicationStatus } from '../../../lib/tracker.js';
+import {
+  sanitizeIgnoredLearnedDefaultsMap,
+  sanitizeLearnedDefaultsMap,
+  trimLearnedDefaultsMap,
+  trimIgnoredLearnedDefaultsMap,
+  detectAtsFromUrl,
+  getProfileFromResume,
+  getResumeAttachmentSummary,
+  getProfileCompleteness,
+} from '../helpers.js';
+
+/** @returns {Promise<object>} */
+export async function getState() {
   const data = await chrome.storage.local.get([
     'resume',
     'settings',
