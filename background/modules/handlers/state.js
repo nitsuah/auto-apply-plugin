@@ -28,13 +28,15 @@ export async function getState() {
   const lastAnswers = data.lastAnswers || null;
   const ignoredLearnedDefaults = sanitizeIgnoredLearnedDefaultsMap(data.ignoredLearnedDefaults || {});
   const learnedDefaults = sanitizeLearnedDefaultsMap(data.learnedDefaults || {}, ignoredLearnedDefaults);
+  const trimmedLearnedDefaults = trimLearnedDefaultsMap(learnedDefaults);
+  const trimmedIgnoredDefaults = trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults);
   if (
-    Object.keys(learnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length ||
-    Object.keys(ignoredLearnedDefaults).length !== Object.keys(data.ignoredLearnedDefaults || {}).length
+    Object.keys(trimmedLearnedDefaults).length !== Object.keys(data.learnedDefaults || {}).length ||
+    Object.keys(trimmedIgnoredDefaults).length !== Object.keys(data.ignoredLearnedDefaults || {}).length
   ) {
     await chrome.storage.local.set({
-      learnedDefaults: trimLearnedDefaultsMap(learnedDefaults),
-      ignoredLearnedDefaults: trimIgnoredLearnedDefaultsMap(ignoredLearnedDefaults),
+      learnedDefaults: trimmedLearnedDefaults,
+      ignoredLearnedDefaults: trimmedIgnoredDefaults,
     });
   }
 

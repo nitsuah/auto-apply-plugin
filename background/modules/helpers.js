@@ -264,6 +264,14 @@ export function mergeStructuredResume(existingResume, incomingResume) {
     education: incoming.education?.length ? incoming.education : existing.education,
     certifications: incoming.certifications?.length ? incoming.certifications : existing.certifications,
     languages: incoming.languages?.length ? incoming.languages : existing.languages,
+    // Parser never populates these extension-owned fields; preserve existing values.
+    why_company_default: firstNonEmpty(incoming.why_company_default, existing.why_company_default),
+    why_role_default: firstNonEmpty(incoming.why_role_default, existing.why_role_default),
+    additional_info_default: firstNonEmpty(incoming.additional_info_default, existing.additional_info_default),
+    start_date: firstNonEmpty(incoming.start_date, existing.start_date),
+    availability: firstNonEmpty(incoming.availability, existing.availability),
+    requires_sponsorship: firstNonEmpty(incoming.requires_sponsorship, existing.requires_sponsorship),
+    work_authorization: firstNonEmpty(incoming.work_authorization, existing.work_authorization),
   };
 }
 
