@@ -69,7 +69,7 @@ export async function getState() {
     privacyConsent: !!settings.privacy_consent,
     profile,
     profileCompleteness: getProfileCompleteness(profile),
-    learnedDefaultsCount: Object.keys(learnedDefaults).length,
+    learnedDefaultsCount: Object.keys(trimmedLearnedDefaults).length,
     applications,
     lastAnswers,
     lastFillReport,
