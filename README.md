@@ -46,18 +46,34 @@ apply-workspace/
 ├── popup/                 # Extension popup UI
 │   ├── popup.html
 │   ├── popup.js
-│   └── popup.css
+│   ├── popup.css
+│   ├── ai/                # AI settings panel
+│   ├── ats/               # ATS-specific popup helpers
+│   ├── forms/             # Answer preview, memory, form handling
+│   ├── search/            # Job search panel
+│   ├── tracker/           # Tracker state, UI, handlers, CSV, metadata
+│   └── ux/                # Navigation, profile, consent, a11y, interview prep
 ├── screenshots/           # README gallery assets
-├── content/               # Runs on job pages
-│   └── content.js         # Form detection + injection
+├── content/               # Content scripts — run on job pages
+│   ├── content.js         # Entry point: orchestration & messaging
+│   ├── ats-detector.js    # ATS platform detection (direct + embedded)
+│   ├── form-filler.js     # DOM injection + field mapping
+│   ├── job-processor.js   # JD extraction from page
+│   ├── message-listener.js# Message handler wiring
+│   └── utils.js           # Shared content-script helpers
 ├── background/
-│   └── service-worker.js  # API calls, storage management
+│   ├── service-worker.js  # SW entry point
+│   ├── message-router.js  # Dispatch table for SW messages
+│   └── modules/handlers/  # Per-domain handler modules (answers, jobs, resume, oauth, …)
 ├── lib/
-│   ├── gemini.js          # Gemini API wrapper
+│   ├── gemini.js          # Gemini API wrapper + model auto-select
 │   ├── resume-parser.js   # Resume structuring
-│   ├── jd-parser.js       # JD extraction
-│   ├── form-filler.js     # DOM injection
-│   └── tracker.js         # Application tracking
+│   ├── jd-parser.js       # JD extraction helpers
+│   ├── form-filler.js     # Shared form-fill logic (lib copy)
+│   ├── job-search.js      # Multi-source job search registry
+│   ├── oauth.js           # LinkedIn OAuth / OIDC flow
+│   ├── tracker.js         # Application tracking storage
+│   └── utils.js           # Shared lib utilities
 ├── data/
 │   └── field-map.json     # Common field name → answer key mappings
 └── icons/                 # Extension icons
@@ -219,7 +235,7 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,S
 - External network calls happen **only** for actions you trigger (AI help with your Gemini key; optional job-search sources / LinkedIn profile import with your own credentials).
 - No servers, no accounts, no telemetry.
 
-See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Policy, Security posture, and your GDPR/CCPA data rights — the same content shown in the app's **Help & privacy** panel.
+See **[docs/PRIVACY.md](docs/PRIVACY.md)** for the full Terms of Use (EULA), Privacy Policy, Security posture, and your GDPR/CCPA data rights — the same content shown in the app's **Help & privacy** panel.
 
 ---
 
@@ -228,7 +244,7 @@ See **[PRIVACY.md](PRIVACY.md)** for the full Terms of Use (EULA), Privacy Polic
 All checks run via Docker — no local Node.js required.
 
 ```bash
-# Unit tests (63 tests, no browser needed)
+# Unit tests (77 tests, no browser needed)
 docker compose -f config/docker-compose.yml run --rm test
 
 # Lint

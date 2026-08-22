@@ -7,8 +7,8 @@
 | Code Coverage | 91.86% |
 | Build Time    | 3.44s |
 | Bundle Size   | 619.78KB |
-| Test Files    | 6 (5 unit + 1 Playwright e2e) |
-| Test Cases    | 32 (30 unit + 2 Playwright e2e) |
+| Test Files    | 12 (8 unit + 4 Playwright e2e) |
+| Test Cases    | 90 (77 unit + 13 Playwright e2e) |
 | Other coverage | statements / 63.16% branches / 89.41% functions / 91.86% lines | 
 
 ## Health
