@@ -1,5 +1,5 @@
 ---
-updated: 2026-06-25
+updated: 2026-08-22
 ---
 
 # Roadmap
@@ -8,11 +8,11 @@ updated: 2026-06-25
 
 > Completed. See FEATURES.md for shipped capabilities.
 
-## 2026 Q2 (In Progress)
+## 2026 Q2 ✅
 
-- [/] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, structured pay bands, verdict controls, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
-- [/] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
-- [ ] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
+- [x] Turn the tracker into a real job-workspace view with stored JD metadata, location, employment type, structured pay bands, verdict controls, scorecard fields, search/filter controls, and a wider lower-scroll popup layout.
+- [x] Start a lightweight `apply-bot` rebrand pass across popup copy, icons, and docs without over-scoping the MVP.
+- [x] Add picker-style job detail capture from the current page or pasted JD text and keep extending it into a stronger import workflow.
 
 ## 2026 Q3 ✅
 
