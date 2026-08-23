@@ -244,7 +244,7 @@ See **[docs/PRIVACY.md](docs/PRIVACY.md)** for the full Terms of Use (EULA), Pri
 All checks run via Docker — no local Node.js required.
 
 ```bash
-# Unit tests (77 tests, no browser needed)
+# Unit tests (77 unit tests + 13 Playwright e2e, no browser needed for unit)
 docker compose -f config/docker-compose.yml run --rm test
 
 # Lint

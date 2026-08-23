@@ -19,7 +19,7 @@
 | PR Turnaround | unknown |
 | Skipped Tests | 0      |
 | Lint Status   | pass (Docker Node 20 Alpine, `npm run lint`, 2026-05-24) |
-| Latest Validation | Docker Node 20 Alpine + Playwright Noble image: lint pass, `npm test` 71 pass / 0 fail, Playwright 2 pass / 0 fail (2026-06-25) |
+| Latest Validation | Docker Node 20 Alpine + Playwright Noble image: lint pass, `npm test` 77 pass / 0 fail, Playwright 13 pass / 0 fail (2026-08-22) |
 | Lockfile Sync | pass (`npm ci` succeeds in clean container, 2026-05-24) |
 | Health Score  | 92/100 |
 
