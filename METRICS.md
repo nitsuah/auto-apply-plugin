@@ -4,12 +4,12 @@
 
 | Metric        | Value |
 | ------------- | ----- |
-| Code Coverage | 91.86% |
+| Code Coverage | 88.31% |
 | Build Time    | 3.44s |
 | Bundle Size   | 619.78KB |
 | Test Files    | 12 (8 unit + 4 Playwright e2e) |
 | Test Cases    | 90 (77 unit + 13 Playwright e2e) |
-| Other coverage | statements / 63.16% branches / 89.41% functions / 91.86% lines | 
+| Other coverage | 88.31% statements / 63.75% branches / 84.13% functions | 
 
 ## Health
 
