@@ -25,6 +25,9 @@
             📊 <span class="tracker-btn-label">Pipeline</span>
             <span id="header-tracker-count" class="count-pill">0 / 0 active</span>
           </button>
+          <button id="header-analytics-btn" class="icon-btn" title="Open application analytics">
+            📈 <span class="tracker-btn-label">Analytics</span>
+          </button>
           <button id="header-ai-btn" class="icon-btn" title="Open the AI settings panel">
             🧠 <span class="tracker-btn-label">AI</span>
           </button>
@@ -407,6 +410,7 @@
           <button id="tracker-clear-filters-btn" class="btn btn-ghost btn-sm" type="button">Clear filters</button>
         </div>
         <div class="tracker-toolbar-actions">
+          <button id="tracker-analytics-btn" class="btn btn-ghost btn-sm" type="button" title="See response rates and timing across your applications">📈 Analytics</button>
           <button id="add-application-btn" class="btn btn-secondary btn-sm">＋ Add manually</button>
           <button id="import-csv-btn" class="btn btn-ghost btn-sm" title="Import prior applications from a CSV file">Import CSV</button>
           <button id="export-csv-btn" class="btn btn-ghost btn-sm">Export CSV</button>
@@ -463,6 +467,21 @@
         <!-- cards injected by JS -->
       </div>
       <p id="tracker-empty" class="empty-msg hidden">No applications tracked yet.</p>
+    </section>
+
+    <!-- Analytics Screen -->
+    <section id="analytics-screen" class="screen hidden">
+      <div class="tracker-header analytics-header">
+        <div>
+          <h2 class="section-title">Application analytics 📈</h2>
+          <p class="helper-text">Aggregate stats from your tracker. Everything is computed locally from saved applications — nothing is sent anywhere.</p>
+        </div>
+        <button id="analytics-refresh-btn" class="btn btn-ghost btn-sm" type="button" title="Recompute from the current tracker data">↻ Refresh</button>
+      </div>
+      <p id="analytics-status" class="status-msg" role="status" aria-live="polite"></p>
+      <div id="analytics-body" class="analytics-body">
+        <p class="empty-msg">Loading analytics…</p>
+      </div>
     </section>
 
     <!-- Preview Screen -->

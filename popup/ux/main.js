@@ -423,6 +423,13 @@ export async function applyInitialRequestedScreen() {
     return;
   }
 
+  if (screen === 'analytics') {
+    const { renderAnalytics } = await import('../analytics/analytics.js');
+    showScreen('analytics');
+    await renderAnalytics();
+    return;
+  }
+
   if (screen === 'setup') {
     showScreen('setup');
     const state = await sendMessage({ type: 'GET_STATE' });

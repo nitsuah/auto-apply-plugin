@@ -8,6 +8,7 @@ import { setStatus } from './state.js';
 const NAV_BTN_MAP = {
   'job-search': 'header-job-search-btn',
   tracker: 'header-tracker-btn',
+  analytics: 'header-analytics-btn',
   ai: 'header-ai-btn',
   setup: 'header-profile-btn',
   help: 'header-help-btn',
@@ -28,6 +29,7 @@ export function showScreen(name) {
     const labels = {
       setup: '• Profile',
       tracker: '• Pipeline',
+      analytics: '• Analytics',
       ai: '• AI',
       help: '• Help',
       preview: '• Preview',

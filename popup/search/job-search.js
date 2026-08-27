@@ -321,7 +321,7 @@ async function saveJobToTracker(jobId, button) {
       payload: {
         company: job.company, title: job.title, url: job.url, status: 'drafted',
         location: job.location, employment_type: job.employment_type, remote: !!job.remote,
-        salary_range: job.salary || '', description: job.description || '',
+        salary_range: job.salary || '', description: job.description || '', source: job.source || '',
         jd_snippet: (job.description || '').slice(0, 300), answers_generated: false, fill_report: null,
       },
     });

@@ -10,6 +10,7 @@ import { initHelpHandlers } from './ux/help.js';
 import { initPreviewHandlers } from './forms/preview.js';
 import { initMemoryHandlers } from './forms/memory.js';
 import { initJobSearchHandlers } from './search/job-search.js';
+import { initAnalyticsHandlers } from './analytics/analytics.js';
 import { initInterviewPrep } from './ux/interview-prep.js';
 import { applyAccessibleNames } from './ux/a11y.js';
 
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initStatusNavHandlers();
   initMemoryHandlers();
   initJobSearchHandlers(showScreen);
+  initAnalyticsHandlers();
   await initInterviewPrep();
 
   // Give every placeholder-only control an accessible name for screen readers.

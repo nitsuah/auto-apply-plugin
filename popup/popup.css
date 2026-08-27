@@ -4170,3 +4170,147 @@ body[data-standalone="true"][data-screen="tracker"] .tracker-summary-note {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Application Analytics Panel --- */
+#analytics-screen {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.analytics-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.analytics-header .helper-text {
+  margin: 4px 0 0;
+  max-width: 62ch;
+}
+
+.analytics-body {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.analytics-section {
+  margin: 0;
+}
+
+.analytics-section .helper-text {
+  margin: 0 0 10px;
+}
+
+/* Top-level summary tiles */
+.analytics-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.analytics-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.analytics-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+.analytics-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.analytics-stat-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Horizontal bar rows shared by the source / salary / timing sections */
+.analytics-bars {
+  display: grid;
+  gap: 6px;
+}
+
+.analytics-bar-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.4fr) minmax(80px, 3fr) 46px 52px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.analytics-bar-label {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analytics-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.analytics-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  min-width: 2px;
+}
+
+.analytics-bar-fill.is-muted {
+  background: var(--text-muted);
+}
+
+.analytics-bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.analytics-bar-meta {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.analytics-facts {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.analytics-facts strong {
+  color: var(--text);
+}
+
+@media (max-width: 620px) {
+  .analytics-bar-row {
+    grid-template-columns: minmax(90px, 1fr) 2fr 42px;
+  }
+
+  .analytics-bar-meta {
+    display: none;
+  }
+}
