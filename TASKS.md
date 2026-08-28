@@ -45,6 +45,15 @@ updated: 2026-06-28
 - User can save jobs to their tracker with one click.
 - Tracker search/indexing is fast and reliable.
 
+### P2 - Tracker Insights
+
+- [x] Surface aggregate analytics from tracked applications.
+  - Priority: P2
+  - Context: the tracker accumulated application records but could not answer which sources were worth the time, whether salary targets cost replies, or how long to wait before assuming a no.
+  - Acceptance Criteria: response rate by source, salary-band effectiveness, and time-to-first-response are visible from the workspace, computed entirely from local storage with no new API calls or permissions.
+  - Progress: shipped the Analytics screen (header nav + tracker toolbar entry points, deep-linkable via `?screen=analytics`). Aggregation lives in `lib/analytics.js` as pure chrome-free functions covered by 16 unit tests. Required closing two storage schema gaps in `lib/tracker.js`: `job.source` was being dropped on save, and no first-response timestamp existed — added a sticky `first_response_at` so progression through interview → offer → rejected does not overwrite the original reply time.
+  - Remaining: historical time-to-response is approximate — entries predating `first_response_at` backfill from `updated_at`, which records when the user moved the card rather than when the employer replied. Accurate going forward only. Salary effectiveness is correlational and currently gives no warning on thin buckets.
+
 ### P3 - Exploratory
 
 - [x] Begin to implement job search results by scraping and searching multiple job pages.

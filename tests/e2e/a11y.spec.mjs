@@ -83,6 +83,18 @@ test.describe('Accessibility audit', () => {
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
+  test('analytics panel should not have any automatically detectable accessibility issues', async () => {
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 1100, height: 780 });
+    await page.goto(`chrome-extension://${extensionId}/popup/popup.html?standalone=1`);
+    await expect(page.locator('.screen:not(.hidden)')).toBeVisible({ timeout: 30000 });
+    await page.locator('#header-analytics-btn').click();
+    await expect(page.locator('#analytics-screen')).toBeVisible({ timeout: 10000 });
+
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
+  });
+
   test('AI settings panel should not have any automatically detectable accessibility issues', async () => {
     const page = await context.newPage();
     await page.setViewportSize({ width: 1100, height: 780 });
