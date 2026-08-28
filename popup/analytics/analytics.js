@@ -10,6 +10,21 @@ import { setStatus } from '../ux/state.js';
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 /**
+ * Replace the panel body with an error state and set the status line.
+ *
+ * Both are needed: leaving the previous render in place would let a stale
+ * set of metrics stay on screen while the status line reports a failure.
+ *
+ * @param {HTMLElement} body The `#analytics-body` container.
+ * @param {string} message Human-readable failure text.
+ * @returns {void}
+ */
+function showLoadError(body, message) {
+  body.innerHTML = `<p class="empty-msg">${esc(message)}</p>`;
+  setStatus('analytics-status', '❌ ' + message, 'error');
+}
+
+/**
  * Render the analytics panel into `#analytics-body`.
  *
  * Reads tracked applications from the service worker and replaces the panel
@@ -30,12 +45,12 @@ export async function renderAnalytics() {
     // caught send errors. Treating that as an empty list would render "no
     // applications yet" over a transport failure.
     if (!resp) {
-      setStatus('analytics-status', '❌ Could not load tracker data.', 'error');
+      showLoadError(body, 'Could not load tracker data.');
       return;
     }
     applications = resp.applications || [];
   } catch (err) {
-    setStatus('analytics-status', '❌ Could not load tracker data: ' + (err?.message || err), 'error');
+    showLoadError(body, 'Could not load tracker data: ' + (err?.message || err));
     return;
   }
 
