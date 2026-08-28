@@ -9,6 +9,16 @@ import { setStatus } from '../ux/state.js';
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
+/**
+ * Render the analytics panel into `#analytics-body`.
+ *
+ * Reads tracked applications from the service worker and replaces the panel
+ * body with the summary, source, salary, and response-time sections. No-ops
+ * when the container is absent (the popup is on another screen).
+ *
+ * @returns {Promise<void>} Resolves once the panel has been rendered, or early
+ *   if the container is missing or tracker data could not be loaded.
+ */
 export async function renderAnalytics() {
   const body = $('analytics-body');
   if (!body) return;
@@ -16,7 +26,14 @@ export async function renderAnalytics() {
   let applications = [];
   try {
     const resp = await sendMessage({ type: 'GET_STATE' });
-    applications = resp?.applications || [];
+    // sendMessage resolves null on timeout, chrome.runtime.lastError, and
+    // caught send errors. Treating that as an empty list would render "no
+    // applications yet" over a transport failure.
+    if (!resp) {
+      setStatus('analytics-status', '❌ Could not load tracker data.', 'error');
+      return;
+    }
+    applications = resp.applications || [];
   } catch (err) {
     setStatus('analytics-status', '❌ Could not load tracker data: ' + (err?.message || err), 'error');
     return;
@@ -181,6 +198,14 @@ function clampPct(value) {
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Wire the analytics entry points (header button and tracker toolbar button).
+ *
+ * Both open the expanded workspace tab when invoked from the popup, falling
+ * back to in-popup rendering when the workspace cannot be opened.
+ *
+ * @returns {void}
+ */
 export function initAnalyticsHandlers() {
   const open = async () => {
     // Analytics is a wide, table-ish view — prefer the expanded workspace tab,
