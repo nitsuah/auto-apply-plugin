@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-22
+updated: 2026-08-28
 ---
 
 # Roadmap
@@ -25,7 +25,13 @@ updated: 2026-08-22
 - [x] Revisit deeper job-fit scoring, verdict assistance, and richer tracker analytics after the storage and review foundations are stable.
 - [x] Run a lightweight `axe` / accessibility audit on popup navigation, labels, contrast, and keyboard flow as the workspace UI settles.
 - [x] **Interview prep mode** — from a saved tracker card, generate a Gemini-backed set of likely behavioral and technical questions tailored to the JD and the user's stored profile, with suggested answer structures pre-filled from memory. Keeps interview prep local-first and zero-upload.
-- [ ] **Application analytics panel** — surface aggregate stats from tracker data: response-rate by source, salary-range effectiveness, and time-to-first-response distribution; gives signal on which boards and bid ranges are yielding callbacks without any external telemetry.
+- [x] **Application analytics panel** — surface aggregate stats from tracker data: response-rate by source, salary-range effectiveness, and time-to-first-response distribution; gives signal on which boards and bid ranges are yielding callbacks without any external telemetry (PR #57). Required closing two storage gaps first: `job.source` was silently dropped on save, and no first-response timestamp existed, so historical response-time data is approximate.
+
+## 2027 Q1 (Proposed)
+
+- [ ] Optional identity-provider imports carried forward from Q4 (still open — see TASKS.md).
+- [ ] **Analytics-informed apply suggestions** — new idea (2026-08-28): once analytics has enough history, surface a one-line nudge on the tracker card itself ("boards like this one respond 2x more often") rather than requiring a trip to the analytics panel. Reuses the same aggregation the panel already computes.
+- [ ] **Response-time accuracy follow-up** — the analytics panel's historical response-time figures are approximate for applications logged before the first-response timestamp existed; consider a one-time backfill pass using each application's stored status-change log where available, or an explicit "approximate" badge on entries predating a chosen cutoff date so the panel doesn't imply more precision than the data supports.
 
 ## Notes
 

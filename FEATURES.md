@@ -66,6 +66,14 @@ Aggregates listings from multiple job boards in one panel so you can discover, f
 - **One-Click Save to Tracker**: Captures any result directly into the application pipeline as a draft with title, company, salary, and description
 - **Plug-and-Play Source Registry**: New boards added in `lib/job-search.js` by appending a single registry entry; no other plumbing required
 
+### 📊 Application Analytics
+
+Aggregate stats computed entirely from local tracker data, with no new API calls or permissions.
+
+- **Response Rate by Source**: Shows which job boards are actually yielding replies, not just applications
+- **Salary-Band Effectiveness**: Correlates target pay range with response rate
+- **Time-to-First-Response Distribution**: Tracks how long employers typically take to reply, using a sticky `first_response_at` timestamp so later status changes (interview → offer → rejected) never overwrite the original reply time. Entries logged before this field existed backfill from `updated_at` and are approximate.
+
 ### ✨ Interview Prep
 
 - **AI Interview Question Generation**: Generates tailored interview questions based on the job description and your profile, with suggested answer structures.
