@@ -95,7 +95,7 @@ export async function handleSaveSetup() {
       resumeRaw,
       resumeMeta,
     },
-  });
+    }, { timeout: 120_000 });
   if (!resp?.success) throw new Error(resp?.error || 'Failed to save profile.');
   return resp;
 }
@@ -110,8 +110,14 @@ async function saveSetupFlow({ requireResume = false } = {}) {
   }
 
   const result = await handleSaveSetup();
-  const state = await sendMessage({ type: 'GET_STATE' });
-  applyStateToSetupForm(state || {});
+  // Refresh the form from saved state. If this fails, don't mask the save
+  // success — the profile was already persisted.
+  try {
+    const state = await sendMessage({ type: 'GET_STATE' });
+    applyStateToSetupForm(state || {});
+  } catch {
+    // Non-fatal: the save already succeeded.
+  }
   return result;
 }
 
@@ -240,11 +246,16 @@ export async function initSetupHandlers() {
   });
 
   $('parse-resume-btn')?.addEventListener('click', async () => {
+    const btn = $('parse-resume-btn');
     try {
+      setStatus('setup-status', '⏳ Parsing resume with AI… this can take up to a minute.', 'working');
+      if (btn) btn.disabled = true;
       await saveSetupFlow({ requireResume: true });
       setStatus('setup-status', '✅ Resume parsed and profile saved!', 'success');
     } catch (err) {
       setStatus('setup-status', '❌ ' + (err.message || 'Failed to save profile'), 'error');
+    } finally {
+      if (btn) btn.disabled = false;
     }
   });
 }

@@ -18,6 +18,8 @@ export async function initInterviewPrep() {
     try {
       await openInterviewPrepForCurrentJob();
     } catch (err) {
+      // Navigate to the screen so the error is visible, then surface it.
+      await showScreen('interview-prep');
       setStatus('interview-prep-status', '❌ ' + err.message, 'error');
     }
   });
@@ -64,9 +66,29 @@ export async function openInterviewPrepForApplication(applicationId) {
 
 export async function openInterviewPrepForCurrentJob() {
   // Try to get the currently active job from the page
-  const resp = await sendToActiveTab({ type: 'GET_JOB_INFO' });
+  let resp;
+  try {
+    resp = await sendToActiveTab({ type: 'GET_JOB_INFO' });
+  } catch {
+    resp = null;
+  }
   if (!resp?.success || !resp.job) {
-    throw new Error('Could not read job details from current page. Open a job posting first.');
+    // No job page detected — show the interview-prep screen with a helpful
+    // empty state instead of failing silently.
+    currentApplicationId = null;
+    generatedQuestions = [];
+    $('interview-prep-company').textContent = 'No job detected';
+    $('interview-prep-title').textContent = 'Open a job posting to prep for it, or pick one from your tracker.';
+    $('interview-prep-meta').textContent = '';
+    const jobInfo = $('interview-prep-job-info');
+    if (jobInfo) jobInfo.classList.remove('hidden');
+    const genBtn = $('interview-prep-generate-btn');
+    if (genBtn) genBtn.disabled = true;
+    const questions = $('interview-prep-questions');
+    if (questions) questions.classList.add('hidden');
+    setStatus('interview-prep-status', 'ℹ️ Open a job posting page, or select a tracked application, to generate interview questions.', '');
+    await showScreen('interview-prep');
+    return;
   }
 
   // Check if this job is already in tracker

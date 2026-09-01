@@ -2100,6 +2100,16 @@ body[data-standalone="true"][data-screen="main"] .screen > * {
   color: var(--accent);
 }
 
+.status-msg.working {
+  color: var(--accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* ── Fill report ── */
 .report-card {
   background: var(--surface);
