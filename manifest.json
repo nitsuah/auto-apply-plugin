@@ -35,9 +35,10 @@
     "https://*.icims.com/*",
     "https://*.jobvite.com/*",
     "https://*.circle.com/*",
-    "https://*.phenompeople.com/*"
-  ],
-  "background": {
+        "https://*.phenompeople.com/*",
+        "https://hackajob.com/*"
+      ],
+      "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"
   },

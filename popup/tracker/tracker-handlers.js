@@ -344,6 +344,9 @@ export function initTrackerHandlers() {
     if (field.dataset.field === 'status') {
       const tone = normalizeApplicationStatus(field.value || 'drafted');
       field.dataset.statusTone = tone;
+      // Capture the previous status BEFORE mutating so saveTrackerCard can
+      // detect a lane change and re-render the card into its new section.
+      card.dataset.prevStatus = card.dataset.status || 'drafted';
       card.dataset.status = tone;
     }
 
@@ -429,7 +432,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
   const id = card?.dataset?.id;
   if (!id) return;
 
-  const previousStatus = card.dataset.status || 'drafted';
+  const previousStatus = card.dataset.prevStatus || card.dataset.status || 'drafted';
   const saveBtn = card.querySelector('.tracker-save-btn');
   const saveState = card.querySelector('.tracker-save-state');
 
@@ -500,6 +503,7 @@ async function saveTrackerCard(card, { showMessage = false } = {}) {
 
     const nextStatus = normalizeApplicationStatus(patch.status);
     card.dataset.status = nextStatus;
+    delete card.dataset.prevStatus;
     card.dataset.sortOrder = String(resp?.entry?.sort_order ?? card.dataset.sortOrder ?? '');
     syncTrackerCardSummary(card, {
       ...patch,

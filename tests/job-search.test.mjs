@@ -17,6 +17,8 @@ import {
   normalizeRemoteCoJob,
   normalizeLinkedInJob,
   normalizeIndeedJob,
+  normalizeHackajobJob,
+  parseHackajobJsonLd,
   parseLinkedInVoyagerResponse,
   dedupeJobs,
   jobMatchesQuery,
@@ -234,7 +236,7 @@ test('resolveActiveSources honors the sources allow-list and availability', () =
 
   // No allow-list → every available (keyless) source.
   const all = resolveActiveSources({}).map((s) => s.id);
-  assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco', 'indeed']);
+    assert.deepEqual(all, ['remotive', 'arbeitnow', 'themuse', 'remoteok', 'jobicy', 'workingnomads', 'hn-hiring', 'weworkremotely', 'remoteco', 'indeed', 'hackajob']);
 });
 
 test('resolveActiveSources allows session sources in explicit selection', () => {
@@ -725,4 +727,82 @@ test('searchJobs includes Indeed as default active source', async () => {
 
   await searchJobs('dev', { fetchImpl });
   assert.ok(queried.includes('indeed'), 'Indeed not queried');
+});
+
+test('normalizeHackajobJob maps JSON-LD JobPosting to common schema', () => {
+  const job = normalizeHackajobJob({
+    '@type': 'JobPosting',
+    title: 'Senior Engineer, Platform Services',
+    description: '<p>Build <b>great</b> things &amp; ship</p>',
+    url: 'https://hackajob.com/job/abc123-senior-engineer',
+    identifier: { '@type': 'PropertyValue', name: 'hackajob', value: 'abc123' },
+    datePosted: '2026-09-01T16:07:03Z',
+    employmentType: 'FULL_TIME',
+    jobLocationType: 'TELECOMMUTE',
+    hiringOrganization: { '@type': 'Organization', name: 'Stord' },
+    applicantLocationRequirements: { '@type': 'Country', name: 'United States' },
+    baseSalary: {
+      '@type': 'MonetaryAmount',
+      currency: 'USD',
+      value: { '@type': 'QuantitativeValue', minValue: 140000, maxValue: 190000, unitText: 'YEAR' },
+    },
+    skills: ['Site Reliability Engineer', 'Product Engineer'],
+  });
+
+  assert.equal(job.id, 'hackajob:abc123');
+  assert.equal(job.title, 'Senior Engineer, Platform Services');
+  assert.equal(job.company, 'Stord');
+  assert.equal(job.location, 'United States');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'Hackajob');
+  assert.equal(job.employment_type, 'Full-time');
+  assert.equal(job.salary, '$140k - $190k');
+  assert.equal(job.salary_min, 140000);
+  assert.equal(job.salary_max, 190000);
+  assert.equal(job.salary_interval, 'yearly');
+  assert.equal(job.posted, '2026-09-01T16:07:03.000Z');
+  assert.deepEqual(job.tags, ['Site Reliability Engineer', 'Product Engineer']);
+  assert.equal(job.description, 'Build great things & ship');
+});
+
+test('normalizeHackajobJob handles hourly salary and missing location', () => {
+  const job = normalizeHackajobJob({
+    title: 'Contract Designer',
+    description: 'Remote contract role',
+    url: 'https://hackajob.com/job/xyz-contract-designer',
+    identifier: { value: 'xyz' },
+    employmentType: 'CONTRACTOR',
+    baseSalary: {
+      currency: 'USD',
+      value: { minValue: 60, maxValue: 80, unitText: 'HOUR' },
+    },
+  });
+
+  assert.equal(job.remote, true);
+  assert.equal(job.employment_type, 'Contract');
+  assert.equal(job.salary, '$60 - $80/hr');
+  assert.equal(job.salary_interval, 'hourly');
+  assert.equal(job.location, 'Remote');
+});
+
+test('parseHackajobJsonLd extracts JobPosting from detail page HTML', () => {
+  const html = `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"JobPosting","title":"Engineer","hiringOrganization":{"name":"Acme"}}</script></head></html>`;
+  const parsed = parseHackajobJsonLd(html);
+  assert.ok(parsed);
+  assert.equal(parsed.title, 'Engineer');
+  assert.equal(parsed.hiringOrganization.name, 'Acme');
+});
+
+test('parseHackajobJsonLd returns null for non-JobPosting or malformed HTML', () => {
+  assert.equal(parseHackajobJsonLd('<html><body>no json</body></html>'), null);
+  assert.equal(parseHackajobJsonLd('<script type="application/ld+json">{"@type":"Organization"}</script>'), null);
+  assert.equal(parseHackajobJsonLd('<script type="application/ld+json">not json</script>'), null);
+});
+
+test('Hackajob source is registered and available by default', () => {
+  const sources = listJobSources({});
+  const hackajob = sources.find((s) => s.id === 'hackajob');
+  assert.ok(hackajob, 'Hackajob source not registered');
+  assert.equal(hackajob.keyless, true);
+  assert.equal(hackajob.available, true);
 });
