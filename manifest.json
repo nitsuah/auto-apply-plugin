@@ -35,10 +35,16 @@
     "https://*.icims.com/*",
     "https://*.jobvite.com/*",
     "https://*.circle.com/*",
-        "https://*.phenompeople.com/*",
-        "https://hackajob.com/*"
-      ],
-      "background": {
+    "https://*.phenompeople.com/*",
+    "https://hackajob.com/*",
+    "https://oauth2.googleapis.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"
   },

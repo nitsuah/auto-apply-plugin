@@ -673,6 +673,30 @@
             </div>
           </div>
 
+          <div class="form-group profile-panel ai-panel-group" id="google-oauth-section">
+            <label for="google-client-id">Profile import — Sign in with Google (optional)</label>
+            <p class="helper-text">Create a free Google Cloud OAuth client, add the redirect URL above to it, paste your Client ID + Secret, then connect to pre-fill your name &amp; email. BYO app, stored locally only — same pattern as LinkedIn above.</p>
+            <input type="text" id="google-client-id" placeholder="Google OAuth Client ID" autocomplete="off" />
+            <input type="password" id="google-client-secret" placeholder="Google OAuth Client Secret" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Create a Google OAuth client →</a>
+            <div class="linkedin-connect-row">
+              <button type="button" id="connect-google-btn" class="btn btn-secondary btn-sm">🔗 Connect Google</button>
+              <span id="google-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
+          <div class="form-group profile-panel ai-panel-group" id="custom-sources-section">
+            <label for="custom-source-name">Custom job sources (optional)</label>
+            <p class="helper-text">Point Job Search at any RSS-based board the built-in list doesn't cover — a state workforce board (e.g. JOBS4TN.gov), an internal careers feed, or any other job RSS URL. Your search terms are appended as a <code>?q=</code> param when the feed doesn't already encode a query. The extension will ask for one-time permission to read that site.</p>
+            <ul id="custom-job-sources-list" class="custom-source-list"></ul>
+            <input type="text" id="custom-source-name" placeholder="Source name (e.g. JOBS4TN)" autocomplete="off" />
+            <input type="url" id="custom-source-url" placeholder="RSS feed URL" autocomplete="off" style="margin-top:8px" />
+            <div class="linkedin-connect-row">
+              <button type="button" id="add-custom-source-btn" class="btn btn-secondary btn-sm">+ Add source</button>
+              <span id="custom-source-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
             <p id="ai-status" class="status-msg" role="status" aria-live="polite"></p>

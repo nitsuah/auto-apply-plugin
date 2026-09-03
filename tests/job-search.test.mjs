@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
 
 import {
   normalizeRemotiveJob,
@@ -20,6 +21,8 @@ import {
   normalizeHackajobJob,
   parseHackajobJsonLd,
   parseLinkedInVoyagerResponse,
+  normalizeCustomRssJob,
+  buildCustomJobSources,
   dedupeJobs,
   jobMatchesQuery,
   detectAtsLabelFromUrl,
@@ -545,6 +548,113 @@ test('normalizeRemoteCoJob — title parsing splits "Role at Company"', () => {
   assert.equal(job.company, 'Stripe');
   assert.equal(job.remote, true);
   assert.equal(job.source, 'remote.co');
+});
+
+test('normalizeCustomRssJob splits "Title at Company" and falls back to the source label', () => {
+  const withCompany = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Program Analyst at Tennessee Department of Labor' },
+        link: { textContent: 'https://jobs4tn.gov/jobs/1' },
+        guid: null,
+        pubDate: { textContent: 'Mon, 02 Jun 2026 10:00:00 +0000' },
+        description: { textContent: 'Remote-eligible state government role.' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job = normalizeCustomRssJob(withCompany, { id: 'custom-jobs4tn', label: 'JOBS4TN' });
+  assert.equal(job.title, 'Program Analyst');
+  assert.equal(job.company, 'Tennessee Department of Labor');
+  assert.equal(job.remote, true);
+  assert.equal(job.source, 'JOBS4TN');
+  assert.equal(job.url, 'https://jobs4tn.gov/jobs/1');
+  assert.equal(job.id, 'custom-jobs4tn:https://jobs4tn.gov/jobs/1');
+
+  const withoutCompany = {
+    querySelector: (sel) => {
+      const data = {
+        title: { textContent: 'Warehouse Associate' },
+        link: { textContent: 'https://jobs4tn.gov/jobs/2' },
+        guid: null,
+        pubDate: { textContent: '' },
+        description: { textContent: 'On-site, Nashville TN.' },
+      };
+      return data[sel] || null;
+    },
+  };
+  const job2 = normalizeCustomRssJob(withoutCompany, { id: 'custom-jobs4tn', label: 'JOBS4TN' });
+  assert.equal(job2.title, 'Warehouse Associate');
+  assert.equal(job2.company, 'JOBS4TN');
+  assert.equal(job2.remote, false);
+});
+
+test('buildCustomJobSources registers user-configured RSS sources as run-able entries', () => {
+  const entries = buildCustomJobSources([
+    { id: 'custom-jobs4tn', label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' },
+    { label: '', url: '' }, // dropped — no url
+  ]);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].id, 'custom-jobs4tn');
+  assert.equal(entries[0].label, 'JOBS4TN');
+  assert.equal(entries[0].keyless, true);
+  assert.equal(entries[0].custom, true);
+  assert.equal(typeof entries[0].run, 'function');
+});
+
+test('buildCustomJobSources derives a stable id from the label when none is given', () => {
+  const entries = buildCustomJobSources([{ label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' }]);
+  assert.equal(entries[0].id, 'custom-jobs4tn');
+});
+
+test('listJobSources and resolveActiveSources include custom sources from config', () => {
+  const config = { customSources: [{ id: 'custom-jobs4tn', label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' }] };
+
+  const sources = listJobSources(config);
+  const custom = sources.find((s) => s.id === 'custom-jobs4tn');
+  assert.ok(custom, 'custom source is listed');
+  assert.equal(custom.available, true);
+  assert.equal(custom.custom, true);
+
+  const active = resolveActiveSources(config).map((s) => s.id);
+  assert.ok(active.includes('custom-jobs4tn'));
+
+  // Without customSources in config, nothing custom appears.
+  assert.equal(listJobSources({}).some((s) => s.custom), false);
+});
+
+test('searchJobs fetches and normalizes results from a custom RSS source', async () => {
+  const rssXml = `<?xml version="1.0"?><rss><channel>
+    <item>
+      <title>Program Analyst at Tennessee Department of Labor</title>
+      <link>https://jobs4tn.gov/jobs/1</link>
+      <pubDate>Mon, 02 Jun 2026 10:00:00 +0000</pubDate>
+      <description>Remote-eligible.</description>
+    </item>
+  </channel></rss>`;
+  const fetchImpl = async (url) => {
+    if (String(url).includes('jobs4tn.gov')) {
+      return { ok: true, text: async () => rssXml };
+    }
+    return { ok: true, json: async () => ({ jobs: [], data: [] }) };
+  };
+  const config = { customSources: [{ id: 'custom-jobs4tn', label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' }] };
+
+  // fetchCustomRssSource parses the RSS body with DOMParser, which Node doesn't
+  // provide natively — install jsdom's implementation for this test only.
+  const originalDomParser = globalThis.DOMParser;
+  globalThis.DOMParser = new JSDOM().window.DOMParser;
+  try {
+    const { jobs, sources } = await searchJobs('analyst', { fetchImpl, config, sources: ['custom-jobs4tn'] });
+    assert.equal(sources.length, 1);
+    assert.equal(sources[0].ok, true);
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].source, 'JOBS4TN');
+    assert.equal(jobs[0].company, 'Tennessee Department of Labor');
+  } finally {
+    if (originalDomParser === undefined) delete globalThis.DOMParser;
+    else globalThis.DOMParser = originalDomParser;
+  }
 });
 
 test('normalizeLinkedInJob — maps entityUrn to id and url, uses companyMap', () => {
