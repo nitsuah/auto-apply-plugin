@@ -725,7 +725,7 @@
           <ul class="legal-list">
             <li><strong>Review before you submit.</strong> The extension only drafts and fills fields. It never submits an application for you — you review every field and click submit yourself.</li>
             <li><strong>You are responsible for accuracy.</strong> Auto-filled and AI-drafted answers are suggestions. You are solely responsible for the truthfulness and content of anything you submit to an employer.</li>
-            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key. Your use of Gemini is governed by Google's terms, not ours.</li>
+            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key; optional extra job sources (Adzuna, USAJOBS, Reed, Jooble, and any custom RSS source you add) and the optional LinkedIn/Google profile import run through your own credentials. Your use of those third-party services is governed by their terms, not ours.</li>
             <li><strong>No warranty.</strong> The extension is provided "as is", without warranty of any kind. To the maximum extent permitted by law, the authors are not liable for any damages, lost opportunities, or rejected applications arising from its use.</li>
             <li><strong>Acceptable use.</strong> Don't use the extension to submit fraudulent applications or to violate the terms of any job board or ATS.</li>
             <li><strong>Open source.</strong> The extension is distributed under its repository license; that license governs the software itself.</li>
@@ -736,10 +736,10 @@
           <h3>Privacy Policy</h3>
           <p class="help-lead"><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
           <ul class="legal-list">
-            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
-            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, autofill is fully on-device and sends nothing.</li>
+            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and any keys/credentials you add are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
+            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional network action: AI help (resume parsing, answer drafting, JD summarize/clean-up) sends the relevant text <em>directly from your browser</em> to Google's Gemini API using your own key; Job Search sends your search query to whichever sources you have enabled (keyless boards, your keyed sources, or any custom RSS source you've added); LinkedIn/Google profile import sends an OAuth handshake to that provider using your own app credentials. Without a Gemini key, autofill is fully on-device and sends nothing.</li>
             <li><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</li>
-            <li><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key.</li>
+            <li><strong>Third parties.</strong> Only the services above can receive your data, and only for requests you explicitly initiate with your own credentials.</li>
             <li><strong>No tracking.</strong> No analytics, advertising, tracking, or telemetry of any kind.</li>
           </ul>
         </div>

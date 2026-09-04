@@ -71,7 +71,7 @@ apply-workspace/
 │   ├── jd-parser.js       # JD extraction helpers
 │   ├── form-filler.js     # Shared form-fill logic (lib copy)
 │   ├── job-search.js      # Multi-source job search registry
-│   ├── oauth.js           # LinkedIn OAuth / OIDC flow
+│   ├── oauth.js           # LinkedIn + Google OAuth / OIDC flows
 │   ├── tracker.js         # Application tracking storage
 │   └── utils.js           # Shared lib utilities
 ├── data/
@@ -100,7 +100,7 @@ apply-workspace/
 ## Screenshots
 
 > Maintenance note: after any significant popup, tracker, or profile UI update, regenerate these images so the README stays current.
-> Last refreshed: 2026-06-28 (manual QA closeout)
+> Last refreshed: 2026-09-02 (Google OAuth + custom job sources panels added to AI settings)
 
 ### Main dashboard
 
@@ -118,7 +118,7 @@ apply-workspace/
 
 ## Job Search
 
-Click **🔍 Search** in the header to open the job search panel. Results are pulled from up to **14 sources** and deduplicated automatically.
+Click **🔍 Search** in the header to open the job search panel. Results are pulled from up to **16 built-in sources** (plus any custom RSS sources you add) and deduplicated automatically.
 
 ### Keyless sources (always on)
 
@@ -134,6 +134,13 @@ Click **🔍 Search** in the header to open the job search panel. Results are pu
 | We Work Remotely | Large curated remote jobs board |
 | remote.co | Vetted remote positions across categories |
 
+### Always-available sources (no key or session needed)
+
+| Source | Coverage |
+|--------|----------|
+| Indeed | RSS-based search across Indeed's listings |
+| Hackajob | Tech-focused UK/EU roles, scraped from the public sitemap + job-posting metadata |
+
 ### Session-based sources (active when you're signed in)
 
 | Source | How it works |
@@ -148,6 +155,10 @@ Click **🔍 Search** in the header to open the job search panel. Results are pu
 | USAJOBS | All US federal government positions | [developer.usajobs.gov](https://developer.usajobs.gov/apirequest/) |
 | Reed | Major UK job board | [reed.co.uk/developers](https://www.reed.co.uk/developers/jobseeker) |
 | Jooble | Global aggregator (190+ countries) | [jooble.org/api/about](https://jooble.org/api/about) |
+
+### Custom job sources (bring your own RSS feed)
+
+Add any RSS-based job board from **AI settings → Custom job sources** — a state workforce board (e.g. [JOBS4TN.gov](https://www.jobs4tn.gov/)), an internal careers feed, or any niche board with an RSS endpoint. Your search terms are appended as a `?q=` param when the feed doesn't already encode a query. The extension asks for one-time permission to read that specific site rather than requesting broad site access up front.
 
 ### Filters
 
@@ -232,7 +243,7 @@ Company,Role Title,Status,Date,Employment Type,Remote,Location,Pay Min,Pay Max,S
 ## Privacy
 
 - Your resume and API key are stored **only** in your local browser storage.
-- External network calls happen **only** for actions you trigger (AI help with your Gemini key; optional job-search sources / LinkedIn profile import with your own credentials).
+- External network calls happen **only** for actions you trigger (AI help with your Gemini key; optional job-search sources including any custom RSS source you add / LinkedIn or Google profile import with your own OAuth credentials).
 - No servers, no accounts, no telemetry.
 
 See **[docs/PRIVACY.md](docs/PRIVACY.md)** for the full Terms of Use (EULA), Privacy Policy, Security posture, and your GDPR/CCPA data rights — the same content shown in the app's **Help & privacy** panel.
@@ -244,7 +255,7 @@ See **[docs/PRIVACY.md](docs/PRIVACY.md)** for the full Terms of Use (EULA), Pri
 All checks run via Docker — no local Node.js required.
 
 ```bash
-# Unit tests (77 unit tests + 13 Playwright e2e, no browser needed for unit)
+# Unit tests (106 unit tests + 14 Playwright e2e, no browser needed for unit)
 docker compose -f config/docker-compose.yml run --rm test
 
 # Lint
