@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-28
+updated: 2026-09-02
 ---
 
 # Tasks
@@ -37,7 +37,9 @@ updated: 2026-08-28
   - Remaining: on-ATS-page detail parsing depth, tracker-side indexing enhancements, OAuth job source once a partner API is available.
 
 - [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
-- [ ] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
+  - Deferred to ROADMAP.md 2027 Q1 (2026-09-02): no currently-integrated board exposes a consumer OAuth job-search/personalization API — LinkedIn's is enterprise-partner-gated, Indeed's public API doesn't personalize per-user. This is distinct from OAuth *profile import* (shipped for LinkedIn + Google) and needs a partner API this local-first, no-backend extension doesn't have yet.
+- [x] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
+  - Progress (2026-09-02): shipped custom RSS job sources — add a name + RSS feed URL from the AI settings panel (`lib/job-search.js`: `normalizeCustomRssJob`, `buildCustomJobSources`), merged into the same registry as built-in boards so they get filter chips, dedupe, and pay filtering for free. Search criteria live in the feed URL itself (most RSS boards accept query params) rather than a separate criteria UI. Fetching an arbitrary user-supplied origin required adding `optional_host_permissions` + a `chrome.permissions.request()` prompt scoped to just that origin, so the extension doesn't need a blanket "read all sites" permission.
 
 #### Acceptance Criteria
 - User can search jobs from multiple sources in one panel.

@@ -1139,6 +1139,47 @@ textarea {
   flex-wrap: wrap;
 }
 
+/* Custom job sources (user-configured RSS boards) */
+.custom-source-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-source-list:empty {
+  display: none;
+}
+
+.custom-source-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 4px;
+  padding: 4px 6px 4px 10px;
+  font-size: 11px;
+}
+
+.custom-source-item-label {
+  font-weight: 600;
+}
+
+.custom-source-item-url {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-source-remove-btn {
+  flex-shrink: 0;
+}
+
 /* ── Resume tabs ── */
 .resume-tabs {
   display: flex;

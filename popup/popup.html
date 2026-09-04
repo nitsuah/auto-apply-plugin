@@ -673,6 +673,30 @@
             </div>
           </div>
 
+          <div class="form-group profile-panel ai-panel-group" id="google-oauth-section">
+            <label for="google-client-id">Profile import — Sign in with Google (optional)</label>
+            <p class="helper-text">Create a free Google Cloud OAuth client, add the redirect URL above to it, paste your Client ID + Secret, then connect to pre-fill your name &amp; email. BYO app, stored locally only — same pattern as LinkedIn above.</p>
+            <input type="text" id="google-client-id" placeholder="Google OAuth Client ID" autocomplete="off" />
+            <input type="password" id="google-client-secret" placeholder="Google OAuth Client Secret" autocomplete="off" style="margin-top:8px" />
+            <a class="hint-link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Create a Google OAuth client →</a>
+            <div class="linkedin-connect-row">
+              <button type="button" id="connect-google-btn" class="btn btn-secondary btn-sm">🔗 Connect Google</button>
+              <span id="google-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
+          <div class="form-group profile-panel ai-panel-group" id="custom-sources-section">
+            <label for="custom-source-name">Custom job sources (optional)</label>
+            <p class="helper-text">Point Job Search at any RSS-based board the built-in list doesn't cover — a state workforce board (e.g. JOBS4TN.gov), an internal careers feed, or any other job RSS URL. Your search terms are appended as a <code>?q=</code> param when the feed doesn't already encode a query. The extension will ask for one-time permission to read that site.</p>
+            <ul id="custom-job-sources-list" class="custom-source-list"></ul>
+            <input type="text" id="custom-source-name" placeholder="Source name (e.g. JOBS4TN)" autocomplete="off" />
+            <input type="url" id="custom-source-url" placeholder="RSS feed URL" autocomplete="off" style="margin-top:8px" />
+            <div class="linkedin-connect-row">
+              <button type="button" id="add-custom-source-btn" class="btn btn-secondary btn-sm">+ Add source</button>
+              <span id="custom-source-status" class="status-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+
           <div class="profile-save-bar ai-save-bar">
             <button id="save-ai-settings-btn" class="btn btn-primary btn-full">Save AI settings</button>
             <p id="ai-status" class="status-msg" role="status" aria-live="polite"></p>
@@ -701,7 +725,7 @@
           <ul class="legal-list">
             <li><strong>Review before you submit.</strong> The extension only drafts and fills fields. It never submits an application for you — you review every field and click submit yourself.</li>
             <li><strong>You are responsible for accuracy.</strong> Auto-filled and AI-drafted answers are suggestions. You are solely responsible for the truthfulness and content of anything you submit to an employer.</li>
-            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key. Your use of Gemini is governed by Google's terms, not ours.</li>
+            <li><strong>Bring your own key (BYOK).</strong> Optional AI features run through <em>your own</em> Google Gemini API key; optional extra job sources (Adzuna, USAJOBS, Reed, Jooble, and any custom RSS source you add) and the optional LinkedIn/Google profile import run through your own credentials. Your use of those third-party services is governed by their terms, not ours.</li>
             <li><strong>No warranty.</strong> The extension is provided "as is", without warranty of any kind. To the maximum extent permitted by law, the authors are not liable for any damages, lost opportunities, or rejected applications arising from its use.</li>
             <li><strong>Acceptable use.</strong> Don't use the extension to submit fraudulent applications or to violate the terms of any job board or ATS.</li>
             <li><strong>Open source.</strong> The extension is distributed under its repository license; that license governs the software itself.</li>
@@ -712,10 +736,10 @@
           <h3>Privacy Policy</h3>
           <p class="help-lead"><strong>We run no servers and operate no backend.</strong> There is no Apply Workspace account, and your data is never sent to us — we have no way to receive, store, or see it.</p>
           <ul class="legal-list">
-            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and your Gemini API key are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
-            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional AI action (resume parsing or answer drafting). In that case the relevant text is sent <em>directly from your browser</em> to Google's Gemini API using your own key, solely to fulfill that request. Without a key, autofill is fully on-device and sends nothing.</li>
+            <li><strong>What is stored, and where.</strong> Your profile, resume preview, saved answer defaults ("memory"), application tracker, settings, and any keys/credentials you add are stored only in your browser's local extension storage (<code>chrome.storage.local</code>) on this device/profile. Nothing syncs to the cloud.</li>
+            <li><strong>What leaves your device.</strong> Data leaves only when you trigger an optional network action: AI help (resume parsing, answer drafting, JD summarize/clean-up) sends the relevant text <em>directly from your browser</em> to Google's Gemini API using your own key; Job Search sends your search query to whichever sources you have enabled (keyless boards, your keyed sources, or any custom RSS source you've added); LinkedIn/Google profile import sends an OAuth handshake to that provider using your own app credentials. Without a Gemini key, autofill is fully on-device and sends nothing.</li>
             <li><strong>Sensitive / demographic fields</strong> (race, gender, veteran, disability) are opt-in, stored locally only, and are never included in AI requests.</li>
-            <li><strong>Third parties.</strong> The only third party that can receive your data is Google (Gemini), and only for requests you initiate with your own key.</li>
+            <li><strong>Third parties.</strong> Only the services above can receive your data, and only for requests you explicitly initiate with your own credentials.</li>
             <li><strong>No tracking.</strong> No analytics, advertising, tracking, or telemetry of any kind.</li>
           </ul>
         </div>
