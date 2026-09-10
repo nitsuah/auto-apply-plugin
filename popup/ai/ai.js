@@ -63,11 +63,22 @@ function escAttr(value) {
   return escHtml(value);
 }
 
-async function persistCustomJobSources() {
-  await sendMessage({ type: 'SAVE_SETTINGS_ONLY', payload: { settings: { custom_job_sources: customJobSources } } });
+/**
+ * Persist a candidate custom-sources list and throw unless the save actually
+ * succeeded. `sendMessage` resolves `null` (not a rejection) on a runtime
+ * error or timeout, so callers must check `success` themselves rather than
+ * relying on a thrown error to catch a failed save.
+ * @param {Array<{id:string,label:string,url:string}>} nextSources
+ */
+async function persistCustomJobSources(nextSources) {
+  const resp = await sendMessage({ type: 'SAVE_SETTINGS_ONLY', payload: { settings: { custom_job_sources: nextSources } } });
+  // Leave the message blank (rather than a generic default) on an
+  // unsuccessful/null response so each caller's own catch block can supply
+  // context-appropriate fallback text ("save" vs. "remove").
+  if (!resp?.success) throw new Error(resp?.error || '');
 }
 
-async function addCustomJobSource() {
+export async function addCustomJobSource() {
   const nameInput = $('custom-source-name');
   const urlInput = $('custom-source-url');
   const name = nameInput?.value.trim() || '';
@@ -79,7 +90,12 @@ async function addCustomJobSource() {
 
   let origin;
   try {
-    origin = `${new URL(url).origin}/*`;
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') {
+      setStatus('custom-source-status', '❌ Custom source URLs must use https:// — search terms are sent as a plaintext query string.', 'error');
+      return;
+    }
+    origin = `${parsed.origin}/*`;
   } catch {
     setStatus('custom-source-status', '❌ That doesn’t look like a valid URL.', 'error');
     return;
@@ -99,25 +115,25 @@ async function addCustomJobSource() {
   }
 
   const id = `custom-${slugify(name)}-${Date.now().toString(36)}`;
-  customJobSources.push({ id, label: name, url });
+  const next = [...customJobSources, { id, label: name, url }];
   try {
-    await persistCustomJobSources();
+    await persistCustomJobSources(next);
+    customJobSources = next;
     if (nameInput) nameInput.value = '';
     if (urlInput) urlInput.value = '';
     renderCustomJobSourcesList(customJobSources);
     setStatus('custom-source-status', `✅ Added "${name}".`, 'success');
   } catch (err) {
-    customJobSources.pop();
     setStatus('custom-source-status', '❌ ' + (err?.message || 'Failed to save custom source.'), 'error');
   }
 }
 
-async function removeCustomJobSource(id) {
-  const next = customJobSources.filter((s) => s.id !== id);
+export async function removeCustomJobSource(id) {
   const removed = customJobSources.find((s) => s.id === id);
-  customJobSources = next;
+  const next = customJobSources.filter((s) => s.id !== id);
   try {
-    await persistCustomJobSources();
+    await persistCustomJobSources(next);
+    customJobSources = next;
     renderCustomJobSourcesList(customJobSources);
     setStatus('custom-source-status', `Removed "${removed?.label || id}".`, '');
   } catch (err) {

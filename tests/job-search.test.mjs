@@ -604,7 +604,30 @@ test('buildCustomJobSources registers user-configured RSS sources as run-able en
 
 test('buildCustomJobSources derives a stable id from the label when none is given', () => {
   const entries = buildCustomJobSources([{ label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' }]);
-  assert.equal(entries[0].id, 'custom-jobs4tn');
+  assert.match(entries[0].id, /^custom-jobs4tn-/);
+
+  const again = buildCustomJobSources([{ label: 'JOBS4TN', url: 'https://jobs4tn.gov/rss' }]);
+  assert.equal(again[0].id, entries[0].id, 'the derived id is stable across calls for the same input');
+});
+
+test('buildCustomJobSources gives same-label sources distinct ids when their URLs differ', () => {
+  const entries = buildCustomJobSources([
+    { label: 'Jobs', url: 'https://a.example/rss' },
+    { label: 'Jobs', url: 'https://b.example/rss' },
+  ]);
+  assert.equal(entries.length, 2);
+  assert.notEqual(entries[0].id, entries[1].id, 'same-label sources with different URLs must not collide');
+  assert.match(entries[0].id, /^custom-jobs-/);
+  assert.match(entries[1].id, /^custom-jobs-/);
+});
+
+test('buildCustomJobSources drops non-https custom source URLs', () => {
+  const entries = buildCustomJobSources([
+    { id: 'custom-insecure', label: 'Insecure', url: 'http://insecure.example/rss' },
+    { id: 'custom-secure', label: 'Secure', url: 'https://secure.example/rss' },
+    { id: 'custom-bogus', label: 'Bogus', url: 'not a url' },
+  ]);
+  assert.deepEqual(entries.map((e) => e.id), ['custom-secure']);
 });
 
 test('listJobSources and resolveActiveSources include custom sources from config', () => {

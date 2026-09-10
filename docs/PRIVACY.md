@@ -103,8 +103,11 @@ any kind.
 
 - **Data at rest:** stored in the browser's per-profile extension storage,
   protected by the browser's and operating system's user-account isolation.
-- **Data in transit:** all third-party calls are over HTTPS to the providers'
-  official API endpoints.
+- **Data in transit:** all third-party calls are over HTTPS. Built-in job
+  boards and integrations use the providers' official API endpoints; a
+  custom RSS source is whatever URL you add, and the extension requires it
+  to be `https://` — non-HTTPS custom source URLs are rejected before any
+  request is made, since the search query is sent as a plaintext GET param.
 - **Credentials:** API keys and OAuth client secrets are stored locally and used
   only to authenticate the requests you trigger. They are never sent to us.
 - **Permissions:** the extension requests only the host permissions needed to

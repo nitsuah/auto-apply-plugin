@@ -56,6 +56,11 @@ updated: 2026-09-02
   - Progress: shipped the Analytics screen (header nav + tracker toolbar entry points, deep-linkable via `?screen=analytics`). Aggregation lives in `lib/analytics.js` as pure chrome-free functions covered by 16 unit tests. Required closing two storage schema gaps in `lib/tracker.js`: `job.source` was being dropped on save, and no first-response timestamp existed — added a sticky `first_response_at` so progression through interview → offer → rejected does not overwrite the original reply time.
   - Remaining: historical time-to-response is approximate — entries predating `first_response_at` backfill from `updated_at`, which records when the user moved the card rather than when the employer replied. Accurate going forward only. Salary effectiveness is correlational and currently gives no warning on thin buckets.
 
+- [ ] Resolve the Google OAuth client-registration contract for `handleGoogleConnect` (`lib/oauth.js:55-57`, `background/service-worker.js:344-346`).
+  - Priority: P2
+  - Context: `launchWebAuthFlow` + `chrome.identity.getRedirectURL()` produces an `https://<extension-id>.chromiumapp.org/` redirect, which is not the loopback redirect a Google **Desktop app** OAuth client expects — users who create the documented Desktop/Chrome-app client type can hit `redirect_uri_mismatch`. Flagged by CodeRabbit as CWE-associated (functional correctness / heavy lift); not fixed inline because the actual correct answer depends on a decision made outside this repo (which Google Cloud client type + redirect strategy this extension asks users to register), not a pure code change.
+  - Acceptance Criteria: either (a) document that users must register a **Web application** client type with `https://<extension-id>.chromiumapp.org/` as an authorized redirect URI (matches how `launchWebAuthFlow` already behaves — likely the smaller change), or (b) switch the flow to a redirect strategy compatible with the currently-documented Desktop client type. Whichever is chosen, `docs/` setup instructions and the two call sites above must agree.
+
 ### P3 - Exploratory
 
 - [x] Begin to implement job search results by scraping and searching multiple job pages.
