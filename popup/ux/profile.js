@@ -14,6 +14,7 @@ import {
   renderResumeAttachment,
   syncDemoChips,
 } from '../forms/forms.js';
+import { renderCustomJobSourcesList } from '../ai/ai.js';
 
 // Re-export for consumers
 export { readSettingsForm };
@@ -48,6 +49,9 @@ export function applyStateToSetupForm(state = {}) {
   set('jooble-api-key', settings.jooble_api_key || '');
   set('linkedin-client-id', settings.linkedin_client_id || '');
   set('linkedin-client-secret', settings.linkedin_client_secret || '');
+  set('google-client-id', settings.google_client_id || '');
+  set('google-client-secret', settings.google_client_secret || '');
+  renderCustomJobSourcesList(settings.custom_job_sources || []);
   const privacyConsent = $('privacy-consent');
   if (privacyConsent) privacyConsent.checked = settings.privacy_consent === true;
 

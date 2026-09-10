@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-28
+updated: 2026-09-02
 ---
 
 # Tasks
@@ -37,7 +37,9 @@ updated: 2026-08-28
   - Remaining: on-ATS-page detail parsing depth, tracker-side indexing enhancements, OAuth job source once a partner API is available.
 
 - [ ] Plan for future: OAuth or user sign-in for personalized job search (if API supports it).
-- [ ] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
+  - Deferred to ROADMAP.md 2027 Q1 (2026-09-02): no currently-integrated board exposes a consumer OAuth job-search/personalization API — LinkedIn's is enterprise-partner-gated, Indeed's public API doesn't personalize per-user. This is distinct from OAuth *profile import* (shipped for LinkedIn + Google) and needs a partner API this local-first, no-backend extension doesn't have yet.
+- [x] Plan for future: user-configured job sources like unemployment offices (JOBS4TN.gov) and search criteria.
+  - Progress (2026-09-02): shipped custom RSS job sources — add a name + RSS feed URL from the AI settings panel (`lib/job-search.js`: `normalizeCustomRssJob`, `buildCustomJobSources`), merged into the same registry as built-in boards so they get filter chips, dedupe, and pay filtering for free. Search criteria live in the feed URL itself (most RSS boards accept query params) rather than a separate criteria UI. Fetching an arbitrary user-supplied origin required adding `optional_host_permissions` + a `chrome.permissions.request()` prompt scoped to just that origin, so the extension doesn't need a blanket "read all sites" permission.
 
 #### Acceptance Criteria
 - User can search jobs from multiple sources in one panel.
@@ -53,6 +55,11 @@ updated: 2026-08-28
   - Acceptance Criteria: response rate by source, salary-band effectiveness, and time-to-first-response are visible from the workspace, computed entirely from local storage with no new API calls or permissions.
   - Progress: shipped the Analytics screen (header nav + tracker toolbar entry points, deep-linkable via `?screen=analytics`). Aggregation lives in `lib/analytics.js` as pure chrome-free functions covered by 16 unit tests. Required closing two storage schema gaps in `lib/tracker.js`: `job.source` was being dropped on save, and no first-response timestamp existed — added a sticky `first_response_at` so progression through interview → offer → rejected does not overwrite the original reply time.
   - Remaining: historical time-to-response is approximate — entries predating `first_response_at` backfill from `updated_at`, which records when the user moved the card rather than when the employer replied. Accurate going forward only. Salary effectiveness is correlational and currently gives no warning on thin buckets.
+
+- [ ] Resolve the Google OAuth client-registration contract for `handleGoogleConnect` (`lib/oauth.js:55-57`, `background/service-worker.js:344-346`).
+  - Priority: P2
+  - Context: `launchWebAuthFlow` + `chrome.identity.getRedirectURL()` produces an `https://<extension-id>.chromiumapp.org/` redirect, which is not the loopback redirect a Google **Desktop app** OAuth client expects — users who create the documented Desktop/Chrome-app client type can hit `redirect_uri_mismatch`. Flagged by CodeRabbit as CWE-associated (functional correctness / heavy lift); not fixed inline because the actual correct answer depends on a decision made outside this repo (which Google Cloud client type + redirect strategy this extension asks users to register), not a pure code change.
+  - Acceptance Criteria: either (a) document that users must register a **Web application** client type with `https://<extension-id>.chromiumapp.org/` as an authorized redirect URI (matches how `launchWebAuthFlow` already behaves — likely the smaller change), or (b) switch the flow to a redirect strategy compatible with the currently-documented Desktop client type. Whichever is chosen, `docs/` setup instructions and the two call sites above must agree.
 
 ### P3 - Exploratory
 

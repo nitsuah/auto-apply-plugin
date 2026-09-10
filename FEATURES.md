@@ -50,6 +50,7 @@ Designed so the user stays in control of all data without relying on any externa
 ### 🔗 Profile Import
 
 - **LinkedIn OAuth Import**: BYO LinkedIn app Client ID/Secret; launches OIDC sign-in to pre-fill name and email into the profile (local-only, consent-based)
+- **Google OAuth Import**: BYO Google Cloud OAuth Client ID/Secret; same local-only, consent-based OIDC sign-in flow as LinkedIn, pre-fills name and email
 - **Resume Upload**: Supports PDF, DOCX, and plain-text paste; parsed locally via Gemini if a key is present
 - **CSV Tracker Import**: Import past applications from any spreadsheet export using flexible header matching
 - **LinkedIn Session Scraping**: When signed into LinkedIn in any browser tab, the extension can search LinkedIn Jobs via the Voyager API using your active session — no separate API key needed
@@ -58,13 +59,14 @@ Designed so the user stays in control of all data without relying on any externa
 
 Aggregates listings from multiple job boards in one panel so you can discover, filter, and save jobs without leaving the extension.
 
-- **15 Job Sources**: Nine keyless boards active by default (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads, HN Who's Hiring, We Work Remotely, remote.co); four BYOK keyed sources (Adzuna, USAJOBS, Reed, Jooble); Indeed (RSS-based, always available); LinkedIn session source (active when signed into LinkedIn in any tab)
+- **16 Built-in Job Sources**: Nine keyless boards active by default (Remotive, Arbeitnow, The Muse, Remote OK, Jobicy, Working Nomads, HN Who's Hiring, We Work Remotely, remote.co); four BYOK keyed sources (Adzuna, USAJOBS, Reed, Jooble); Indeed and Hackajob (always available, no key); LinkedIn session source (active when signed into LinkedIn in any tab)
+- **Custom RSS Job Sources**: Add any RSS-based board the built-in list doesn't cover — state workforce boards (e.g. JOBS4TN.gov), internal careers feeds, niche boards — from the AI settings panel. Merges into the same registry as built-in sources, so custom boards get filter chips, dedupe, and pay filtering automatically. Adding one requests one-time permission to read that origin rather than broadening the extension's default site access.
 - **Source Confidence Hints**: Each search result card shows a confidence indicator reflecting the reliability and data completeness of its source board; helps prioritize high-signal listings at a glance
 - **Per-Source Filter Chips**: Toggle individual sources on/off; locked chips route to the AI settings panel to configure keys
 - **Pay Filter with Hide-Unknown Toggle**: Annual/hourly dual-slider with an explicit checkbox to hide jobs without a published salary range
 - **Remote, Type, and Location Filters**: Narrow results by work mode, employment type, and region (USA / Europe / Remote / Other)
 - **One-Click Save to Tracker**: Captures any result directly into the application pipeline as a draft with title, company, salary, and description
-- **Plug-and-Play Source Registry**: New boards added in `lib/job-search.js` by appending a single registry entry; no other plumbing required
+- **Plug-and-Play Source Registry**: New built-in boards added in `lib/job-search.js` by appending a single registry entry; no other plumbing required
 
 ### 📊 Application Analytics
 

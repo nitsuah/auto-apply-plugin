@@ -5,6 +5,9 @@ import {
   mapLinkedInProfileToFields,
   buildLinkedInAuthUrl,
   LINKEDIN_AUTH_URL,
+  mapGoogleProfileToFields,
+  buildGoogleAuthUrl,
+  GOOGLE_AUTH_URL,
 } from '../lib/oauth.js';
 
 test('mapLinkedInProfileToFields reads name/email and a string locale', () => {
@@ -42,6 +45,45 @@ test('buildLinkedInAuthUrl includes OIDC params and encodes the redirect', () =>
   const params = new URL(url).searchParams;
   assert.equal(params.get('response_type'), 'code');
   assert.equal(params.get('client_id'), 'abc123');
+  assert.equal(params.get('redirect_uri'), 'https://ext-id.chromiumapp.org/');
+  assert.equal(params.get('state'), 'xyz');
+  assert.equal(params.get('scope'), 'openid profile email');
+});
+
+test('mapGoogleProfileToFields reads the flat OIDC userinfo shape', () => {
+  const fields = mapGoogleProfileToFields({
+    name: 'Ada Lovelace',
+    email: 'ada@example.com',
+    locale: 'en',
+    picture: 'https://cdn/pic.jpg',
+  });
+  assert.equal(fields.full_name, 'Ada Lovelace');
+  assert.equal(fields.email, 'ada@example.com');
+  assert.equal(fields.locale, 'en');
+  assert.equal(fields.picture, 'https://cdn/pic.jpg');
+});
+
+test('mapGoogleProfileToFields composes name parts when no display name is present', () => {
+  const fields = mapGoogleProfileToFields({
+    given_name: 'Grace',
+    family_name: 'Hopper',
+    email: 'grace@navy.mil',
+  });
+  assert.equal(fields.full_name, 'Grace Hopper');
+  assert.equal(fields.locale, '');
+  assert.equal(fields.picture, '');
+});
+
+test('buildGoogleAuthUrl includes OIDC params and encodes the redirect', () => {
+  const url = buildGoogleAuthUrl({
+    clientId: 'abc123.apps.googleusercontent.com',
+    redirectUri: 'https://ext-id.chromiumapp.org/',
+    state: 'xyz',
+  });
+  assert.ok(url.startsWith(GOOGLE_AUTH_URL + '?'));
+  const params = new URL(url).searchParams;
+  assert.equal(params.get('response_type'), 'code');
+  assert.equal(params.get('client_id'), 'abc123.apps.googleusercontent.com');
   assert.equal(params.get('redirect_uri'), 'https://ext-id.chromiumapp.org/');
   assert.equal(params.get('state'), 'xyz');
   assert.equal(params.get('scope'), 'openid profile email');
